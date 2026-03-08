@@ -49,7 +49,7 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
               return Tooltip(
                 message: 'View details for ${asset.name}',
                 child: ListTile(
-                  hoverColor: Colors.deepPurple.withOpacity(0.1),
+                  hoverColor: Colors.deepPurple.withValues(alpha: 0.1),
                   leading: Icon(getIconData(assetType.icon)),
                   title: Text(asset.name),
                   subtitle: Text(assetType.name),

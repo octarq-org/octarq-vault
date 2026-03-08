@@ -131,7 +131,7 @@ class _AssetTypeFormScreenState extends ConsumerState<AssetTypeFormScreen> {
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'Icon'),
-              value: _selectedIcon,
+              initialValue: _selectedIcon,
               items: ['widgets', 'language', 'storage', 'email', 'person', 'credit_card', 'vpn_key', 'cloud', 'security']
                   .map((icon) => DropdownMenuItem(value: icon, child: Row(children: [Icon(getIconData(icon)), const SizedBox(width: 8), Text(icon)])))
                   .toList(),
@@ -181,7 +181,7 @@ class _AssetTypeFormScreenState extends ConsumerState<AssetTypeFormScreen> {
                           Expanded(
                             child: DropdownButtonFormField<String>(
                               decoration: const InputDecoration(labelText: 'Data Type'),
-                              value: field.type,
+                              initialValue: field.type,
                               items: ['text', 'password', 'number', 'date']
                                   .map((t) => DropdownMenuItem(value: t, child: Text(t.toUpperCase())))
                                   .toList(),

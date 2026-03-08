@@ -4,7 +4,7 @@ part 'asset_type.freezed.dart';
 part 'asset_type.g.dart';
 
 @freezed
-class AssetTypeFieldSchema with _$AssetTypeFieldSchema {
+abstract class AssetTypeFieldSchema with _$AssetTypeFieldSchema {
   const factory AssetTypeFieldSchema({
     required String key,
     required String label,
@@ -17,7 +17,7 @@ class AssetTypeFieldSchema with _$AssetTypeFieldSchema {
 }
 
 @freezed
-class AssetType with _$AssetType {
+abstract class AssetType with _$AssetType {
   const factory AssetType({
     required String id,
     required String name,

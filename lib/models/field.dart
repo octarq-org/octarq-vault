@@ -4,7 +4,7 @@ part 'field.freezed.dart';
 part 'field.g.dart';
 
 @freezed
-class AssetField with _$AssetField {
+abstract class AssetField with _$AssetField {
   const factory AssetField({
     required String id,
     required String assetId,

@@ -6,7 +6,7 @@ part of 'asset.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$AssetImpl _$$AssetImplFromJson(Map<String, dynamic> json) => _$AssetImpl(
+_Asset _$AssetFromJson(Map<String, dynamic> json) => _Asset(
   id: json['id'] as String,
   typeId: json['typeId'] as String,
   name: json['name'] as String,
@@ -31,16 +31,15 @@ _$AssetImpl _$$AssetImplFromJson(Map<String, dynamic> json) => _$AssetImpl(
       const [],
 );
 
-Map<String, dynamic> _$$AssetImplToJson(_$AssetImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'typeId': instance.typeId,
-      'name': instance.name,
-      'expireAt': instance.expireAt,
-      'createdAt': instance.createdAt,
-      'updatedAt': instance.updatedAt,
-      'isArchived': instance.isArchived,
-      'fields': instance.fields,
-      'tags': instance.tags,
-      'reminders': instance.reminders,
-    };
+Map<String, dynamic> _$AssetToJson(_Asset instance) => <String, dynamic>{
+  'id': instance.id,
+  'typeId': instance.typeId,
+  'name': instance.name,
+  'expireAt': instance.expireAt,
+  'createdAt': instance.createdAt,
+  'updatedAt': instance.updatedAt,
+  'isArchived': instance.isArchived,
+  'fields': instance.fields,
+  'tags': instance.tags,
+  'reminders': instance.reminders,
+};

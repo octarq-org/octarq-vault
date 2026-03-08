@@ -4,8 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webdav_client/webdav_client.dart' as webdav;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import 'secure_storage_service.dart';
-
 final webDavServiceProvider = Provider<WebDavService>((ref) {
   return WebDavService();
 });

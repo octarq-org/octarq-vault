@@ -153,7 +153,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
             children: [
               DropdownButtonFormField<AssetType>(
                 decoration: const InputDecoration(labelText: 'Asset Type'),
-                value: _selectedType,
+                initialValue: _selectedType,
                 items: assetTypes.map((type) {
                   return DropdownMenuItem(
                     value: type,
@@ -182,7 +182,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                   children: [
                     ..._selectedTags.map((tag) => Chip(
                           label: Text(tag.name),
-                          backgroundColor: Colors.blue.withOpacity(0.1),
+                          backgroundColor: Colors.blue.withValues(alpha: 0.1),
                           onDeleted: () {
                             setState(() {
                               _selectedTags.remove(tag);

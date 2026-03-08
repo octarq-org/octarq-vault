@@ -108,7 +108,7 @@ class DashboardScreen extends ConsumerWidget {
                     return Tooltip(
                       message: 'View details for ${a.name}',
                       child: ListTile(
-                        hoverColor: Colors.deepPurple.withOpacity(0.1),
+                        hoverColor: Colors.deepPurple.withValues(alpha: 0.1),
                         leading: const Icon(Icons.warning, color: Colors.orange),
                         title: Text(a.name),
                         subtitle: Text('Expires in $daysLeft days'),
@@ -124,7 +124,7 @@ class DashboardScreen extends ConsumerWidget {
                   return Tooltip(
                     message: 'View details for ${asset.name}',
                     child: ListTile(
-                      hoverColor: Colors.deepPurple.withOpacity(0.1),
+                      hoverColor: Colors.deepPurple.withValues(alpha: 0.1),
                       leading: Icon(getIconData(assetType.icon)),
                       title: Text(asset.name),
                       subtitle: Text(assetType.name),

@@ -89,7 +89,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                 spacing: 8.0,
                 children: asset.tags.map((t) => Chip(
                   label: Text(t.name), 
-                  backgroundColor: Colors.blue.withOpacity(0.1),
+                  backgroundColor: Colors.blue.withValues(alpha: 0.1),
                 )).toList(),
               ),
             ),
@@ -202,7 +202,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                 children: [
                   DropdownButtonFormField<String>(
                     decoration: const InputDecoration(labelText: 'Target Asset'),
-                    value: selectedAssetId,
+                    initialValue: selectedAssetId,
                     items: availableAssets.map((a) => DropdownMenuItem<String>(value: a.id, child: Text(a.name))).toList(),
                     onChanged: (val) => setState(() => selectedAssetId = val),
                   ),

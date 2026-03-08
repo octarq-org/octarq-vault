@@ -6,13 +6,13 @@ part of 'tag.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$TagImpl _$$TagImplFromJson(Map<String, dynamic> json) => _$TagImpl(
+_Tag _$TagFromJson(Map<String, dynamic> json) => _Tag(
   id: json['id'] as String,
   name: json['name'] as String,
   color: json['color'] as String,
 );
 
-Map<String, dynamic> _$$TagImplToJson(_$TagImpl instance) => <String, dynamic>{
+Map<String, dynamic> _$TagToJson(_Tag instance) => <String, dynamic>{
   'id': instance.id,
   'name': instance.name,
   'color': instance.color,
