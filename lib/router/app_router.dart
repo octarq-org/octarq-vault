@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -7,6 +6,11 @@ import '../views/splash_screen.dart';
 import '../views/setup_screen.dart';
 import '../views/lock_screen.dart';
 import '../views/dashboard_screen.dart';
+import '../views/asset_form_screen.dart';
+import '../views/asset_detail_screen.dart';
+import '../views/settings_screen.dart';
+import '../views/webdav_settings_screen.dart';
+import '../views/asset_type_manager_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -46,6 +50,37 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/',
         builder: (context, state) => const DashboardScreen(),
+        routes: [
+          GoRoute(
+            path: 'add-asset',
+            builder: (context, state) => const AssetFormScreen(),
+          ),
+          GoRoute(
+            path: 'asset/:id',
+            builder: (context, state) {
+              final id = state.pathParameters['id']!;
+              return AssetDetailScreen(assetId: id);
+            },
+          ),
+          GoRoute(
+            path: 'settings',
+            builder: (context, state) => const SettingsScreen(),
+            routes: [
+              GoRoute(
+                path: 'webdav',
+                builder: (context, state) => const WebDavSettingsScreen(),
+              ),
+              GoRoute(
+                path: 'asset-types',
+                builder: (context, state) => const AssetTypeManagerScreen(),
+              ),
+              GoRoute(
+                path: 'asset-types/add',
+                builder: (context, state) => const AssetTypeFormScreen(),
+              ),
+            ],
+          ),
+        ],
       ),
     ],
   );

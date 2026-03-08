@@ -32,10 +32,8 @@ class SecureStorageService {
     if (canAuthenticate) {
       final didAuthenticate = await _auth.authenticate(
         localizedReason: reason,
-        options: const AuthenticationOptions(
-          stickyAuth: true,
-          biometricOnly: false,
-        ),
+        persistAcrossBackgrounding: true,
+        biometricOnly: false,
       );
 
       if (didAuthenticate) {

@@ -25,7 +25,7 @@ class NotificationService {
       macOS: initializationSettingsDarwin,
     );
     
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+    await flutterLocalNotificationsPlugin.initialize(settings: initializationSettings);
   }
 
   Future<void> scheduleExpirationNotification(
@@ -35,11 +35,11 @@ class NotificationService {
     if (notificationDate.isBefore(DateTime.now())) return;
 
     await flutterLocalNotificationsPlugin.zonedSchedule(
-      id,
-      'Asset Expiring Soon',
-      '$assetName is expiring in $daysOffset days.',
-      tz.TZDateTime.from(notificationDate, tz.local),
-      const NotificationDetails(
+      id: id,
+      title: 'Asset Expiring Soon',
+      body: '$assetName is expiring in $daysOffset days.',
+      scheduledDate: tz.TZDateTime.from(notificationDate, tz.local),
+      notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           'expiration_channel', // channel Id
           'Asset Expirations', // channel Name
@@ -47,8 +47,6 @@ class NotificationService {
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 }

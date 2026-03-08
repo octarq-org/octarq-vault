@@ -4,11 +4,11 @@ import 'service_providers.dart';
 
 enum AuthState { initializing, unsetup, locked, unlocked }
 
-class AuthNotifier extends StateNotifier<AuthState> {
-  final Ref ref;
-
-  AuthNotifier(this.ref) : super(AuthState.initializing) {
+class AuthNotifier extends Notifier<AuthState> {
+  @override
+  AuthState build() {
     _init();
+    return AuthState.initializing;
   }
 
   Future<void> _init() async {
@@ -93,6 +93,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 }
 
-final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(ref);
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(() {
+  return AuthNotifier();
 });

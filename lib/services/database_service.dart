@@ -12,7 +12,7 @@ class DatabaseService {
     _db = await openDatabase(
       dbPath,
       password: hexKey,
-      version: 1,
+      version: 2,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -70,6 +70,51 @@ class DatabaseService {
             FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
           )
         ''');
+
+        await db.execute('''
+          CREATE TABLE asset_types (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            icon TEXT NOT NULL,
+            field_schema TEXT NOT NULL,
+            is_built_in INTEGER DEFAULT 0
+          )
+        ''');
+
+        await db.execute('''
+          CREATE TABLE relations (
+            id TEXT PRIMARY KEY,
+            from_asset_id TEXT NOT NULL,
+            to_asset_id TEXT NOT NULL,
+            relation_type TEXT NOT NULL,
+            FOREIGN KEY (from_asset_id) REFERENCES assets(id) ON DELETE CASCADE,
+            FOREIGN KEY (to_asset_id) REFERENCES assets(id) ON DELETE CASCADE
+          )
+        ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('''
+            CREATE TABLE asset_types (
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL,
+              icon TEXT NOT NULL,
+              field_schema TEXT NOT NULL,
+              is_built_in INTEGER DEFAULT 0
+            )
+          ''');
+
+          await db.execute('''
+            CREATE TABLE relations (
+              id TEXT PRIMARY KEY,
+              from_asset_id TEXT NOT NULL,
+              to_asset_id TEXT NOT NULL,
+              relation_type TEXT NOT NULL,
+              FOREIGN KEY (from_asset_id) REFERENCES assets(id) ON DELETE CASCADE,
+              FOREIGN KEY (to_asset_id) REFERENCES assets(id) ON DELETE CASCADE
+            )
+          ''');
+        }
       },
     );
   }
@@ -86,5 +131,35 @@ class DatabaseService {
   Future<void> close() async {
     await _db?.close();
     _db = null;
+  }
+
+  // --- Asset Types ---
+  Future<List<Map<String, dynamic>>> getCustomAssetTypes() async {
+    return await db.query('asset_types');
+  }
+
+  Future<void> insertAssetType(Map<String, dynamic> typeData) async {
+    await db.insert('asset_types', typeData, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<void> deleteAssetType(String id) async {
+    await db.delete('asset_types', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // --- Relations ---
+  Future<List<Map<String, dynamic>>> getRelationsForAsset(String assetId) async {
+    return await db.query(
+      'relations',
+      where: 'from_asset_id = ? OR to_asset_id = ?',
+      whereArgs: [assetId, assetId],
+    );
+  }
+
+  Future<void> insertRelation(Map<String, dynamic> relationData) async {
+    await db.insert('relations', relationData, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<void> deleteRelation(String id) async {
+    await db.delete('relations', where: 'id = ?', whereArgs: [id]);
   }
 }

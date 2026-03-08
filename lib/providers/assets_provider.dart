@@ -3,11 +3,11 @@ import '../models/asset.dart';
 import '../models/field.dart';
 import 'service_providers.dart';
 
-class AssetsNotifier extends StateNotifier<List<Asset>> {
-  final Ref ref;
-
-  AssetsNotifier(this.ref) : super([]) {
-    loadAssets();
+class AssetsNotifier extends Notifier<List<Asset>> {
+  @override
+  List<Asset> build() {
+    Future.microtask(() => loadAssets());
+    return [];
   }
 
   Future<void> loadAssets() async {
@@ -90,6 +90,6 @@ class AssetsNotifier extends StateNotifier<List<Asset>> {
   }
 }
 
-final assetsProvider = StateNotifierProvider<AssetsNotifier, List<Asset>>((ref) {
-  return AssetsNotifier(ref);
+final assetsProvider = NotifierProvider<AssetsNotifier, List<Asset>>(() {
+  return AssetsNotifier();
 });

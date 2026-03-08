@@ -20,7 +20,7 @@ class EncryptionService {
       length: 32, // 256 bit key
       type: Argon2Type.id,
     );
-    _masterKey = result.rawBytes;
+    _masterKey = Uint8List.fromList(result.rawBytes);
   }
 
   /// Sets key directly (from Keychain/Secure Storage)
@@ -60,7 +60,7 @@ class EncryptionService {
         ),
       );
 
-    final plaintextBytes = utf8.encode(plaintext) as Uint8List;
+    final plaintextBytes = utf8.encode(plaintext);
     final cipherText = cipher.process(plaintextBytes);
 
     return {
