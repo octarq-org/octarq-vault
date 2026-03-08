@@ -1,0 +1,75 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains settings for Visual Studio Code
+.vscode/
+
+# Flutter/Dart related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+
+# Android related
+**/android/app/src/main/res/values/strings.xml
+**/android/key.properties
+**/android/local.properties
+**/android/app/google-services.json
+*.keystore
+*.jks
+
+# iOS related
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/ServiceDefinitions.json
+**/ios/Runner/GeneratedPluginRegistrant.h
+**/ios/Runner/GeneratedPluginRegistrant.m
+**/ios/Pods/
+**/ios/.generated/
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/DerivedData/
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
+
+# macOS related
+**/macos/Flutter/ephemeral/
+**/macos/Flutter/Generated.xcconfig
+**/macos/Flutter/flutter_export_environment.sh
+**/macos/Pods/
+
+# Windows related
+**/windows/flutter/ephemeral/
+**/windows/CMakeCache.txt
+**/windows/CMakeFiles/
+**/windows/CMakeSettings.json
+**/windows/x64/
+**/windows/bin/
+**/windows/out/
+
+# Secret files
+.env*
+secrets.json
+*.avault
