@@ -1,10 +1,12 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dargon2_flutter/dargon2_flutter.dart';
 import 'router/app_router.dart';
 
 void main() {
+  DArgon2Flutter.init();
   runApp(const ProviderScope(child: AssetVaultApp()));
 }
 
@@ -17,7 +19,7 @@ class AssetVaultApp extends ConsumerWidget {
 
     return Shortcuts(
       shortcuts: <LogicalKeySet, Intent>{
-        LogicalKeySet(Platform.isMacOS ? LogicalKeyboardKey.meta : LogicalKeyboardKey.control, LogicalKeyboardKey.keyN): const AddAssetIntent(),
+        LogicalKeySet(defaultTargetPlatform == TargetPlatform.macOS ? LogicalKeyboardKey.meta : LogicalKeyboardKey.control, LogicalKeyboardKey.keyN): const AddAssetIntent(),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{

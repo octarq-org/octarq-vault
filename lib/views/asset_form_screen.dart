@@ -25,6 +25,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
   
   AssetType? _selectedType;
   DateTime? _expireAt;
+  bool _isSaving = false;
   
   final Map<String, TextEditingController> _fieldControllers = {};
   final List<Tag> _selectedTags = [];
@@ -65,68 +66,85 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
   }
 
   Future<void> _saveAsset() async {
+    if (_isSaving) return; // Prevent duplicate clicks
     if (!_formKey.currentState!.validate()) return;
     if (_selectedType == null) return;
 
-    final encryptionService = ref.read(encryptionServiceProvider);
-    final assetId = const Uuid().v4();
-    final now = DateTime.now().millisecondsSinceEpoch;
+    setState(() => _isSaving = true);
 
-    final List<AssetField> fields = [];
-    
-    for (var schema in _selectedType!.fieldSchema) {
-      final value = _fieldControllers[schema.key]!.text;
-      if (value.isEmpty && !schema.isRequired) continue;
+    try {
+      final encryptionService = ref.read(encryptionServiceProvider);
+      final assetId = const Uuid().v4();
+      final now = DateTime.now().millisecondsSinceEpoch;
+
+      final List<AssetField> fields = [];
       
-      String valEnc = '';
-      String iv = '';
-      
-      if (schema.isEncrypted) {
-        final encResult = encryptionService.encryptField(value);
-        valEnc = encResult['valueEnc']!;
-        iv = encResult['iv']!;
-      } else {
-        // Even 'plaintext' fields are securely encrypted in the db via sqlcipher, 
-        // but the PRD dictates sensitive fields get a second layer of AES-GCM
-        valEnc = value; // Store plaintext locally, DB is entirely encrypted
+      for (var schema in _selectedType!.fieldSchema) {
+        final value = _fieldControllers[schema.key]!.text;
+        if (value.isEmpty && !schema.isRequired) continue;
+        
+        String valEnc = '';
+        String iv = '';
+        
+        if (schema.isEncrypted) {
+          final encResult = encryptionService.encryptField(value);
+          valEnc = encResult['valueEnc']!;
+          iv = encResult['iv']!;
+        } else {
+          valEnc = value;
+        }
+
+        fields.add(AssetField(
+          id: const Uuid().v4(),
+          assetId: assetId,
+          key: schema.key,
+          valueEnc: valEnc,
+          iv: iv,
+          isSensitive: schema.isEncrypted,
+        ));
       }
 
-      fields.add(AssetField(
-        id: const Uuid().v4(),
-        assetId: assetId,
-        key: schema.key,
-        valueEnc: valEnc,
-        iv: iv,
-        isSensitive: schema.isEncrypted,
-      ));
-    }
-
-    final asset = Asset(
-      id: assetId,
-      typeId: _selectedType!.id,
-      name: _nameController.text,
-      createdAt: now,
-      updatedAt: now,
-      expireAt: _expireAt?.millisecondsSinceEpoch,
-      fields: fields,
-      tags: _selectedTags,
-    );
-
-    await ref.read(assetsProvider.notifier).addAsset(asset);
-    
-    if (_expireAt != null) {
-      final notifService = ref.read(notificationServiceProvider);
-      // Schedule a reminder 7 days before
-      await notifService.scheduleExpirationNotification(
-        asset.id.hashCode, // basic int id from string hash
-        asset.name,
-        _expireAt!,
-        7,
+      final asset = Asset(
+        id: assetId,
+        typeId: _selectedType!.id,
+        name: _nameController.text,
+        createdAt: now,
+        updatedAt: now,
+        expireAt: _expireAt?.millisecondsSinceEpoch,
+        fields: fields,
+        tags: _selectedTags,
       );
-    }
-    
-    if (mounted) {
-      context.pop();
+
+      await ref.read(assetsProvider.notifier).addAsset(asset);
+      
+      // Schedule notification (non-blocking — don't let notification failures block save)
+      if (_expireAt != null) {
+        try {
+          final notifService = ref.read(notificationServiceProvider);
+          await notifService.scheduleExpirationNotification(
+            asset.id.hashCode,
+            asset.name,
+            _expireAt!,
+            7,
+          );
+        } catch (e) {
+          debugPrint('Notification scheduling failed (non-critical): $e');
+        }
+      }
+      
+      if (mounted) {
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save asset: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
@@ -139,8 +157,14 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
         title: const Text('Add Asset'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.check),
-            onPressed: _saveAsset,
+            icon: _isSaving
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.check),
+            onPressed: _isSaving ? null : _saveAsset,
           )
         ],
       ),

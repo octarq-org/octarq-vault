@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../models/field.dart';
 import '../providers/assets_provider.dart';
 import '../providers/asset_types_provider.dart';
 import '../providers/service_providers.dart';
@@ -99,8 +100,14 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
             child: Text('Fields:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           ),
           ...assetType.fieldSchema.map((schema) {
-            final fieldData = asset.fields.firstWhere((f) => f.key == schema.key, orElse: () => throw StateError('Field missing'));
-            
+            final AssetField? fieldData = asset.fields
+                .where((f) => f.key == schema.key)
+                .cast<AssetField?>()
+                .firstOrNull;
+
+            // Field was optional and skipped during creation
+            if (fieldData == null) return const SizedBox.shrink();
+
             String displayValue = '********';
             if (fieldData.isSensitive && _showSecrets) {
                try {

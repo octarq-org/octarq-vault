@@ -66,6 +66,22 @@ AssetVault 是一款为技术从业者（开发者、站长、加密货币用户
 - Android APK 生产包构建
 - iOS (No Codesign) 验证构建
 
+### 构建发行版本 (Build Release)
+
+如果你需要打包独立可执行文件用于分发，可以使用以下命令：
+
+**构建 macOS 桌面版:**
+```bash
+flutter build macos
+```
+*构建产物输出于: `build/macos/Build/Products/Release/asset-vault.app`*
+
+**构建 Web 静态版本:**
+```bash
+flutter build web
+```
+*构建产物输出于: `build/web/`，该目录下的文件可直接部署至任何静态服务器（如 Vercel, NGINX 等）*
+
 ## 🔮 Roadmap 计划
 - [ ] Asset Form 的深色主题调优与更动态化的 Tags 添加逻辑
 - [ ] iCloud / WebDAV 等自选通道的数据备份

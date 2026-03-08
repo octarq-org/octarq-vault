@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -8,6 +9,7 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {
+    if (kIsWeb) return;
     tz.initializeTimeZones();
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('app_icon');
@@ -30,6 +32,7 @@ class NotificationService {
 
   Future<void> scheduleExpirationNotification(
       int id, String assetName, DateTime expirationDate, int daysOffset) async {
+    if (kIsWeb) return;
     
     final notificationDate = expirationDate.subtract(Duration(days: daysOffset));
     if (notificationDate.isBefore(DateTime.now())) return;

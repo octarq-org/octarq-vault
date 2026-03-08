@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/asset.dart';
 import '../models/field.dart';
@@ -11,6 +12,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
   }
 
   Future<void> loadAssets() async {
+    if (kIsWeb) { state = []; return; }
     try {
       final dbService = ref.read(databaseServiceProvider);
       final db = dbService.db;
@@ -55,9 +57,10 @@ class AssetsNotifier extends Notifier<List<Asset>> {
   }
 
   Future<void> addAsset(Asset asset) async {
-    final db = ref.read(databaseServiceProvider).db;
-    
-    await db.transaction((txn) async {
+    if (!kIsWeb) {
+      final db = ref.read(databaseServiceProvider).db;
+      
+      await db.transaction((txn) async {
       await txn.insert('assets', {
         'id': asset.id,
         'type_id': asset.typeId,
@@ -79,13 +82,16 @@ class AssetsNotifier extends Notifier<List<Asset>> {
         });
       }
     });
+    }
 
     state = [...state, asset];
   }
 
   Future<void> deleteAsset(String id) async {
-    final db = ref.read(databaseServiceProvider).db;
-    await db.delete('assets', where: 'id = ?', whereArgs: [id]);
+    if (!kIsWeb) {
+      final db = ref.read(databaseServiceProvider).db;
+      await db.delete('assets', where: 'id = ?', whereArgs: [id]);
+    }
     state = state.where((a) => a.id != id).toList();
   }
 }

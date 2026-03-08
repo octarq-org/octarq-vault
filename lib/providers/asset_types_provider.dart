@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/asset_type.dart';
@@ -16,6 +17,7 @@ class AssetTypesNotifier extends Notifier<List<AssetType>> {
   }
 
   Future<void> loadCustomTypes() async {
+    if (kIsWeb) { state = [...defaultAssetTypes]; return; }
     final dbService = ref.read(databaseServiceProvider);
     final records = await dbService.getCustomAssetTypes();
     
@@ -39,23 +41,27 @@ class AssetTypesNotifier extends Notifier<List<AssetType>> {
   }
 
   Future<void> addCustomType(AssetType type) async {
-    final dbService = ref.read(databaseServiceProvider);
-    final fieldSchemaJson = jsonEncode(type.fieldSchema.map((e) => e.toJson()).toList());
-    
-    await dbService.insertAssetType({
+    if (!kIsWeb) {
+      final dbService = ref.read(databaseServiceProvider);
+      final fieldSchemaJson = jsonEncode(type.fieldSchema.map((e) => e.toJson()).toList());
+      
+      await dbService.insertAssetType({
       'id': type.id,
       'name': type.name,
       'icon': type.icon,
       'field_schema': fieldSchemaJson,
-      'is_built_in': type.isBuiltIn ? 1 : 0,
-    });
+        'is_built_in': type.isBuiltIn ? 1 : 0,
+      });
+    }
     
     await loadCustomTypes();
   }
 
   Future<void> deleteCustomType(String id) async {
-    final dbService = ref.read(databaseServiceProvider);
-    await dbService.deleteAssetType(id);
+    if (!kIsWeb) {
+      final dbService = ref.read(databaseServiceProvider);
+      await dbService.deleteAssetType(id);
+    }
     await loadCustomTypes();
   }
 }

@@ -11,16 +11,44 @@ class SetupScreen extends ConsumerStatefulWidget {
 
 class _SetupScreenState extends ConsumerState<SetupScreen> {
   final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
+  bool _isCreating = false;
 
   Future<void> _submit() async {
     final pwd = _passwordController.text;
+    final confirm = _confirmController.text;
+
     if (pwd.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Password too short (8 chars min)')),
       );
       return;
     }
-    await ref.read(authProvider.notifier).setupMasterPassword(pwd);
+
+    if (pwd != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match')),
+      );
+      return;
+    }
+
+    setState(() => _isCreating = true);
+
+    final success = await ref.read(authProvider.notifier).setupMasterPassword(pwd);
+
+    if (!success && mounted) {
+      final error = ref.read(authProvider.notifier).lastError ?? 'Unknown error';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to create vault: $error'),
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+
+    if (mounted) {
+      setState(() => _isCreating = false);
+    }
   }
 
   @override
@@ -52,10 +80,21 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _submit,
-              child: const Text('Create Vault'),
+            TextField(
+              controller: _confirmController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Confirm Password',
+                border: OutlineInputBorder(),
+              ),
             ),
+            const SizedBox(height: 16),
+            _isCreating
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: _submit,
+                    child: const Text('Create Vault'),
+                  ),
           ],
         ),
       ),
