@@ -103,7 +103,7 @@ class _AssetTypeFormScreenState extends ConsumerState<AssetTypeFormScreen> {
     );
 
     await ref.read(assetTypesProvider.notifier).addCustomType(newType);
-    if (mounted) context.pop();
+    if (mounted) context.go('/settings/asset-types');
   }
 
   @override

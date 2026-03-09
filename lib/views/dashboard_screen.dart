@@ -43,13 +43,10 @@ class DashboardScreen extends ConsumerWidget {
     final recentSlice = recentAssets.take(5).toList();
 
     return Scaffold(
-      body: Column(
-        children: [
-          _DashboardHeader(onAddAsset: () => context.go('/add-asset')),
-          Expanded(
-            child: assets.isEmpty
-                ? _EmptyState(onAddAsset: () => context.go('/add-asset'))
-                : SingleChildScrollView(
+      backgroundColor: Colors.transparent,
+      body: assets.isEmpty
+          ? _EmptyState(onAddAsset: () => context.go('/add-asset'))
+          : SingleChildScrollView(
                     padding: const EdgeInsets.all(24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,87 +170,11 @@ class DashboardScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-          ),
-        ],
-      ),
     );
   }
 }
 
-// ─── Header ────────────────────────────────────────────────────────────────
 
-class _DashboardHeader extends StatelessWidget {
-  const _DashboardHeader({required this.onAddAsset});
-  final VoidCallback onAddAsset;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: kBorderColor)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _SearchBar(),
-          ),
-          const SizedBox(width: 16),
-          _AddAssetButton(onTap: onAddAsset),
-        ],
-      ),
-    );
-  }
-}
-
-class _SearchBar extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 40,
-      decoration: BoxDecoration(
-        color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: kBorderColor),
-      ),
-      child: TextField(
-        style: const TextStyle(fontSize: 14),
-        decoration: InputDecoration(
-          hintText: 'Search assets, tags, or fields...',
-          hintStyle: const TextStyle(color: kTextMuted, fontSize: 14),
-          prefixIcon: const Icon(Icons.search, color: kTextMuted, size: 18),
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          filled: false,
-          contentPadding: const EdgeInsets.symmetric(vertical: 10),
-        ),
-      ),
-    );
-  }
-}
-
-class _AddAssetButton extends StatelessWidget {
-  const _AddAssetButton({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton.icon(
-      onPressed: onTap,
-      style: FilledButton.styleFrom(
-        backgroundColor: kPrimaryGreen,
-        foregroundColor: Colors.black,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      ),
-      icon: const Icon(Icons.add, size: 18),
-      label: Text('New Asset', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14)),
-    );
-  }
-}
-
-// ─── Stat Card ─────────────────────────────────────────────────────────────
 
 class _StatCard extends StatelessWidget {
   const _StatCard({

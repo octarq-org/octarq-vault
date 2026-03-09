@@ -57,7 +57,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
 
     if (confirmed == true) {
       await ref.read(assetsProvider.notifier).deleteAsset(widget.assetId);
-      if (mounted) context.pop();
+      if (mounted) context.go('/');
     }
   }
 

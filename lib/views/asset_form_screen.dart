@@ -150,7 +150,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
         }
       }
 
-      if (mounted) context.pop();
+      if (mounted) context.go('/');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

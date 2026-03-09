@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/assets_provider.dart';
 import '../providers/asset_types_provider.dart';
+import '../providers/search_provider.dart';
 import '../utils/icon_helper.dart';
 import '../main.dart';
 
@@ -16,19 +17,19 @@ class AssetListScreen extends ConsumerStatefulWidget {
 }
 
 class _AssetListScreenState extends ConsumerState<AssetListScreen> {
-  String _searchQuery = '';
   String _sortMode = 'added'; // 'added' | 'name' | 'expiry'
 
   @override
   Widget build(BuildContext context) {
     final assets = ref.watch(assetsProvider);
     final assetTypes = ref.watch(assetTypesProvider);
+    final searchQuery = ref.watch(searchQueryProvider);
 
     var filtered = assets.where((a) {
       final matchType = widget.filterTypeId == null || a.typeId == widget.filterTypeId;
-      final matchSearch = _searchQuery.isEmpty ||
-          a.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          a.tags.any((t) => t.name.toLowerCase().contains(_searchQuery.toLowerCase()));
+      final matchSearch = searchQuery.isEmpty ||
+          a.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+          a.tags.any((t) => t.name.toLowerCase().contains(searchQuery.toLowerCase()));
       return matchType && matchSearch;
     }).toList();
 
@@ -55,13 +56,10 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
       body: Column(
         children: [
           _ListHeader(
-            query: _searchQuery,
-            onQueryChanged: (v) => setState(() => _searchQuery = v),
             sortMode: _sortMode,
             onSortChanged: (v) => setState(() => _sortMode = v),
             count: filtered.length,
             typeName: filterTypeName,
-            onAddAsset: () => context.go('/add-asset'),
           ),
           Expanded(
             child: filtered.isEmpty
@@ -96,22 +94,16 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
 
 class _ListHeader extends StatelessWidget {
   const _ListHeader({
-    required this.query,
-    required this.onQueryChanged,
     required this.sortMode,
     required this.onSortChanged,
     required this.count,
-    required this.onAddAsset,
     this.typeName,
   });
 
-  final String query;
-  final ValueChanged<String> onQueryChanged;
   final String sortMode;
   final ValueChanged<String> onSortChanged;
   final int count;
   final String? typeName;
-  final VoidCallback onAddAsset;
 
   @override
   Widget build(BuildContext context) {
@@ -144,30 +136,6 @@ class _ListHeader extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          // Search bar
-          Container(
-            height: 38,
-            decoration: BoxDecoration(
-              color: kSurfaceColor,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: kBorderColor),
-            ),
-            child: TextField(
-              style: const TextStyle(fontSize: 13),
-              onChanged: onQueryChanged,
-              decoration: const InputDecoration(
-                hintText: 'Search assets or tags...',
-                hintStyle: TextStyle(color: kTextMuted, fontSize: 13),
-                prefixIcon: Icon(Icons.search, color: kTextMuted, size: 16),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                filled: false,
-                contentPadding: EdgeInsets.symmetric(vertical: 10),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
         ],
       ),
     );
