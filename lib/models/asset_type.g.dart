@@ -14,6 +14,9 @@ _AssetTypeFieldSchema _$AssetTypeFieldSchemaFromJson(
   type: json['type'] as String,
   isEncrypted: json['isEncrypted'] as bool? ?? false,
   isRequired: json['isRequired'] as bool? ?? false,
+  options:
+      (json['options'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const [],
 );
 
 Map<String, dynamic> _$AssetTypeFieldSchemaToJson(
@@ -24,6 +27,7 @@ Map<String, dynamic> _$AssetTypeFieldSchemaToJson(
   'type': instance.type,
   'isEncrypted': instance.isEncrypted,
   'isRequired': instance.isRequired,
+  'options': instance.options,
 };
 
 _AssetType _$AssetTypeFromJson(Map<String, dynamic> json) => _AssetType(

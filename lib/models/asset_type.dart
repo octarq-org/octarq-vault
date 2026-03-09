@@ -8,9 +8,10 @@ abstract class AssetTypeFieldSchema with _$AssetTypeFieldSchema {
   const factory AssetTypeFieldSchema({
     required String key,
     required String label,
-    required String type, // 'text', 'password', 'date', 'number'
+    required String type, // 'text', 'password', 'date', 'number', 'select'
     @Default(false) bool isEncrypted,
     @Default(false) bool isRequired,
+    @Default([]) List<String> options, // for type == 'select'
   }) = _AssetTypeFieldSchema;
 
   factory AssetTypeFieldSchema.fromJson(Map<String, dynamic> json) => _$AssetTypeFieldSchemaFromJson(json);

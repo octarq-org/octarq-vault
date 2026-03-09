@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../providers/assets_provider.dart';
 import '../providers/asset_types_provider.dart';
 import '../utils/icon_helper.dart';
+import '../main.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -16,11 +18,10 @@ class DashboardScreen extends ConsumerWidget {
     final now = DateTime.now();
     final approachingExpirations = assets.where((a) {
       if (a.expireAt == null) return false;
-      final diffDays = DateTime.fromMillisecondsSinceEpoch(a.expireAt!).difference(now).inDays;
-      return diffDays >= 0 && diffDays <= 30; // within 30 days
-    }).toList();
-    
-    approachingExpirations.sort((a, b) => a.expireAt!.compareTo(b.expireAt!));
+      final diff = DateTime.fromMillisecondsSinceEpoch(a.expireAt!).difference(now).inDays;
+      return diff >= 0 && diff <= 30;
+    }).toList()
+      ..sort((a, b) => a.expireAt!.compareTo(b.expireAt!));
 
     double totalMonthlyCost = 0;
     for (var asset in assets) {
@@ -29,7 +30,7 @@ class DashboardScreen extends ConsumerWidget {
       if (costField != null && !costField.isSensitive && costField.valueEnc.isNotEmpty) {
         final val = double.tryParse(costField.valueEnc) ?? 0;
         final cycle = cycleField != null && !cycleField.isSensitive ? cycleField.valueEnc.toLowerCase() : '';
-        if (cycle.contains('year') || cycle.contains('年')) {
+        if (cycle.contains('year') || cycle.contains('年') || cycle == 'yearly') {
           totalMonthlyCost += val / 12;
         } else {
           totalMonthlyCost += val;
@@ -37,110 +38,494 @@ class DashboardScreen extends ConsumerWidget {
       }
     }
 
+    final recentAssets = [...assets]
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final recentSlice = recentAssets.take(5).toList();
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => context.go('/settings'), // Assuming /settings exists or will be added
-          )
+      body: Column(
+        children: [
+          _DashboardHeader(onAddAsset: () => context.go('/add-asset')),
+          Expanded(
+            child: assets.isEmpty
+                ? _EmptyState(onAddAsset: () => context.go('/add-asset'))
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ── Stat cards ──────────────────────────────────
+                        Row(
+                          children: [
+                            _StatCard(
+                              title: 'Total Assets',
+                              value: '${assets.length}',
+                              icon: Icons.inventory_2_outlined,
+                              iconColor: kPrimaryGreen,
+                            ),
+                            const SizedBox(width: 16),
+                            _StatCard(
+                              title: 'Expiring < 30 Days',
+                              value: '${approachingExpirations.length}',
+                              icon: Icons.warning_amber_rounded,
+                              iconColor: const Color(0xFFFFB74D),
+                              valueColor: approachingExpirations.isNotEmpty
+                                  ? const Color(0xFFFFB74D)
+                                  : null,
+                            ),
+                            const SizedBox(width: 16),
+                            _StatCard(
+                              title: 'Est. Monthly Cost',
+                              value: '\$${totalMonthlyCost.toStringAsFixed(2)}',
+                              icon: Icons.trending_up_rounded,
+                              iconColor: const Color(0xFF4FC3F7),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+
+                        // ── Two-column section ───────────────────────────
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Action Required
+                            if (approachingExpirations.isNotEmpty)
+                              Expanded(
+                                child: _SectionCard(
+                                  header: Row(
+                                    children: [
+                                      const Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xFFFFB74D)),
+                                      const SizedBox(width: 6),
+                                      Text('ACTION REQUIRED',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: const Color(0xFFFFB74D),
+                                            letterSpacing: 0.8,
+                                          )),
+                                      const Spacer(),
+                                      TextButton(
+                                        onPressed: () {},
+                                        style: TextButton.styleFrom(
+                                          padding: EdgeInsets.zero,
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        ),
+                                        child: Text(
+                                          'View all →',
+                                          style: GoogleFonts.inter(fontSize: 12, color: kPrimaryGreen),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    children: approachingExpirations.take(4).map((a) {
+                                      final daysLeft = DateTime.fromMillisecondsSinceEpoch(a.expireAt!)
+                                          .difference(now)
+                                          .inDays;
+                                      final expStr = DateTime.fromMillisecondsSinceEpoch(a.expireAt!)
+                                          .toLocal()
+                                          .toString()
+                                          .split(' ')[0];
+                                      final assetType = assetTypes.firstWhere(
+                                        (t) => t.id == a.typeId,
+                                        orElse: () => assetTypes.first,
+                                      );
+                                      return _ExpiryRow(
+                                        name: a.name,
+                                        subtitle: assetType.name,
+                                        dateStr: expStr,
+                                        daysLeft: daysLeft,
+                                        onTap: () => context.go('/asset/${a.id}'),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                              ),
+                            if (approachingExpirations.isNotEmpty) const SizedBox(width: 16),
+                            // Recently Added
+                            Expanded(
+                              child: _SectionCard(
+                                header: Text('RECENTLY ADDED',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: kTextMuted,
+                                      letterSpacing: 0.8,
+                                    )),
+                                child: Column(
+                                  children: recentSlice.map((asset) {
+                                    final assetType = assetTypes.firstWhere(
+                                      (t) => t.id == asset.typeId,
+                                      orElse: () => assetTypes.first,
+                                    );
+                                    return _AssetRow(
+                                      asset: asset,
+                                      assetType: assetType,
+                                      onTap: () => context.go('/asset/${asset.id}'),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
         ],
       ),
-      body: assets.isEmpty
-          ? const Center(child: Text('No assets yet. Add one!'))
-          : ListView(
-              padding: const EdgeInsets.all(16),
+    );
+  }
+}
+
+// ─── Header ────────────────────────────────────────────────────────────────
+
+class _DashboardHeader extends StatelessWidget {
+  const _DashboardHeader({required this.onAddAsset});
+  final VoidCallback onAddAsset;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: kBorderColor)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _SearchBar(),
+          ),
+          const SizedBox(width: 16),
+          _AddAssetButton(onTap: onAddAsset),
+        ],
+      ),
+    );
+  }
+}
+
+class _SearchBar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: kBorderColor),
+      ),
+      child: TextField(
+        style: const TextStyle(fontSize: 14),
+        decoration: InputDecoration(
+          hintText: 'Search assets, tags, or fields...',
+          hintStyle: const TextStyle(color: kTextMuted, fontSize: 14),
+          prefixIcon: const Icon(Icons.search, color: kTextMuted, size: 18),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          filled: false,
+          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+        ),
+      ),
+    );
+  }
+}
+
+class _AddAssetButton extends StatelessWidget {
+  const _AddAssetButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: onTap,
+      style: FilledButton.styleFrom(
+        backgroundColor: kPrimaryGreen,
+        foregroundColor: Colors.black,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      ),
+      icon: const Icon(Icons.add, size: 18),
+      label: Text('New Asset', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14)),
+    );
+  }
+}
+
+// ─── Stat Card ─────────────────────────────────────────────────────────────
+
+class _StatCard extends StatelessWidget {
+  const _StatCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.iconColor,
+    this.valueColor,
+  });
+
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color iconColor;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: kSurfaceColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: kBorderColor),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: kTextMuted,
+                        fontWeight: FontWeight.w500,
+                      )),
+                  const SizedBox(height: 8),
+                  Text(value,
+                      style: GoogleFonts.inter(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: valueColor ?? Colors.white,
+                      )),
+                ],
+              ),
+            ),
+            Icon(icon, color: iconColor, size: 28),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Section Card ──────────────────────────────────────────────────────────
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.header, required this.child});
+  final Widget header;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: kBorderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+            child: header,
+          ),
+          const Divider(height: 1),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Expiry Row ────────────────────────────────────────────────────────────
+
+class _ExpiryRow extends StatelessWidget {
+  const _ExpiryRow({
+    required this.name,
+    required this.subtitle,
+    required this.dateStr,
+    required this.daysLeft,
+    required this.onTap,
+  });
+
+  final String name;
+  final String subtitle;
+  final String dateStr;
+  final int daysLeft;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final urgentColor = daysLeft <= 7 ? const Color(0xFFFF5252) : const Color(0xFFFFB74D);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name,
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 14)),
+                  const SizedBox(height: 2),
+                  Text(subtitle,
+                      style: const TextStyle(fontSize: 12, color: kTextMuted)),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 120),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Card(
-                          color: Colors.deepPurple.shade900,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text('Total Assets', style: TextStyle(color: Colors.white70)),
-                              Text('${assets.length}', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Card(
-                          color: Colors.orange.shade900,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text('Expiring soon', style: TextStyle(color: Colors.white70)),
-                              Text('${approachingExpirations.length}', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Card(
-                          color: Colors.teal.shade900,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text('Monthly Cost', style: TextStyle(color: Colors.white70)),
-                              Text('\$${totalMonthlyCost.toStringAsFixed(2)}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text('Expiring within 30 days:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                if (approachingExpirations.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8.0),
-                    child: Text('All good! No immediate expirations.', style: TextStyle(color: Colors.green)),
-                  )
-                else
-                  ...approachingExpirations.map((a) {
-                    final daysLeft = DateTime.fromMillisecondsSinceEpoch(a.expireAt!).difference(now).inDays;
-                    return Tooltip(
-                      message: 'View details for ${a.name}',
-                      child: ListTile(
-                        hoverColor: Colors.deepPurple.withValues(alpha: 0.1),
-                        leading: const Icon(Icons.warning, color: Colors.orange),
-                        title: Text(a.name),
-                        subtitle: Text('Expires in $daysLeft days'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => context.go('/asset/${a.id}'),
-                      ),
-                    );
-                  }),
-                const Divider(),
-                const Text('All Assets:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                ...assets.map((asset) {
-                  final assetType = assetTypes.firstWhere((t) => t.id == asset.typeId, orElse: () => assetTypes.first);
-                  return Tooltip(
-                    message: 'View details for ${asset.name}',
-                    child: ListTile(
-                      hoverColor: Colors.deepPurple.withValues(alpha: 0.1),
-                      leading: Icon(getIconData(assetType.icon)),
-                      title: Text(asset.name),
-                      subtitle: Text(assetType.name),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.go('/asset/${asset.id}'),
-                    ),
-                  );
-                }),
+                Text(dateStr,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: urgentColor,
+                    )),
+                const SizedBox(height: 2),
+                Text('Expiring soon',
+                    style: TextStyle(fontSize: 11, color: urgentColor.withValues(alpha: 0.8))),
               ],
             ),
-      floatingActionButton: Tooltip(
-        message: 'Add New Asset (Cmd+N)',
-        child: FloatingActionButton(
-          onPressed: () => context.go('/add-asset'),
-          child: const Icon(Icons.add),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+// ─── Asset Row ─────────────────────────────────────────────────────────────
+
+class _AssetRow extends StatelessWidget {
+  const _AssetRow({
+    required this.asset,
+    required this.assetType,
+    required this.onTap,
+  });
+
+  final dynamic asset;
+  final dynamic assetType;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final initials = asset.name.length >= 2
+        ? asset.name.substring(0, 2).toUpperCase()
+        : asset.name.toUpperCase();
+    final color = getTypeColor(assetType.id);
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Text(
+                  initials,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(asset.name,
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 14)),
+                  if (asset.tags.isNotEmpty)
+                    const SizedBox(height: 4),
+                  if (asset.tags.isNotEmpty)
+                    Wrap(
+                      spacing: 4,
+                      children: (asset.tags as List)
+                          .take(3)
+                          .map((t) => _TagChip(name: t.name))
+                          .toList(),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TagChip extends StatelessWidget {
+  const _TagChip({required this.name});
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: kBorderColor,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(name, style: const TextStyle(fontSize: 11, color: Colors.white70)),
+    );
+  }
+}
+
+// ─── Empty State ────────────────────────────────────────────────────────────
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.onAddAsset});
+  final VoidCallback onAddAsset;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: kSurfaceColor,
+              shape: BoxShape.circle,
+              border: Border.all(color: kBorderColor),
+            ),
+            child: const Icon(Icons.inventory_2_outlined, size: 40, color: kTextMuted),
+          ),
+          const SizedBox(height: 20),
+          Text('No assets yet',
+              style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          const Text('Add your first digital asset to get started.',
+              style: TextStyle(color: kTextMuted, fontSize: 14)),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: onAddAsset,
+            style: FilledButton.styleFrom(
+              backgroundColor: kPrimaryGreen,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: const Icon(Icons.add, size: 18),
+            label: Text('Add Asset', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+          ),
+        ],
       ),
     );
   }

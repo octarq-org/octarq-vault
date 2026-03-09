@@ -15,8 +15,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AssetTypeFieldSchema {
 
- String get key; String get label; String get type;// 'text', 'password', 'date', 'number'
- bool get isEncrypted; bool get isRequired;
+ String get key; String get label; String get type;// 'text', 'password', 'date', 'number', 'select'
+ bool get isEncrypted; bool get isRequired; List<String> get options;
 /// Create a copy of AssetTypeFieldSchema
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,16 +29,16 @@ $AssetTypeFieldSchemaCopyWith<AssetTypeFieldSchema> get copyWith => _$AssetTypeF
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AssetTypeFieldSchema&&(identical(other.key, key) || other.key == key)&&(identical(other.label, label) || other.label == label)&&(identical(other.type, type) || other.type == type)&&(identical(other.isEncrypted, isEncrypted) || other.isEncrypted == isEncrypted)&&(identical(other.isRequired, isRequired) || other.isRequired == isRequired));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AssetTypeFieldSchema&&(identical(other.key, key) || other.key == key)&&(identical(other.label, label) || other.label == label)&&(identical(other.type, type) || other.type == type)&&(identical(other.isEncrypted, isEncrypted) || other.isEncrypted == isEncrypted)&&(identical(other.isRequired, isRequired) || other.isRequired == isRequired)&&const DeepCollectionEquality().equals(other.options, options));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,key,label,type,isEncrypted,isRequired);
+int get hashCode => Object.hash(runtimeType,key,label,type,isEncrypted,isRequired,const DeepCollectionEquality().hash(options));
 
 @override
 String toString() {
-  return 'AssetTypeFieldSchema(key: $key, label: $label, type: $type, isEncrypted: $isEncrypted, isRequired: $isRequired)';
+  return 'AssetTypeFieldSchema(key: $key, label: $label, type: $type, isEncrypted: $isEncrypted, isRequired: $isRequired, options: $options)';
 }
 
 
@@ -49,7 +49,7 @@ abstract mixin class $AssetTypeFieldSchemaCopyWith<$Res>  {
   factory $AssetTypeFieldSchemaCopyWith(AssetTypeFieldSchema value, $Res Function(AssetTypeFieldSchema) _then) = _$AssetTypeFieldSchemaCopyWithImpl;
 @useResult
 $Res call({
- String key, String label, String type, bool isEncrypted, bool isRequired
+ String key, String label, String type, bool isEncrypted, bool isRequired, List<String> options
 });
 
 
@@ -66,14 +66,15 @@ class _$AssetTypeFieldSchemaCopyWithImpl<$Res>
 
 /// Create a copy of AssetTypeFieldSchema
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? key = null,Object? label = null,Object? type = null,Object? isEncrypted = null,Object? isRequired = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? key = null,Object? label = null,Object? type = null,Object? isEncrypted = null,Object? isRequired = null,Object? options = null,}) {
   return _then(_self.copyWith(
 key: null == key ? _self.key : key // ignore: cast_nullable_to_non_nullable
 as String,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,isEncrypted: null == isEncrypted ? _self.isEncrypted : isEncrypted // ignore: cast_nullable_to_non_nullable
 as bool,isRequired: null == isRequired ? _self.isRequired : isRequired // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,options: null == options ? _self.options : options // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 
@@ -158,10 +159,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String key,  String label,  String type,  bool isEncrypted,  bool isRequired)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String key,  String label,  String type,  bool isEncrypted,  bool isRequired,  List<String> options)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AssetTypeFieldSchema() when $default != null:
-return $default(_that.key,_that.label,_that.type,_that.isEncrypted,_that.isRequired);case _:
+return $default(_that.key,_that.label,_that.type,_that.isEncrypted,_that.isRequired,_that.options);case _:
   return orElse();
 
 }
@@ -179,10 +180,10 @@ return $default(_that.key,_that.label,_that.type,_that.isEncrypted,_that.isRequi
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String key,  String label,  String type,  bool isEncrypted,  bool isRequired)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String key,  String label,  String type,  bool isEncrypted,  bool isRequired,  List<String> options)  $default,) {final _that = this;
 switch (_that) {
 case _AssetTypeFieldSchema():
-return $default(_that.key,_that.label,_that.type,_that.isEncrypted,_that.isRequired);case _:
+return $default(_that.key,_that.label,_that.type,_that.isEncrypted,_that.isRequired,_that.options);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +200,10 @@ return $default(_that.key,_that.label,_that.type,_that.isEncrypted,_that.isRequi
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String key,  String label,  String type,  bool isEncrypted,  bool isRequired)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String key,  String label,  String type,  bool isEncrypted,  bool isRequired,  List<String> options)?  $default,) {final _that = this;
 switch (_that) {
 case _AssetTypeFieldSchema() when $default != null:
-return $default(_that.key,_that.label,_that.type,_that.isEncrypted,_that.isRequired);case _:
+return $default(_that.key,_that.label,_that.type,_that.isEncrypted,_that.isRequired,_that.options);case _:
   return null;
 
 }
@@ -214,15 +215,22 @@ return $default(_that.key,_that.label,_that.type,_that.isEncrypted,_that.isRequi
 @JsonSerializable()
 
 class _AssetTypeFieldSchema implements AssetTypeFieldSchema {
-  const _AssetTypeFieldSchema({required this.key, required this.label, required this.type, this.isEncrypted = false, this.isRequired = false});
+  const _AssetTypeFieldSchema({required this.key, required this.label, required this.type, this.isEncrypted = false, this.isRequired = false, final  List<String> options = const []}): _options = options;
   factory _AssetTypeFieldSchema.fromJson(Map<String, dynamic> json) => _$AssetTypeFieldSchemaFromJson(json);
 
 @override final  String key;
 @override final  String label;
 @override final  String type;
-// 'text', 'password', 'date', 'number'
+// 'text', 'password', 'date', 'number', 'select'
 @override@JsonKey() final  bool isEncrypted;
 @override@JsonKey() final  bool isRequired;
+ final  List<String> _options;
+@override@JsonKey() List<String> get options {
+  if (_options is EqualUnmodifiableListView) return _options;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_options);
+}
+
 
 /// Create a copy of AssetTypeFieldSchema
 /// with the given fields replaced by the non-null parameter values.
@@ -237,16 +245,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AssetTypeFieldSchema&&(identical(other.key, key) || other.key == key)&&(identical(other.label, label) || other.label == label)&&(identical(other.type, type) || other.type == type)&&(identical(other.isEncrypted, isEncrypted) || other.isEncrypted == isEncrypted)&&(identical(other.isRequired, isRequired) || other.isRequired == isRequired));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AssetTypeFieldSchema&&(identical(other.key, key) || other.key == key)&&(identical(other.label, label) || other.label == label)&&(identical(other.type, type) || other.type == type)&&(identical(other.isEncrypted, isEncrypted) || other.isEncrypted == isEncrypted)&&(identical(other.isRequired, isRequired) || other.isRequired == isRequired)&&const DeepCollectionEquality().equals(other._options, _options));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,key,label,type,isEncrypted,isRequired);
+int get hashCode => Object.hash(runtimeType,key,label,type,isEncrypted,isRequired,const DeepCollectionEquality().hash(_options));
 
 @override
 String toString() {
-  return 'AssetTypeFieldSchema(key: $key, label: $label, type: $type, isEncrypted: $isEncrypted, isRequired: $isRequired)';
+  return 'AssetTypeFieldSchema(key: $key, label: $label, type: $type, isEncrypted: $isEncrypted, isRequired: $isRequired, options: $options)';
 }
 
 
@@ -257,7 +265,7 @@ abstract mixin class _$AssetTypeFieldSchemaCopyWith<$Res> implements $AssetTypeF
   factory _$AssetTypeFieldSchemaCopyWith(_AssetTypeFieldSchema value, $Res Function(_AssetTypeFieldSchema) _then) = __$AssetTypeFieldSchemaCopyWithImpl;
 @override @useResult
 $Res call({
- String key, String label, String type, bool isEncrypted, bool isRequired
+ String key, String label, String type, bool isEncrypted, bool isRequired, List<String> options
 });
 
 
@@ -274,14 +282,15 @@ class __$AssetTypeFieldSchemaCopyWithImpl<$Res>
 
 /// Create a copy of AssetTypeFieldSchema
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? key = null,Object? label = null,Object? type = null,Object? isEncrypted = null,Object? isRequired = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? key = null,Object? label = null,Object? type = null,Object? isEncrypted = null,Object? isRequired = null,Object? options = null,}) {
   return _then(_AssetTypeFieldSchema(
 key: null == key ? _self.key : key // ignore: cast_nullable_to_non_nullable
 as String,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,isEncrypted: null == isEncrypted ? _self.isEncrypted : isEncrypted // ignore: cast_nullable_to_non_nullable
 as bool,isRequired: null == isRequired ? _self.isRequired : isRequired // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,options: null == options ? _self._options : options // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 
