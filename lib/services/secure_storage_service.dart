@@ -1,15 +1,15 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/platform_utils.dart';
 
 class SecureStorageService {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  final LocalAuthentication _auth = LocalAuthentication();
+  LocalAuthentication? _auth;
 
   static const String _masterKeyAlias = 'asset_vault_master_key';
   static const String _saltAlias = 'asset_vault_salt';
@@ -17,12 +17,7 @@ class SecureStorageService {
   /// On macOS desktop, Keychain is unreliable without code signing.
   /// Use SharedPreferences as the primary storage on macOS.
   bool get _useFallback {
-    if (kIsWeb) return true;
-    try {
-      return Platform.isMacOS;
-    } catch (_) {
-      return false;
-    }
+    return kIsWeb || isMacOS;
   }
 
   Future<bool> hasStoredKey() async {
@@ -71,12 +66,17 @@ class SecureStorageService {
   }
 
   Future<Uint8List?> getMasterKeyWithBiometrics(String reason) async {
-    final canAuthenticateWithBiometrics = await _auth.canCheckBiometrics;
+    if (kIsWeb) return null;
+
+    _auth ??= LocalAuthentication();
+    final auth = _auth!;
+
+    final canAuthenticateWithBiometrics = await auth.canCheckBiometrics;
     final canAuthenticate =
-        canAuthenticateWithBiometrics || await _auth.isDeviceSupported();
+        canAuthenticateWithBiometrics || await auth.isDeviceSupported();
 
     if (canAuthenticate) {
-      final didAuthenticate = await _auth.authenticate(
+      final didAuthenticate = await auth.authenticate(
         localizedReason: reason,
         biometricOnly: false,
         persistAcrossBackgrounding: true,

@@ -1,9 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:path/path.dart' as p;
-import 'dart:io';
-
+import '../utils/platform_utils.dart';
 import 'service_providers.dart';
 
 enum AuthState { initializing, unsetup, locked, unlocked }
@@ -40,8 +38,7 @@ class AuthNotifier extends Notifier<AuthState> {
         try {
           final dbPath = p.join(await getDatabasesPath(), 'asset_vault_enc.db');
           if (!ref.mounted) return;
-          final dbFile = File(dbPath);
-          if (await dbFile.exists()) {
+          if (await fileExists(dbPath)) {
             if (!ref.mounted) return;
             if (kDebugMode) {
               print(
@@ -79,12 +76,12 @@ class AuthNotifier extends Notifier<AuthState> {
       if (!kIsWeb) {
         try {
           final dbPath = p.join(await getDatabasesPath(), 'asset_vault_enc.db');
-          final dbFile = File(dbPath);
-          if (await dbFile.exists()) {
+          if (await fileExists(dbPath)) {
             if (kDebugMode) {
               print('setupMasterPassword: deleting stale DB at $dbPath');
             }
-            await dbFile.delete();
+            // Cannot use File in web, sqflite exposes deleteDatabase
+            await deleteDatabase(dbPath);
           }
         } catch (_) {}
       }
