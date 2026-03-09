@@ -69,9 +69,9 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
       builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.dark(primary: kPrimaryGreen),
-        ),
+        data: Theme.of(
+          ctx,
+        ).copyWith(colorScheme: const ColorScheme.dark(primary: kPrimaryGreen)),
         child: child!,
       ),
     );
@@ -113,14 +113,16 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
           valEnc = value;
         }
 
-        fields.add(AssetField(
-          id: const Uuid().v4(),
-          assetId: assetId,
-          key: schema.key,
-          valueEnc: valEnc,
-          iv: iv,
-          isSensitive: schema.isEncrypted,
-        ));
+        fields.add(
+          AssetField(
+            id: const Uuid().v4(),
+            assetId: assetId,
+            key: schema.key,
+            valueEnc: valEnc,
+            iv: iv,
+            isSensitive: schema.isEncrypted,
+          ),
+        );
       }
 
       final asset = Asset(
@@ -190,12 +192,17 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                       backgroundColor: kPrimaryGreen,
                       foregroundColor: Colors.black,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 8),
+                        horizontal: 20,
+                        vertical: 8,
+                      ),
                     ),
-                    child: Text('Save',
-                        style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                    child: Text(
+                      'Save',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                    ),
                   ),
           ),
         ],
@@ -256,11 +263,13 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                     runSpacing: 8,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      ..._selectedTags.map((tag) => _TagChip(
-                            label: tag.name,
-                            onDelete: () =>
-                                setState(() => _selectedTags.remove(tag)),
-                          )),
+                      ..._selectedTags.map(
+                        (tag) => _TagChip(
+                          label: tag.name,
+                          onDelete: () =>
+                              setState(() => _selectedTags.remove(tag)),
+                        ),
+                      ),
                       SizedBox(
                         width: 160,
                         child: TextField(
@@ -274,17 +283,22 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                             filled: false,
                             isDense: true,
                             contentPadding: EdgeInsets.zero,
-                            prefixIcon: Icon(Icons.add_circle_outline,
-                                size: 16, color: kPrimaryGreen),
+                            prefixIcon: Icon(
+                              Icons.add_circle_outline,
+                              size: 16,
+                              color: kPrimaryGreen,
+                            ),
                           ),
                           onSubmitted: (val) {
                             if (val.trim().isNotEmpty) {
                               setState(() {
-                                _selectedTags.add(Tag(
-                                  id: const Uuid().v4(),
-                                  name: val.trim(),
-                                  color: '#00C896',
-                                ));
+                                _selectedTags.add(
+                                  Tag(
+                                    id: const Uuid().v4(),
+                                    name: val.trim(),
+                                    color: '#00C896',
+                                  ),
+                                );
                                 _tagInputController.clear();
                               });
                             }
@@ -307,27 +321,35 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                     borderRadius: BorderRadius.circular(8),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 4, vertical: 8),
+                        horizontal: 4,
+                        vertical: 8,
+                      ),
                       child: Row(
                         children: [
-                          const Icon(Icons.calendar_today_outlined,
-                              size: 18, color: kTextMuted),
+                          const Icon(
+                            Icons.calendar_today_outlined,
+                            size: 18,
+                            color: kTextMuted,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Expiration Date',
-                                    style: const TextStyle(
-                                        color: kTextMuted, fontSize: 12)),
+                                Text(
+                                  'Expiration Date',
+                                  style: const TextStyle(
+                                    color: kTextMuted,
+                                    fontSize: 12,
+                                  ),
+                                ),
                                 const SizedBox(height: 2),
                                 Text(
                                   _expireAt == null
                                       ? 'None — tap to set'
-                                      : _expireAt!
-                                          .toLocal()
-                                          .toString()
-                                          .split(' ')[0],
+                                      : _expireAt!.toLocal().toString().split(
+                                          ' ',
+                                        )[0],
                                   style: GoogleFonts.inter(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
@@ -341,10 +363,12 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                           ),
                           if (_expireAt != null)
                             IconButton(
-                              icon: const Icon(Icons.close,
-                                  size: 16, color: kTextMuted),
-                              onPressed: () =>
-                                  setState(() => _expireAt = null),
+                              icon: const Icon(
+                                Icons.close,
+                                size: 16,
+                                color: kTextMuted,
+                              ),
+                              onPressed: () => setState(() => _expireAt = null),
                               tooltip: 'Clear date',
                             ),
                         ],
@@ -356,14 +380,14 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
               const SizedBox(height: 24),
 
               // ── Type-specific fields ────────────────────────────────
-              if (_selectedType != null && _selectedType!.fieldSchema.isNotEmpty) ...[
+              if (_selectedType != null &&
+                  _selectedType!.fieldSchema.isNotEmpty) ...[
                 _SectionLabel('Details'),
                 const SizedBox(height: 12),
                 _FormCard(
-                  children: _selectedType!.fieldSchema
-                      .asMap()
-                      .entries
-                      .map((entry) {
+                  children: _selectedType!.fieldSchema.asMap().entries.map((
+                    entry,
+                  ) {
                     final idx = entry.key;
                     final schema = entry.value;
                     return Column(
@@ -486,11 +510,14 @@ class _TagChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label,
-              style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: kPrimaryGreen)),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: kPrimaryGreen,
+            ),
+          ),
           const SizedBox(width: 4),
           GestureDetector(
             onTap: onDelete,

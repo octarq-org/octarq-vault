@@ -72,7 +72,8 @@ class SecureStorageService {
 
   Future<Uint8List?> getMasterKeyWithBiometrics(String reason) async {
     final canAuthenticateWithBiometrics = await _auth.canCheckBiometrics;
-    final canAuthenticate = canAuthenticateWithBiometrics || await _auth.isDeviceSupported();
+    final canAuthenticate =
+        canAuthenticateWithBiometrics || await _auth.isDeviceSupported();
 
     if (canAuthenticate) {
       final didAuthenticate = await _auth.authenticate(

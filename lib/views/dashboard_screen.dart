@@ -18,19 +18,28 @@ class DashboardScreen extends ConsumerWidget {
     final now = DateTime.now();
     final approachingExpirations = assets.where((a) {
       if (a.expireAt == null) return false;
-      final diff = DateTime.fromMillisecondsSinceEpoch(a.expireAt!).difference(now).inDays;
+      final diff = DateTime.fromMillisecondsSinceEpoch(
+        a.expireAt!,
+      ).difference(now).inDays;
       return diff >= 0 && diff <= 30;
-    }).toList()
-      ..sort((a, b) => a.expireAt!.compareTo(b.expireAt!));
+    }).toList()..sort((a, b) => a.expireAt!.compareTo(b.expireAt!));
 
     double totalMonthlyCost = 0;
     for (var asset in assets) {
       final costField = asset.fields.where((f) => f.key == 'cost').firstOrNull;
-      final cycleField = asset.fields.where((f) => f.key == 'billing_cycle').firstOrNull;
-      if (costField != null && !costField.isSensitive && costField.valueEnc.isNotEmpty) {
+      final cycleField = asset.fields
+          .where((f) => f.key == 'billing_cycle')
+          .firstOrNull;
+      if (costField != null &&
+          !costField.isSensitive &&
+          costField.valueEnc.isNotEmpty) {
         final val = double.tryParse(costField.valueEnc) ?? 0;
-        final cycle = cycleField != null && !cycleField.isSensitive ? cycleField.valueEnc.toLowerCase() : '';
-        if (cycle.contains('year') || cycle.contains('年') || cycle == 'yearly') {
+        final cycle = cycleField != null && !cycleField.isSensitive
+            ? cycleField.valueEnc.toLowerCase()
+            : '';
+        if (cycle.contains('year') ||
+            cycle.contains('年') ||
+            cycle == 'yearly') {
           totalMonthlyCost += val / 12;
         } else {
           totalMonthlyCost += val;
@@ -47,134 +56,146 @@ class DashboardScreen extends ConsumerWidget {
       body: assets.isEmpty
           ? _EmptyState(onAddAsset: () => context.go('/add-asset'))
           : SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ── Stat cards ──────────────────────────────────
-                        Row(
-                          children: [
-                            _StatCard(
-                              title: 'Total Assets',
-                              value: '${assets.length}',
-                              icon: Icons.inventory_2_outlined,
-                              iconColor: kPrimaryGreen,
-                            ),
-                            const SizedBox(width: 16),
-                            _StatCard(
-                              title: 'Expiring < 30 Days',
-                              value: '${approachingExpirations.length}',
-                              icon: Icons.warning_amber_rounded,
-                              iconColor: const Color(0xFFFFB74D),
-                              valueColor: approachingExpirations.isNotEmpty
-                                  ? const Color(0xFFFFB74D)
-                                  : null,
-                            ),
-                            const SizedBox(width: 16),
-                            _StatCard(
-                              title: 'Est. Monthly Cost',
-                              value: '\$${totalMonthlyCost.toStringAsFixed(2)}',
-                              icon: Icons.trending_up_rounded,
-                              iconColor: const Color(0xFF4FC3F7),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        // ── Two-column section ───────────────────────────
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Action Required
-                            if (approachingExpirations.isNotEmpty)
-                              Expanded(
-                                child: _SectionCard(
-                                  header: Row(
-                                    children: [
-                                      const Icon(Icons.warning_amber_rounded, size: 16, color: Color(0xFFFFB74D)),
-                                      const SizedBox(width: 6),
-                                      Text('ACTION REQUIRED',
-                                          style: GoogleFonts.inter(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w700,
-                                            color: const Color(0xFFFFB74D),
-                                            letterSpacing: 0.8,
-                                          )),
-                                      const Spacer(),
-                                      TextButton(
-                                        onPressed: () {},
-                                        style: TextButton.styleFrom(
-                                          padding: EdgeInsets.zero,
-                                          minimumSize: Size.zero,
-                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                        ),
-                                        child: Text(
-                                          'View all →',
-                                          style: GoogleFonts.inter(fontSize: 12, color: kPrimaryGreen),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Column(
-                                    children: approachingExpirations.take(4).map((a) {
-                                      final daysLeft = DateTime.fromMillisecondsSinceEpoch(a.expireAt!)
-                                          .difference(now)
-                                          .inDays;
-                                      final expStr = DateTime.fromMillisecondsSinceEpoch(a.expireAt!)
-                                          .toLocal()
-                                          .toString()
-                                          .split(' ')[0];
-                                      final assetType = assetTypes.firstWhere(
-                                        (t) => t.id == a.typeId,
-                                        orElse: () => assetTypes.first,
-                                      );
-                                      return _ExpiryRow(
-                                        name: a.name,
-                                        subtitle: assetType.name,
-                                        dateStr: expStr,
-                                        daysLeft: daysLeft,
-                                        onTap: () => context.go('/asset/${a.id}'),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ),
-                              ),
-                            if (approachingExpirations.isNotEmpty) const SizedBox(width: 16),
-                            // Recently Added
-                            Expanded(
-                              child: _SectionCard(
-                                header: Text('RECENTLY ADDED',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: kTextMuted,
-                                      letterSpacing: 0.8,
-                                    )),
-                                child: Column(
-                                  children: recentSlice.map((asset) {
-                                    final assetType = assetTypes.firstWhere(
-                                      (t) => t.id == asset.typeId,
-                                      orElse: () => assetTypes.first,
-                                    );
-                                    return _AssetRow(
-                                      asset: asset,
-                                      assetType: assetType,
-                                      onTap: () => context.go('/asset/${asset.id}'),
-                                    );
-                                  }).toList(),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Stat cards ──────────────────────────────────
+                  Row(
+                    children: [
+                      _StatCard(
+                        title: 'Total Assets',
+                        value: '${assets.length}',
+                        icon: Icons.inventory_2_outlined,
+                        iconColor: kPrimaryGreen,
+                      ),
+                      const SizedBox(width: 16),
+                      _StatCard(
+                        title: 'Expiring < 30 Days',
+                        value: '${approachingExpirations.length}',
+                        icon: Icons.warning_amber_rounded,
+                        iconColor: const Color(0xFFFFB74D),
+                        valueColor: approachingExpirations.isNotEmpty
+                            ? const Color(0xFFFFB74D)
+                            : null,
+                      ),
+                      const SizedBox(width: 16),
+                      _StatCard(
+                        title: 'Est. Monthly Cost',
+                        value: '\$${totalMonthlyCost.toStringAsFixed(2)}',
+                        icon: Icons.trending_up_rounded,
+                        iconColor: const Color(0xFF4FC3F7),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 24),
+
+                  // ── Two-column section ───────────────────────────
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Action Required
+                      if (approachingExpirations.isNotEmpty)
+                        Expanded(
+                          child: _SectionCard(
+                            header: Row(
+                              children: [
+                                const Icon(
+                                  Icons.warning_amber_rounded,
+                                  size: 16,
+                                  color: Color(0xFFFFB74D),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'ACTION REQUIRED',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFFFFB74D),
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                                const Spacer(),
+                                TextButton(
+                                  onPressed: () {},
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: Text(
+                                    'View all →',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      color: kPrimaryGreen,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: approachingExpirations.take(4).map((a) {
+                                final daysLeft =
+                                    DateTime.fromMillisecondsSinceEpoch(
+                                      a.expireAt!,
+                                    ).difference(now).inDays;
+                                final expStr =
+                                    DateTime.fromMillisecondsSinceEpoch(
+                                      a.expireAt!,
+                                    ).toLocal().toString().split(' ')[0];
+                                final assetType = assetTypes.firstWhere(
+                                  (t) => t.id == a.typeId,
+                                  orElse: () => assetTypes.first,
+                                );
+                                return _ExpiryRow(
+                                  name: a.name,
+                                  subtitle: assetType.name,
+                                  dateStr: expStr,
+                                  daysLeft: daysLeft,
+                                  onTap: () => context.go('/asset/${a.id}'),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                      if (approachingExpirations.isNotEmpty)
+                        const SizedBox(width: 16),
+                      // Recently Added
+                      Expanded(
+                        child: _SectionCard(
+                          header: Text(
+                            'RECENTLY ADDED',
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: kTextMuted,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          child: Column(
+                            children: recentSlice.map((asset) {
+                              final assetType = assetTypes.firstWhere(
+                                (t) => t.id == asset.typeId,
+                                orElse: () => assetTypes.first,
+                              );
+                              return _AssetRow(
+                                asset: asset,
+                                assetType: assetType,
+                                onTap: () => context.go('/asset/${asset.id}'),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }
-
-
 
 class _StatCard extends StatelessWidget {
   const _StatCard({
@@ -207,19 +228,23 @@ class _StatCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: kTextMuted,
-                        fontWeight: FontWeight.w500,
-                      )),
+                  Text(
+                    title,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: kTextMuted,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  Text(value,
-                      style: GoogleFonts.inter(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: valueColor ?? Colors.white,
-                      )),
+                  Text(
+                    value,
+                    style: GoogleFonts.inter(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: valueColor ?? Colors.white,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -280,7 +305,9 @@ class _ExpiryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final urgentColor = daysLeft <= 7 ? const Color(0xFFFF5252) : const Color(0xFFFFB74D);
+    final urgentColor = daysLeft <= 7
+        ? const Color(0xFFFF5252)
+        : const Color(0xFFFFB74D);
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -291,26 +318,40 @@ class _ExpiryRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name,
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 14)),
+                  Text(
+                    name,
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(subtitle,
-                      style: const TextStyle(fontSize: 12, color: kTextMuted)),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 12, color: kTextMuted),
+                  ),
                 ],
               ),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(dateStr,
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: urgentColor,
-                    )),
+                Text(
+                  dateStr,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: urgentColor,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text('Expiring soon',
-                    style: TextStyle(fontSize: 11, color: urgentColor.withValues(alpha: 0.8))),
+                Text(
+                  'Expiring soon',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: urgentColor.withValues(alpha: 0.8),
+                  ),
+                ),
               ],
             ),
           ],
@@ -369,10 +410,14 @@ class _AssetRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(asset.name,
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 14)),
-                  if (asset.tags.isNotEmpty)
-                    const SizedBox(height: 4),
+                  Text(
+                    asset.name,
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                  if (asset.tags.isNotEmpty) const SizedBox(height: 4),
                   if (asset.tags.isNotEmpty)
                     Wrap(
                       spacing: 4,
@@ -403,7 +448,10 @@ class _TagChip extends StatelessWidget {
         color: kBorderColor,
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(name, style: const TextStyle(fontSize: 11, color: Colors.white70)),
+      child: Text(
+        name,
+        style: const TextStyle(fontSize: 11, color: Colors.white70),
+      ),
     );
   }
 }
@@ -427,24 +475,37 @@ class _EmptyState extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: kBorderColor),
             ),
-            child: const Icon(Icons.inventory_2_outlined, size: 40, color: kTextMuted),
+            child: const Icon(
+              Icons.inventory_2_outlined,
+              size: 40,
+              color: kTextMuted,
+            ),
           ),
           const SizedBox(height: 20),
-          Text('No assets yet',
-              style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600)),
+          Text(
+            'No assets yet',
+            style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 8),
-          const Text('Add your first digital asset to get started.',
-              style: TextStyle(color: kTextMuted, fontSize: 14)),
+          const Text(
+            'Add your first digital asset to get started.',
+            style: TextStyle(color: kTextMuted, fontSize: 14),
+          ),
           const SizedBox(height: 24),
           FilledButton.icon(
             onPressed: onAddAsset,
             style: FilledButton.styleFrom(
               backgroundColor: kPrimaryGreen,
               foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             icon: const Icon(Icons.add, size: 18),
-            label: Text('Add Asset', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+            label: Text(
+              'Add Asset',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),

@@ -48,7 +48,7 @@ class EncryptionService {
   Map<String, String> encryptField(String plaintext) {
     final key = masterKey; // Will throw if not set
     final iv = _generateRandomBytes(12); // Standard for GCM
-    
+
     final cipher = GCMBlockCipher(AESEngine())
       ..init(
         true,
@@ -63,10 +63,7 @@ class EncryptionService {
     final plaintextBytes = utf8.encode(plaintext);
     final cipherText = cipher.process(plaintextBytes);
 
-    return {
-      'valueEnc': base64.encode(cipherText),
-      'iv': base64.encode(iv),
-    };
+    return {'valueEnc': base64.encode(cipherText), 'iv': base64.encode(iv)};
   }
 
   /// Decrypts ciphertext using AES-256-GCM and the supplied IV
@@ -76,15 +73,7 @@ class EncryptionService {
     final iv = base64.decode(base64Iv);
 
     final cipher = GCMBlockCipher(AESEngine())
-      ..init(
-        false,
-        AEADParameters(
-          KeyParameter(key),
-          128,
-          iv,
-          Uint8List(0),
-        ),
-      );
+      ..init(false, AEADParameters(KeyParameter(key), 128, iv, Uint8List(0)));
 
     final plainTextBytes = cipher.process(cipherText);
     return utf8.decode(plainTextBytes);
@@ -92,7 +81,9 @@ class EncryptionService {
 
   Uint8List _generateRandomBytes(int length) {
     final random = Random.secure();
-    return Uint8List.fromList(List.generate(length, (i) => random.nextInt(256)));
+    return Uint8List.fromList(
+      List.generate(length, (i) => random.nextInt(256)),
+    );
   }
 
   String generateSaltBase64() {

@@ -1,0 +1,68 @@
+# https://pre-commit.com
+# Install: pip install pre-commit && pre-commit install && pre-commit install --hook-type pre-push
+
+repos:
+  # General file hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+        exclude: "^target/"
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: detect-private-key
+
+  # Conventional Commits check
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args:
+          - feat
+          - fix
+          - perf
+          - refactor
+          - docs
+          - test
+          - style
+          - ci
+          - chore
+          - build
+          - revert
+
+  # Dart / Flutter
+  - repo: local
+    hooks:
+      - id: dart-format
+        name: dart format
+        entry: dart format --set-exit-if-changed .
+        language: system
+        pass_filenames: false
+
+      - id: build-runner
+        name: build_runner
+        entry: dart run build_runner build --delete-conflicting-outputs
+        language: system
+        pass_filenames: false
+
+      - id: flutter-analyze
+        name: flutter analyze
+        entry: flutter analyze
+        language: system
+        pass_filenames: false
+
+      - id: flutter-test
+        name: flutter test
+        entry: flutter test
+        language: system
+        stages: [push]
+        pass_filenames: false

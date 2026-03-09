@@ -7,11 +7,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'router/app_router.dart';
 
 // ─── Design Tokens ──────────────────────────────────────────────────────────
-const kPrimaryGreen   = Color(0xFF00C896);
-const kBgColor        = Color(0xFF14161F);  // deepest bg
-const kSurfaceColor   = Color(0xFF1E2130);  // card / sidebar
-const kBorderColor    = Color(0xFF2B2E3E);  // subtle divider
-const kTextMuted      = Color(0xFF7B8099);
+const kPrimaryGreen = Color(0xFF00C896);
+const kBgColor = Color(0xFF14161F); // deepest bg
+const kSurfaceColor = Color(0xFF1E2130); // card / sidebar
+const kBorderColor = Color(0xFF2B2E3E); // subtle divider
+const kTextMuted = Color(0xFF7B8099);
 // ─────────────────────────────────────────────────────────────────────────────
 
 void main() {
@@ -58,10 +58,9 @@ class AssetVaultApp extends ConsumerWidget {
 
 ThemeData _buildDarkTheme() {
   final base = ThemeData.dark(useMaterial3: true);
-  final textTheme = GoogleFonts.interTextTheme(base.textTheme).apply(
-    bodyColor: Colors.white,
-    displayColor: Colors.white,
-  );
+  final textTheme = GoogleFonts.interTextTheme(
+    base.textTheme,
+  ).apply(bodyColor: Colors.white, displayColor: Colors.white);
 
   return base.copyWith(
     textTheme: textTheme,

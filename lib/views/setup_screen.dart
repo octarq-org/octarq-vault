@@ -26,18 +26,21 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     }
 
     if (pwd != confirm) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
       return;
     }
 
     setState(() => _isCreating = true);
 
-    final success = await ref.read(authProvider.notifier).setupMasterPassword(pwd);
+    final success = await ref
+        .read(authProvider.notifier)
+        .setupMasterPassword(pwd);
 
     if (!success && mounted) {
-      final error = ref.read(authProvider.notifier).lastError ?? 'Unknown error';
+      final error =
+          ref.read(authProvider.notifier).lastError ?? 'Unknown error';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to create vault: $error'),

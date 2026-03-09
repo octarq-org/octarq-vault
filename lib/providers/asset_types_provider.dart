@@ -6,9 +6,10 @@ import '../models/asset_type.dart';
 import '../utils/default_asset_types.dart';
 import 'service_providers.dart';
 
-final assetTypesProvider = NotifierProvider<AssetTypesNotifier, List<AssetType>>(() {
-  return AssetTypesNotifier();
-});
+final assetTypesProvider =
+    NotifierProvider<AssetTypesNotifier, List<AssetType>>(() {
+      return AssetTypesNotifier();
+    });
 
 class AssetTypesNotifier extends Notifier<List<AssetType>> {
   @override
@@ -17,13 +18,19 @@ class AssetTypesNotifier extends Notifier<List<AssetType>> {
   }
 
   Future<void> loadCustomTypes() async {
-    if (kIsWeb) { state = [...defaultAssetTypes]; return; }
+    if (kIsWeb) {
+      state = [...defaultAssetTypes];
+      return;
+    }
     final dbService = ref.read(databaseServiceProvider);
     final records = await dbService.getCustomAssetTypes();
-    
+
     final customTypes = records.map((record) {
-      final fieldSchemaJson = jsonDecode(record['field_schema'] as String) as List;
-      final fieldSchema = fieldSchemaJson.map((e) => AssetTypeFieldSchema.fromJson(e)).toList();
+      final fieldSchemaJson =
+          jsonDecode(record['field_schema'] as String) as List;
+      final fieldSchema = fieldSchemaJson
+          .map((e) => AssetTypeFieldSchema.fromJson(e))
+          .toList();
 
       return AssetType(
         id: record['id'] as String,
@@ -34,26 +41,25 @@ class AssetTypesNotifier extends Notifier<List<AssetType>> {
       );
     }).toList();
 
-    state = [
-      ...defaultAssetTypes,
-      ...customTypes,
-    ];
+    state = [...defaultAssetTypes, ...customTypes];
   }
 
   Future<void> addCustomType(AssetType type) async {
     if (!kIsWeb) {
       final dbService = ref.read(databaseServiceProvider);
-      final fieldSchemaJson = jsonEncode(type.fieldSchema.map((e) => e.toJson()).toList());
-      
+      final fieldSchemaJson = jsonEncode(
+        type.fieldSchema.map((e) => e.toJson()).toList(),
+      );
+
       await dbService.insertAssetType({
-      'id': type.id,
-      'name': type.name,
-      'icon': type.icon,
-      'field_schema': fieldSchemaJson,
+        'id': type.id,
+        'name': type.name,
+        'icon': type.icon,
+        'field_schema': fieldSchemaJson,
         'is_built_in': type.isBuiltIn ? 1 : 0,
       });
     }
-    
+
     await loadCustomTypes();
   }
 

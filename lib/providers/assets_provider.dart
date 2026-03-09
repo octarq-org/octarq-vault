@@ -12,12 +12,15 @@ class AssetsNotifier extends Notifier<List<Asset>> {
   }
 
   Future<void> loadAssets() async {
-    if (kIsWeb) { state = []; return; }
+    if (kIsWeb) {
+      state = [];
+      return;
+    }
     try {
       final dbService = ref.read(databaseServiceProvider);
       final db = dbService.db;
       final List<Map<String, dynamic>> assetMaps = await db.query('assets');
-      
+
       final List<Asset> assets = [];
 
       for (var aMap in assetMaps) {
@@ -38,20 +41,22 @@ class AssetsNotifier extends Notifier<List<Asset>> {
           );
         }).toList();
 
-        assets.add(Asset(
-          id: aMap['id'] as String,
-          typeId: aMap['type_id'] as String,
-          name: aMap['name'] as String,
-          expireAt: aMap['expire_at'] as int?,
-          createdAt: aMap['created_at'] as int,
-          updatedAt: aMap['updated_at'] as int,
-          isArchived: (aMap['is_archived'] as int) == 1,
-          fields: fields,
-        ));
+        assets.add(
+          Asset(
+            id: aMap['id'] as String,
+            typeId: aMap['type_id'] as String,
+            name: aMap['name'] as String,
+            expireAt: aMap['expire_at'] as int?,
+            createdAt: aMap['created_at'] as int,
+            updatedAt: aMap['updated_at'] as int,
+            isArchived: (aMap['is_archived'] as int) == 1,
+            fields: fields,
+          ),
+        );
       }
 
       state = assets;
-    } catch(e) {
+    } catch (e) {
       // Database not ready, probably locked.
     }
   }
@@ -59,29 +64,29 @@ class AssetsNotifier extends Notifier<List<Asset>> {
   Future<void> addAsset(Asset asset) async {
     if (!kIsWeb) {
       final db = ref.read(databaseServiceProvider).db;
-      
-      await db.transaction((txn) async {
-      await txn.insert('assets', {
-        'id': asset.id,
-        'type_id': asset.typeId,
-        'name': asset.name,
-        'expire_at': asset.expireAt,
-        'created_at': asset.createdAt,
-        'updated_at': asset.updatedAt,
-        'is_archived': asset.isArchived ? 1 : 0,
-      });
 
-      for (var field in asset.fields) {
-        await txn.insert('asset_fields', {
-          'id': field.id,
-          'asset_id': field.assetId,
-          'key': field.key,
-          'value_enc': field.valueEnc,
-          'iv': field.iv,
-          'is_sensitive': field.isSensitive ? 1 : 0,
+      await db.transaction((txn) async {
+        await txn.insert('assets', {
+          'id': asset.id,
+          'type_id': asset.typeId,
+          'name': asset.name,
+          'expire_at': asset.expireAt,
+          'created_at': asset.createdAt,
+          'updated_at': asset.updatedAt,
+          'is_archived': asset.isArchived ? 1 : 0,
         });
-      }
-    });
+
+        for (var field in asset.fields) {
+          await txn.insert('asset_fields', {
+            'id': field.id,
+            'asset_id': field.assetId,
+            'key': field.key,
+            'value_enc': field.valueEnc,
+            'iv': field.iv,
+            'is_sensitive': field.isSensitive ? 1 : 0,
+          });
+        }
+      });
     }
 
     state = [...state, asset];

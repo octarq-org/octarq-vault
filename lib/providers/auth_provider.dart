@@ -22,11 +22,13 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final storage = ref.read(secureStorageServiceProvider);
       final hasKey = await storage.hasStoredKey();
-      
+
       // Check if we're still alive after the async call
       if (!ref.mounted) return;
-      
-      if (kDebugMode) { print('AuthNotifier._init: hasStoredKey=$hasKey'); }
+
+      if (kDebugMode) {
+        print('AuthNotifier._init: hasStoredKey=$hasKey');
+      }
 
       if (hasKey) {
         state = AuthState.locked;
@@ -41,7 +43,11 @@ class AuthNotifier extends Notifier<AuthState> {
           final dbFile = File(dbPath);
           if (await dbFile.exists()) {
             if (!ref.mounted) return;
-            if (kDebugMode) { print('AuthNotifier._init: DB file exists but no key in storage — vault exists'); }
+            if (kDebugMode) {
+              print(
+                'AuthNotifier._init: DB file exists but no key in storage — vault exists',
+              );
+            }
             state = AuthState.locked;
             return;
           }
@@ -53,7 +59,9 @@ class AuthNotifier extends Notifier<AuthState> {
       if (!ref.mounted) return;
       state = AuthState.unsetup;
     } catch (e) {
-      if (kDebugMode) { print('AuthNotifier._init error: $e'); }
+      if (kDebugMode) {
+        print('AuthNotifier._init error: $e');
+      }
       if (ref.mounted) {
         state = AuthState.unsetup;
       }
@@ -65,7 +73,7 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final encryption = ref.read(encryptionServiceProvider);
       final storage = ref.read(secureStorageServiceProvider);
-      
+
       // Delete any existing DB file to avoid "file is not a database" error
       // when re-creating a vault with a new key
       if (!kIsWeb) {
@@ -73,7 +81,9 @@ class AuthNotifier extends Notifier<AuthState> {
           final dbPath = p.join(await getDatabasesPath(), 'asset_vault_enc.db');
           final dbFile = File(dbPath);
           if (await dbFile.exists()) {
-            if (kDebugMode) { print('setupMasterPassword: deleting stale DB at $dbPath'); }
+            if (kDebugMode) {
+              print('setupMasterPassword: deleting stale DB at $dbPath');
+            }
             await dbFile.delete();
           }
         } catch (_) {}
@@ -82,17 +92,21 @@ class AuthNotifier extends Notifier<AuthState> {
       final saltBase64 = encryption.generateSaltBase64();
       await encryption.deriveKey(password, saltBase64);
       final key = encryption.masterKey;
-      
+
       await storage.storeMasterKey(key, saltBase64);
-      
+
       final db = ref.read(databaseServiceProvider);
-      if (!kIsWeb) { await db.init(key); }
-      
+      if (!kIsWeb) {
+        await db.init(key);
+      }
+
       state = AuthState.unlocked;
       return true;
     } catch (e, st) {
       _lastError = e.toString();
-      if (kDebugMode) { print('Vault creation failed: $e\n$st'); }
+      if (kDebugMode) {
+        print('Vault creation failed: $e\n$st');
+      }
       return false;
     }
   }
@@ -102,7 +116,7 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final encryption = ref.read(encryptionServiceProvider);
       final storage = ref.read(secureStorageServiceProvider);
-      
+
       final saltBase64 = await storage.getSalt();
       if (saltBase64 == null) {
         _lastError = 'No salt found. Vault may be corrupted.';
@@ -111,15 +125,19 @@ class AuthNotifier extends Notifier<AuthState> {
 
       await encryption.deriveKey(password, saltBase64);
       final key = encryption.masterKey;
-      
+
       final db = ref.read(databaseServiceProvider);
-      if (!kIsWeb) { await db.init(key); }
-      
+      if (!kIsWeb) {
+        await db.init(key);
+      }
+
       state = AuthState.unlocked;
       return true;
     } catch (e, st) {
       _lastError = e.toString();
-      if (kDebugMode) { print('Unlock failed: $e\n$st'); }
+      if (kDebugMode) {
+        print('Unlock failed: $e\n$st');
+      }
       return false;
     }
   }
@@ -129,28 +147,34 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final storage = ref.read(secureStorageServiceProvider);
       final key = await storage.getMasterKeyWithBiometrics('Unlock AssetVault');
-      
+
       if (key != null) {
         final encryption = ref.read(encryptionServiceProvider);
         encryption.setMasterKey(key);
-        
+
         final db = ref.read(databaseServiceProvider);
-        if (!kIsWeb) { await db.init(key); }
-        
+        if (!kIsWeb) {
+          await db.init(key);
+        }
+
         state = AuthState.unlocked;
         return true;
       }
       return false;
     } catch (e, st) {
       _lastError = e.toString();
-      if (kDebugMode) { print('Biometric unlock failed: $e\n$st'); }
+      if (kDebugMode) {
+        print('Biometric unlock failed: $e\n$st');
+      }
       return false;
     }
   }
 
   Future<void> lock() async {
     ref.read(encryptionServiceProvider).wipeKey();
-    if (!kIsWeb) { await ref.read(databaseServiceProvider).close(); }
+    if (!kIsWeb) {
+      await ref.read(databaseServiceProvider).close();
+    }
     state = AuthState.locked;
   }
 }

@@ -26,7 +26,7 @@ void main() {
     test('initial state contains expected built-in types', () {
       final types = container.read(assetTypesProvider);
       final typeNames = types.map((t) => t.name).toList();
-      
+
       expect(typeNames, contains('域名 (Domain)'));
       expect(typeNames, contains('SSL 证书'));
       expect(typeNames, contains('VPS / 云服务器'));
@@ -40,7 +40,11 @@ void main() {
     test('all default types are marked as built-in', () {
       final types = container.read(assetTypesProvider);
       for (final type in types) {
-        expect(type.isBuiltIn, isTrue, reason: '${type.name} should be built-in');
+        expect(
+          type.isBuiltIn,
+          isTrue,
+          reason: '${type.name} should be built-in',
+        );
       }
     });
 
@@ -50,7 +54,9 @@ void main() {
 
       expect(domain.fieldSchema.length, equals(5));
 
-      final registrarField = domain.fieldSchema.firstWhere((f) => f.key == 'registrar');
+      final registrarField = domain.fieldSchema.firstWhere(
+        (f) => f.key == 'registrar',
+      );
       expect(registrarField.isRequired, isTrue);
       expect(registrarField.type, equals('text'));
     });
@@ -59,7 +65,9 @@ void main() {
       final types = container.read(assetTypesProvider);
       final email = types.firstWhere((t) => t.id == 'type_email');
 
-      final passwordField = email.fieldSchema.firstWhere((f) => f.key == 'password');
+      final passwordField = email.fieldSchema.firstWhere(
+        (f) => f.key == 'password',
+      );
       expect(passwordField.isEncrypted, isTrue);
       expect(passwordField.isRequired, isTrue);
       expect(passwordField.type, equals('password'));
@@ -78,7 +86,9 @@ void main() {
       final types = container.read(assetTypesProvider);
       final bankCard = types.firstWhere((t) => t.id == 'type_bankcard');
 
-      final cardNumber = bankCard.fieldSchema.firstWhere((f) => f.key == 'card_number');
+      final cardNumber = bankCard.fieldSchema.firstWhere(
+        (f) => f.key == 'card_number',
+      );
       expect(cardNumber.isEncrypted, isTrue);
 
       final cvv = bankCard.fieldSchema.firstWhere((f) => f.key == 'cvv');
@@ -127,7 +137,12 @@ void main() {
         isBuiltIn: false,
         fieldSchema: [
           AssetTypeFieldSchema(key: 'field1', label: 'Field 1', type: 'text'),
-          AssetTypeFieldSchema(key: 'secret', label: 'Secret', type: 'password', isEncrypted: true),
+          AssetTypeFieldSchema(
+            key: 'secret',
+            label: 'Secret',
+            type: 'password',
+            isEncrypted: true,
+          ),
         ],
       );
 

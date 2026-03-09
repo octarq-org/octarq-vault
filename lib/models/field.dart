@@ -14,5 +14,6 @@ abstract class AssetField with _$AssetField {
     @Default(false) bool isSensitive,
   }) = _AssetField;
 
-  factory AssetField.fromJson(Map<String, dynamic> json) => _$AssetFieldFromJson(json);
+  factory AssetField.fromJson(Map<String, dynamic> json) =>
+      _$AssetFieldFromJson(json);
 }

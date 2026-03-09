@@ -14,7 +14,12 @@ final List<AssetType> defaultAssetTypes = [
     icon: 'language',
     isBuiltIn: true,
     fieldSchema: [
-      AssetTypeFieldSchema(key: 'registrar', label: '注册商', type: 'text', isRequired: true),
+      AssetTypeFieldSchema(
+        key: 'registrar',
+        label: '注册商',
+        type: 'text',
+        isRequired: true,
+      ),
       AssetTypeFieldSchema(key: 'dns', label: 'DNS 配置', type: 'text'),
       AssetTypeFieldSchema(
         key: 'auto_renew',
@@ -37,7 +42,12 @@ final List<AssetType> defaultAssetTypes = [
     icon: 'security',
     isBuiltIn: true,
     fieldSchema: [
-      AssetTypeFieldSchema(key: 'issuer', label: '颁发机构', type: 'text', isRequired: true),
+      AssetTypeFieldSchema(
+        key: 'issuer',
+        label: '颁发机构',
+        type: 'text',
+        isRequired: true,
+      ),
       AssetTypeFieldSchema(key: 'domain_bind', label: '域名绑定', type: 'text'),
       AssetTypeFieldSchema(
         key: 'auto_renew',
@@ -60,7 +70,12 @@ final List<AssetType> defaultAssetTypes = [
     icon: 'dns',
     isBuiltIn: true,
     fieldSchema: [
-      AssetTypeFieldSchema(key: 'provider', label: '服务商', type: 'text', isRequired: true),
+      AssetTypeFieldSchema(
+        key: 'provider',
+        label: '服务商',
+        type: 'text',
+        isRequired: true,
+      ),
       AssetTypeFieldSchema(key: 'ip', label: 'IP 地址', type: 'text'),
       AssetTypeFieldSchema(key: 'specs', label: '配置规格', type: 'text'),
       AssetTypeFieldSchema(
@@ -78,8 +93,19 @@ final List<AssetType> defaultAssetTypes = [
     icon: 'email',
     isBuiltIn: true,
     fieldSchema: [
-      AssetTypeFieldSchema(key: 'provider', label: '服务商', type: 'text', isRequired: true),
-      AssetTypeFieldSchema(key: 'password', label: '密码', type: 'password', isEncrypted: true, isRequired: true),
+      AssetTypeFieldSchema(
+        key: 'provider',
+        label: '服务商',
+        type: 'text',
+        isRequired: true,
+      ),
+      AssetTypeFieldSchema(
+        key: 'password',
+        label: '密码',
+        type: 'password',
+        isEncrypted: true,
+        isRequired: true,
+      ),
       AssetTypeFieldSchema(key: 'recovery_email', label: '恢复邮箱', type: 'text'),
       AssetTypeFieldSchema(key: 'phone_bind', label: '绑定手机', type: 'text'),
     ],
@@ -90,9 +116,25 @@ final List<AssetType> defaultAssetTypes = [
     icon: 'account_circle',
     isBuiltIn: true,
     fieldSchema: [
-      AssetTypeFieldSchema(key: 'platform', label: '平台名', type: 'text', isRequired: true),
-      AssetTypeFieldSchema(key: 'username', label: '用户名', type: 'text', isRequired: true),
-      AssetTypeFieldSchema(key: 'password', label: '密码', type: 'password', isEncrypted: true, isRequired: true),
+      AssetTypeFieldSchema(
+        key: 'platform',
+        label: '平台名',
+        type: 'text',
+        isRequired: true,
+      ),
+      AssetTypeFieldSchema(
+        key: 'username',
+        label: '用户名',
+        type: 'text',
+        isRequired: true,
+      ),
+      AssetTypeFieldSchema(
+        key: 'password',
+        label: '密码',
+        type: 'password',
+        isEncrypted: true,
+        isRequired: true,
+      ),
     ],
   ),
   const AssetType(
@@ -101,15 +143,30 @@ final List<AssetType> defaultAssetTypes = [
     icon: 'credit_card',
     isBuiltIn: true,
     fieldSchema: [
-      AssetTypeFieldSchema(key: 'bank', label: '银行', type: 'text', isRequired: true),
+      AssetTypeFieldSchema(
+        key: 'bank',
+        label: '银行',
+        type: 'text',
+        isRequired: true,
+      ),
       AssetTypeFieldSchema(
         key: 'card_type',
         label: '卡种',
         type: 'select',
         options: _cardTypeOptions,
       ),
-      AssetTypeFieldSchema(key: 'card_number', label: '卡号后四位', type: 'text', isEncrypted: true),
-      AssetTypeFieldSchema(key: 'cvv', label: 'CVV', type: 'password', isEncrypted: true),
+      AssetTypeFieldSchema(
+        key: 'card_number',
+        label: '卡号后四位',
+        type: 'text',
+        isEncrypted: true,
+      ),
+      AssetTypeFieldSchema(
+        key: 'cvv',
+        label: 'CVV',
+        type: 'password',
+        isEncrypted: true,
+      ),
       AssetTypeFieldSchema(key: 'billing_day', label: '账单日', type: 'number'),
     ],
   ),
@@ -119,8 +176,19 @@ final List<AssetType> defaultAssetTypes = [
     icon: 'vpn_key',
     isBuiltIn: true,
     fieldSchema: [
-      AssetTypeFieldSchema(key: 'platform', label: '平台', type: 'text', isRequired: true),
-      AssetTypeFieldSchema(key: 'api_key', label: 'API Key', type: 'password', isEncrypted: true, isRequired: true),
+      AssetTypeFieldSchema(
+        key: 'platform',
+        label: '平台',
+        type: 'text',
+        isRequired: true,
+      ),
+      AssetTypeFieldSchema(
+        key: 'api_key',
+        label: 'API Key',
+        type: 'password',
+        isEncrypted: true,
+        isRequired: true,
+      ),
       AssetTypeFieldSchema(key: 'permissions', label: '权限范围', type: 'text'),
     ],
   ),
@@ -130,7 +198,12 @@ final List<AssetType> defaultAssetTypes = [
     icon: 'subscriptions',
     isBuiltIn: true,
     fieldSchema: [
-      AssetTypeFieldSchema(key: 'provider', label: '服务商', type: 'text', isRequired: true),
+      AssetTypeFieldSchema(
+        key: 'provider',
+        label: '服务商',
+        type: 'text',
+        isRequired: true,
+      ),
       AssetTypeFieldSchema(
         key: 'plan',
         label: '订阅计划',
@@ -152,7 +225,12 @@ final List<AssetType> defaultAssetTypes = [
     icon: 'currency_bitcoin',
     isBuiltIn: true,
     fieldSchema: [
-      AssetTypeFieldSchema(key: 'exchange', label: '交易所名称', type: 'text', isRequired: true),
+      AssetTypeFieldSchema(
+        key: 'exchange',
+        label: '交易所名称',
+        type: 'text',
+        isRequired: true,
+      ),
       AssetTypeFieldSchema(
         key: 'kyc_level',
         label: 'KYC 等级',
@@ -173,8 +251,18 @@ final List<AssetType> defaultAssetTypes = [
     icon: 'terminal',
     isBuiltIn: true,
     fieldSchema: [
-      AssetTypeFieldSchema(key: 'usage', label: '用途', type: 'text', isRequired: true),
-      AssetTypeFieldSchema(key: 'fingerprint', label: '密钥指纹', type: 'text', isEncrypted: true),
+      AssetTypeFieldSchema(
+        key: 'usage',
+        label: '用途',
+        type: 'text',
+        isRequired: true,
+      ),
+      AssetTypeFieldSchema(
+        key: 'fingerprint',
+        label: '密钥指纹',
+        type: 'text',
+        isEncrypted: true,
+      ),
       AssetTypeFieldSchema(key: 'server', label: '关联服务器', type: 'text'),
     ],
   ),

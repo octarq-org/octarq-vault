@@ -14,5 +14,6 @@ abstract class Reminder with _$Reminder {
     @Default(false) bool isRecurring,
   }) = _Reminder;
 
-  factory Reminder.fromJson(Map<String, dynamic> json) => _$ReminderFromJson(json);
+  factory Reminder.fromJson(Map<String, dynamic> json) =>
+      _$ReminderFromJson(json);
 }

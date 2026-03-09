@@ -21,7 +21,7 @@ class WebDavService {
       debug: false,
     );
     await _client!.ping(); // Validate credentials
-    
+
     // Store credentials securely for future automated use
     final storage = const FlutterSecureStorage();
     await storage.write(key: 'webdav_url', value: url);
@@ -41,7 +41,7 @@ class WebDavService {
     final url = await storage.read(key: 'webdav_url');
     final user = await storage.read(key: 'webdav_user');
     final pass = await storage.read(key: 'webdav_pass');
-    
+
     if (url != null && user != null && pass != null) {
       _client = webdav.newClient(url, user: user, password: pass);
     } else {
@@ -51,7 +51,7 @@ class WebDavService {
 
   Future<void> backupJson(String jsonPayload) async {
     await _connectFromStorage();
-    
+
     // Ensure directory exists
     try {
       await _client!.mkdir('/AssetVault');
@@ -66,7 +66,7 @@ class WebDavService {
 
   Future<String> restoreJson() async {
     await _connectFromStorage();
-    
+
     // Read bytes from remote server
     final bytes = await _client!.read('/AssetVault/backup.json');
     return String.fromCharCodes(bytes);

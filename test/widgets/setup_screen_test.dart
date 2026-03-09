@@ -35,9 +35,7 @@ void main() {
     testWidgets('renders setup UI elements', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            authProvider.overrideWith(() => MockAuthNotifier()),
-          ],
+          overrides: [authProvider.overrideWith(() => MockAuthNotifier())],
           child: const MaterialApp(home: SetupScreen()),
         ),
       );
@@ -51,16 +49,20 @@ void main() {
     testWidgets('shows error for short password', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            authProvider.overrideWith(() => MockAuthNotifier()),
-          ],
+          overrides: [authProvider.overrideWith(() => MockAuthNotifier())],
           child: const MaterialApp(home: SetupScreen()),
         ),
       );
 
       // Enter a short password
-      await tester.enterText(find.widgetWithText(TextField, 'Master Password'), 'short');
-      await tester.enterText(find.widgetWithText(TextField, 'Confirm Password'), 'short');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Master Password'),
+        'short',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Confirm Password'),
+        'short',
+      );
       await tester.tap(find.text('Create Vault'));
       await tester.pump();
 
@@ -70,15 +72,19 @@ void main() {
     testWidgets('shows error for mismatched passwords', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [
-            authProvider.overrideWith(() => MockAuthNotifier()),
-          ],
+          overrides: [authProvider.overrideWith(() => MockAuthNotifier())],
           child: const MaterialApp(home: SetupScreen()),
         ),
       );
 
-      await tester.enterText(find.widgetWithText(TextField, 'Master Password'), 'password123');
-      await tester.enterText(find.widgetWithText(TextField, 'Confirm Password'), 'different12');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Master Password'),
+        'password123',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Confirm Password'),
+        'different12',
+      );
       await tester.tap(find.text('Create Vault'));
       await tester.pump();
 
@@ -87,23 +93,31 @@ void main() {
 
     testWidgets('submits valid password', (tester) async {
       String? capturedPassword;
-      
+
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            authProvider.overrideWith(() => MockAuthNotifier(
-              onSetup: (pwd) {
-                capturedPassword = pwd;
-                return true;
-              },
-            )),
+            authProvider.overrideWith(
+              () => MockAuthNotifier(
+                onSetup: (pwd) {
+                  capturedPassword = pwd;
+                  return true;
+                },
+              ),
+            ),
           ],
           child: const MaterialApp(home: SetupScreen()),
         ),
       );
 
-      await tester.enterText(find.widgetWithText(TextField, 'Master Password'), 'securepassword123');
-      await tester.enterText(find.widgetWithText(TextField, 'Confirm Password'), 'securepassword123');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Master Password'),
+        'securepassword123',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Confirm Password'),
+        'securepassword123',
+      );
       await tester.tap(find.text('Create Vault'));
       await tester.pumpAndSettle();
 

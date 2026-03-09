@@ -32,7 +32,7 @@ void main() {
       for (int i = 0; i < 32; i++) {
         key[i] = i;
       }
-      
+
       service.setMasterKey(key);
       expect(service.masterKey, equals(key));
     });
@@ -51,7 +51,7 @@ void main() {
       for (int i = 0; i < 32; i++) {
         key[i] = i + 1;
       }
-      
+
       service.setMasterKey(key);
       expect(service.masterKey, isNotNull);
 
@@ -98,21 +98,30 @@ void main() {
     test('handles empty string', () {
       const original = '';
       final encrypted = service.encryptField(original);
-      final decrypted = service.decryptField(encrypted['valueEnc']!, encrypted['iv']!);
+      final decrypted = service.decryptField(
+        encrypted['valueEnc']!,
+        encrypted['iv']!,
+      );
       expect(decrypted, equals(original));
     });
 
     test('handles unicode content', () {
       const original = '密码管理器测试 🔐 пароль';
       final encrypted = service.encryptField(original);
-      final decrypted = service.decryptField(encrypted['valueEnc']!, encrypted['iv']!);
+      final decrypted = service.decryptField(
+        encrypted['valueEnc']!,
+        encrypted['iv']!,
+      );
       expect(decrypted, equals(original));
     });
 
     test('handles long content', () {
       final original = 'x' * 10000;
       final encrypted = service.encryptField(original);
-      final decrypted = service.decryptField(encrypted['valueEnc']!, encrypted['iv']!);
+      final decrypted = service.decryptField(
+        encrypted['valueEnc']!,
+        encrypted['iv']!,
+      );
       expect(decrypted, equals(original));
     });
 
@@ -140,7 +149,8 @@ void main() {
       otherService.setMasterKey(wrongKey);
 
       expect(
-        () => otherService.decryptField(encrypted['valueEnc']!, encrypted['iv']!),
+        () =>
+            otherService.decryptField(encrypted['valueEnc']!, encrypted['iv']!),
         throwsA(anything),
       );
     });

@@ -46,9 +46,7 @@ void main() {
             isSensitive: false,
           ),
         ],
-        tags: [
-          const Tag(id: 'tag1', name: 'production', color: '#FF0000'),
-        ],
+        tags: [const Tag(id: 'tag1', name: 'production', color: '#FF0000')],
       );
 
       expect(asset.isArchived, isTrue);
@@ -99,10 +97,7 @@ void main() {
         updatedAt: 1700000000000,
       );
 
-      final updated = original.copyWith(
-        name: 'new-name.com',
-        isArchived: true,
-      );
+      final updated = original.copyWith(name: 'new-name.com', isArchived: true);
 
       expect(updated.name, equals('new-name.com'));
       expect(updated.isArchived, isTrue);

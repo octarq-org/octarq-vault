@@ -45,11 +45,15 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.redAccent),
+            ),
           ),
         ],
       ),
@@ -83,9 +87,9 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
     final now = DateTime.now();
     bool isExpiring = false;
     if (asset.expireAt != null) {
-      final days = DateTime.fromMillisecondsSinceEpoch(asset.expireAt!)
-          .difference(now)
-          .inDays;
+      final days = DateTime.fromMillisecondsSinceEpoch(
+        asset.expireAt!,
+      ).difference(now).inDays;
       isExpiring = days <= 30;
     }
 
@@ -95,14 +99,20 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
         actions: [
           IconButton(
             icon: Icon(
-              _showSecrets ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+              _showSecrets
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
               size: 20,
             ),
             tooltip: _showSecrets ? 'Hide secrets' : 'Reveal secrets',
             onPressed: () => setState(() => _showSecrets = !_showSecrets),
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
+            icon: const Icon(
+              Icons.delete_outline,
+              size: 20,
+              color: Colors.redAccent,
+            ),
             tooltip: 'Delete asset',
             onPressed: _deleteAsset,
           ),
@@ -135,22 +145,18 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
               if (asset.expireAt != null)
                 _DetailRow(
                   label: 'Expiration Date',
-                  value: DateTime.fromMillisecondsSinceEpoch(asset.expireAt!)
-                      .toLocal()
-                      .toString()
-                      .split(' ')[0],
+                  value: DateTime.fromMillisecondsSinceEpoch(
+                    asset.expireAt!,
+                  ).toLocal().toString().split(' ')[0],
                   icon: Icons.calendar_today_outlined,
-                  iconColor: isExpiring
-                      ? const Color(0xFFFFB74D)
-                      : kTextMuted,
+                  iconColor: isExpiring ? const Color(0xFFFFB74D) : kTextMuted,
                   valueColor: isExpiring ? const Color(0xFFFFB74D) : null,
                 ),
               _DetailRow(
                 label: 'Added',
-                value: DateTime.fromMillisecondsSinceEpoch(asset.createdAt)
-                    .toLocal()
-                    .toString()
-                    .split('.')[0],
+                value: DateTime.fromMillisecondsSinceEpoch(
+                  asset.createdAt,
+                ).toLocal().toString().split('.')[0],
                 icon: Icons.access_time_outlined,
                 iconColor: kTextMuted,
               ),
@@ -175,7 +181,9 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                 if (fieldData.isSensitive && _showSecrets) {
                   try {
                     displayValue = encryptionService.decryptField(
-                        fieldData.valueEnc, fieldData.iv);
+                      fieldData.valueEnc,
+                      fieldData.iv,
+                    );
                   } catch (_) {
                     displayValue = 'Error decrypting';
                   }
@@ -190,7 +198,8 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                   onCopy: !fieldData.isSensitive
                       ? () {
                           Clipboard.setData(
-                              ClipboardData(text: fieldData.valueEnc));
+                            ClipboardData(text: fieldData.valueEnc),
+                          );
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('${schema.label} copied'),
@@ -217,7 +226,10 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                 label: const Text('Link', style: TextStyle(fontSize: 13)),
                 style: TextButton.styleFrom(
                   foregroundColor: kPrimaryGreen,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                 ),
               ),
             ],
@@ -237,9 +249,10 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                     children: [
                       const Icon(Icons.link_off, color: kTextMuted, size: 18),
                       const SizedBox(width: 10),
-                      Text('No linked assets.',
-                          style: const TextStyle(
-                              color: kTextMuted, fontSize: 13)),
+                      Text(
+                        'No linked assets.',
+                        style: const TextStyle(color: kTextMuted, fontSize: 13),
+                      ),
                     ],
                   ),
                 );
@@ -257,10 +270,10 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                     (a) => a.id == otherId,
                     orElse: () => assets.first,
                   );
-                  final otherType = (ref.watch(assetTypesProvider))
-                      .firstWhere((t) => t.id == otherAsset.typeId,
-                          orElse: () =>
-                              ref.watch(assetTypesProvider).first);
+                  final otherType = (ref.watch(assetTypesProvider)).firstWhere(
+                    (t) => t.id == otherAsset.typeId,
+                    orElse: () => ref.watch(assetTypesProvider).first,
+                  );
                   final otherColor = getTypeColor(otherType.id);
 
                   return _RelationRow(
@@ -275,16 +288,20 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                         builder: (ctx) => AlertDialog(
                           backgroundColor: kSurfaceColor,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                           title: const Text('Remove Link?'),
                           actions: [
                             TextButton(
-                                onPressed: () => Navigator.pop(ctx, false),
-                                child: const Text('Cancel')),
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Cancel'),
+                            ),
                             TextButton(
                               onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text('Remove',
-                                  style: TextStyle(color: Colors.redAccent)),
+                              child: const Text(
+                                'Remove',
+                                style: TextStyle(color: Colors.redAccent),
+                              ),
                             ),
                           ],
                         ),
@@ -292,8 +309,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                       if (del == true) {
                         await ref
                             .read(relationsControllerProvider)
-                            .removeRelation(
-                                rel['id'], widget.assetId, otherId);
+                            .removeRelation(rel['id'], widget.assetId, otherId);
                       }
                     },
                   );
@@ -301,9 +317,10 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, _) =>
-                Text('Error loading relations: $err',
-                    style: const TextStyle(color: Colors.redAccent)),
+            error: (err, _) => Text(
+              'Error loading relations: $err',
+              style: const TextStyle(color: Colors.redAccent),
+            ),
           ),
           const SizedBox(height: 40),
         ],
@@ -312,20 +329,27 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
   }
 
   void _showLinkDialog(
-      BuildContext context, List<dynamic> allAssets, String currentId, WidgetRef ref) {
+    BuildContext context,
+    List<dynamic> allAssets,
+    String currentId,
+    WidgetRef ref,
+  ) {
     String? selectedAssetId;
     String? selectedRelationType;
-    final availableAssets =
-        allAssets.where((a) => a.id != currentId).toList();
+    final availableAssets = allAssets.where((a) => a.id != currentId).toList();
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDlgState) => AlertDialog(
           backgroundColor: kSurfaceColor,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          title: Text('Link Asset', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          title: Text(
+            'Link Asset',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -337,13 +361,14 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                 dropdownColor: kSurfaceColor,
                 style: const TextStyle(fontSize: 14, color: Colors.white),
                 items: availableAssets
-                    .map((a) => DropdownMenuItem<String>(
-                          value: a.id as String,
-                          child: Text(a.name as String),
-                        ))
+                    .map(
+                      (a) => DropdownMenuItem<String>(
+                        value: a.id as String,
+                        child: Text(a.name as String),
+                      ),
+                    )
                     .toList(),
-                onChanged: (val) =>
-                    setDlgState(() => selectedAssetId = val),
+                onChanged: (val) => setDlgState(() => selectedAssetId = val),
               ),
               const SizedBox(height: 16),
               // Relation type dropdown
@@ -362,13 +387,15 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
             FilledButton(
-              onPressed: selectedAssetId != null &&
-                      selectedRelationType != null
+              onPressed: selectedAssetId != null && selectedRelationType != null
                   ? () async {
-                      await ref.read(relationsControllerProvider).linkAssets(
+                      await ref
+                          .read(relationsControllerProvider)
+                          .linkAssets(
                             currentId,
                             selectedAssetId!,
                             selectedRelationType!,
@@ -381,8 +408,10 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                 foregroundColor: Colors.black,
                 disabledBackgroundColor: kBorderColor,
               ),
-              child: Text('Link',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+              child: Text(
+                'Link',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+              ),
             ),
           ],
         ),
@@ -437,28 +466,39 @@ class _HeroHeader extends StatelessWidget {
                 Text(
                   asset.name as String,
                   style: GoogleFonts.inter(
-                      fontSize: 18, fontWeight: FontWeight.w700),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 2),
-                Text(assetType.name as String,
-                    style:
-                        const TextStyle(color: kTextMuted, fontSize: 13)),
+                Text(
+                  assetType.name as String,
+                  style: const TextStyle(color: kTextMuted, fontSize: 13),
+                ),
                 if ((asset.tags as List).isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 6,
                     children: (asset.tags as List)
-                        .map((t) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: kBorderColor,
-                                borderRadius: BorderRadius.circular(5),
+                        .map(
+                          (t) => Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: kBorderColor,
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: Text(
+                              t.name as String,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.white70,
                               ),
-                              child: Text(t.name as String,
-                                  style: const TextStyle(
-                                      fontSize: 11, color: Colors.white70)),
-                            ))
+                            ),
+                          ),
+                        )
                         .toList(),
                   ),
                 ],
@@ -467,25 +507,31 @@ class _HeroHeader extends StatelessWidget {
           ),
           if (isExpiring)
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: const Color(0xFFFFB74D).withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                    color: const Color(0xFFFFB74D).withValues(alpha: 0.4)),
+                  color: const Color(0xFFFFB74D).withValues(alpha: 0.4),
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.warning_amber_rounded,
-                      size: 14, color: Color(0xFFFFB74D)),
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    size: 14,
+                    color: Color(0xFFFFB74D),
+                  ),
                   const SizedBox(width: 4),
-                  Text('Expiring soon',
-                      style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFFFFB74D))),
+                  Text(
+                    'Expiring soon',
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFFFB74D),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -523,8 +569,9 @@ class _DetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nonEmpty =
-        children.where((c) => c is! SizedBox || (c).height != 0).toList();
+    final nonEmpty = children
+        .where((c) => c is! SizedBox || (c).height != 0)
+        .toList();
     if (nonEmpty.isEmpty) return const SizedBox.shrink();
     return Container(
       decoration: BoxDecoration(
@@ -538,13 +585,15 @@ class _DetailCard extends StatelessWidget {
             .toList()
             .asMap()
             .entries
-            .map((e) => Column(
-                  children: [
-                    if (e.key > 0)
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                    e.value,
-                  ],
-                ))
+            .map(
+              (e) => Column(
+                children: [
+                  if (e.key > 0)
+                    const Divider(height: 1, indent: 16, endIndent: 16),
+                  e.value,
+                ],
+              ),
+            )
             .toList(),
       ),
     );
@@ -578,16 +627,19 @@ class _DetailRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style: const TextStyle(
-                        color: kTextMuted, fontSize: 11)),
+                Text(
+                  label,
+                  style: const TextStyle(color: kTextMuted, fontSize: 11),
+                ),
                 const SizedBox(height: 2),
-                Text(value,
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: valueColor ?? Colors.white,
-                    )),
+                Text(
+                  value,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: valueColor ?? Colors.white,
+                  ),
+                ),
               ],
             ),
           ),
@@ -626,18 +678,17 @@ class _FieldRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style: const TextStyle(
-                        color: kTextMuted, fontSize: 11)),
+                Text(
+                  label,
+                  style: const TextStyle(color: kTextMuted, fontSize: 11),
+                ),
                 const SizedBox(height: 3),
                 Text(
                   value,
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    fontFeatures: isSecret && value == '••••••••'
-                        ? null
-                        : null,
+                    fontFeatures: isSecret && value == '••••••••' ? null : null,
                   ),
                 ),
               ],
@@ -678,8 +729,9 @@ class _RelationRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials =
-        name.length >= 2 ? name.substring(0, 2).toUpperCase() : name.toUpperCase();
+    final initials = name.length >= 2
+        ? name.substring(0, 2).toUpperCase()
+        : name.toUpperCase();
 
     return InkWell(
       onTap: onTap,
@@ -712,28 +764,33 @@ class _RelationRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name,
-                      style: GoogleFonts.inter(
-                          fontWeight: FontWeight.w500, fontSize: 14)),
+                  Text(
+                    name,
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
                   const SizedBox(height: 2),
                   Row(
                     children: [
                       Icon(
-                        isFromMe
-                            ? Icons.arrow_forward
-                            : Icons.arrow_back,
+                        isFromMe ? Icons.arrow_forward : Icons.arrow_back,
                         size: 12,
                         color: kPrimaryGreen,
                       ),
                       const SizedBox(width: 4),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 7, vertical: 2),
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: kPrimaryGreen.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(
-                              color: kPrimaryGreen.withValues(alpha: 0.25)),
+                            color: kPrimaryGreen.withValues(alpha: 0.25),
+                          ),
                         ),
                         child: Text(
                           relType,

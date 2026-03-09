@@ -26,7 +26,7 @@ AssetVault 是一款为技术从业者（开发者、站长、加密货币用户
 
 ### 环境要求
 1. macOS (推荐) / Linux / Windows 物理机
-2. Flutter SDK v3.11 及以上 
+2. Flutter SDK v3.11 及以上
 3. Xcode (iOS 测试)及相关 Command Line Tools
 4. Android Studio / Java 17+ (Android 测试)
 5. CocoaPods (用于安装 iOS 平台依赖)
@@ -49,11 +49,18 @@ AssetVault 是一款为技术从业者（开发者、站长、加密货币用户
    dart run build_runner build --delete-conflicting-outputs
    ```
 
-4. **运行 iOS / Android 开发版本**:
+4. **（可选）pre-commit 钩子**  
+   pre-commit 时：`dart format`、`build_runner`、`flutter analyze`；pre-push 时：`flutter test`。  
+   ```bash
+   pip install pre-commit
+   pre-commit install && pre-commit install --hook-type pre-push
+   ```
+
+5. **运行 iOS / Android 开发版本**:
    ```bash
    # 测试 iOS
    flutter run -d ios
-   
+
    # 测试 Android
    flutter run -d android
    ```

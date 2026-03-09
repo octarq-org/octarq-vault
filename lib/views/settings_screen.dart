@@ -32,34 +32,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _importJson(WidgetRef ref) async {
     final scaffoldMsgr = ScaffoldMessenger.of(context);
-    
+
     try {
       final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-      if (clipboardData == null || clipboardData.text == null || clipboardData.text!.isEmpty) {
+      if (clipboardData == null ||
+          clipboardData.text == null ||
+          clipboardData.text!.isEmpty) {
         throw Exception("Clipboard is empty");
       }
-      
+
       final jsonList = jsonDecode(clipboardData.text!) as List;
       final assetsNotifier = ref.read(assetsProvider.notifier);
-      
+
       int imported = 0;
       for (var jsonMap in jsonList) {
         final asset = Asset.fromJson(jsonMap as Map<String, dynamic>);
         await assetsNotifier.addAsset(asset);
         imported++;
       }
-      
+
       if (mounted) {
         scaffoldMsgr.showSnackBar(
           SnackBar(content: Text('Successfully imported $imported assets!')),
         );
       }
     } catch (e) {
-       if (mounted) {
-         scaffoldMsgr.showSnackBar(
-            const SnackBar(content: Text('Invalid JSON in clipboard for import.')),
-         );
-       }
+      if (mounted) {
+        scaffoldMsgr.showSnackBar(
+          const SnackBar(
+            content: Text('Invalid JSON in clipboard for import.'),
+          ),
+        );
+      }
     }
   }
 
@@ -91,7 +95,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.schema),
             title: const Text('Manage Custom Asset Types'),
-            subtitle: const Text('Create your own custom asset templates and properties'),
+            subtitle: const Text(
+              'Create your own custom asset templates and properties',
+            ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.go('/settings/asset-types'),
           ),

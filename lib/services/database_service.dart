@@ -139,7 +139,11 @@ class DatabaseService {
   }
 
   Future<void> insertAssetType(Map<String, dynamic> typeData) async {
-    await db.insert('asset_types', typeData, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'asset_types',
+      typeData,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<void> deleteAssetType(String id) async {
@@ -147,7 +151,9 @@ class DatabaseService {
   }
 
   // --- Relations ---
-  Future<List<Map<String, dynamic>>> getRelationsForAsset(String assetId) async {
+  Future<List<Map<String, dynamic>>> getRelationsForAsset(
+    String assetId,
+  ) async {
     return await db.query(
       'relations',
       where: 'from_asset_id = ? OR to_asset_id = ?',
@@ -156,7 +162,11 @@ class DatabaseService {
   }
 
   Future<void> insertRelation(Map<String, dynamic> relationData) async {
-    await db.insert('relations', relationData, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert(
+      'relations',
+      relationData,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<void> deleteRelation(String id) async {

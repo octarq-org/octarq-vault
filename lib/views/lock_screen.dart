@@ -41,14 +41,16 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     }
 
     setState(() => _isUnlocking = true);
-    
-    final success = await ref.read(authProvider.notifier).unlockWithPassword(pwd);
-    
+
+    final success = await ref
+        .read(authProvider.notifier)
+        .unlockWithPassword(pwd);
+
     if (!success && mounted) {
       final error = ref.read(authProvider.notifier).lastError;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error ?? 'Incorrect password')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error ?? 'Incorrect password')));
     }
 
     if (mounted) {

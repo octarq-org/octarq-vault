@@ -20,21 +20,24 @@ class NotificationService {
       tz.initializeTimeZones();
       const AndroidInitializationSettings initializationSettingsAndroid =
           AndroidInitializationSettings('app_icon');
-      
+
       const DarwinInitializationSettings initializationSettingsDarwin =
           DarwinInitializationSettings(
-        requestSoundPermission: true,
-        requestBadgePermission: true,
-        requestAlertPermission: true,
+            requestSoundPermission: true,
+            requestBadgePermission: true,
+            requestAlertPermission: true,
+          );
+
+      const InitializationSettings initializationSettings =
+          InitializationSettings(
+            android: initializationSettingsAndroid,
+            iOS: initializationSettingsDarwin,
+            macOS: initializationSettingsDarwin,
+          );
+
+      await flutterLocalNotificationsPlugin.initialize(
+        settings: initializationSettings,
       );
-      
-      const InitializationSettings initializationSettings = InitializationSettings(
-        android: initializationSettingsAndroid,
-        iOS: initializationSettingsDarwin,
-        macOS: initializationSettingsDarwin,
-      );
-      
-      await flutterLocalNotificationsPlugin.initialize(settings: initializationSettings);
       _initCompleter.complete();
     } catch (e) {
       _initCompleter.completeError(e);
@@ -42,13 +45,19 @@ class NotificationService {
   }
 
   Future<void> scheduleExpirationNotification(
-      int id, String assetName, DateTime expirationDate, int daysOffset) async {
+    int id,
+    String assetName,
+    DateTime expirationDate,
+    int daysOffset,
+  ) async {
     if (kIsWeb) return;
 
     // Wait for init to complete before using tz.local
     await _initCompleter.future;
-    
-    final notificationDate = expirationDate.subtract(Duration(days: daysOffset));
+
+    final notificationDate = expirationDate.subtract(
+      Duration(days: daysOffset),
+    );
     if (notificationDate.isBefore(DateTime.now())) return;
 
     await flutterLocalNotificationsPlugin.zonedSchedule(

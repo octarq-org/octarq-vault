@@ -194,7 +194,7 @@ void main() {
       final notifier = container.read(authProvider.notifier);
       await notifier.setupMasterPassword('my-password');
       await notifier.lock();
-      
+
       expect(container.read(authProvider), equals(AuthState.locked));
 
       // Now unlock

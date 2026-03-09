@@ -14,7 +14,8 @@ abstract class AssetTypeFieldSchema with _$AssetTypeFieldSchema {
     @Default([]) List<String> options, // for type == 'select'
   }) = _AssetTypeFieldSchema;
 
-  factory AssetTypeFieldSchema.fromJson(Map<String, dynamic> json) => _$AssetTypeFieldSchemaFromJson(json);
+  factory AssetTypeFieldSchema.fromJson(Map<String, dynamic> json) =>
+      _$AssetTypeFieldSchemaFromJson(json);
 }
 
 @freezed
@@ -27,5 +28,6 @@ abstract class AssetType with _$AssetType {
     @Default(false) bool isBuiltIn,
   }) = _AssetType;
 
-  factory AssetType.fromJson(Map<String, dynamic> json) => _$AssetTypeFromJson(json);
+  factory AssetType.fromJson(Map<String, dynamic> json) =>
+      _$AssetTypeFromJson(json);
 }

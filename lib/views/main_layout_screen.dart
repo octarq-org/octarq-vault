@@ -82,7 +82,10 @@ class _GlobalTopBar extends ConsumerWidget {
           // Notification Bell
           IconButton(
             onPressed: () {},
-            icon: const Icon(Icons.notifications_none_rounded, color: kTextMuted),
+            icon: const Icon(
+              Icons.notifications_none_rounded,
+              color: kTextMuted,
+            ),
             splashRadius: 20,
           ),
           const SizedBox(width: 16),
@@ -92,11 +95,19 @@ class _GlobalTopBar extends ConsumerWidget {
             style: FilledButton.styleFrom(
               backgroundColor: kPrimaryGreen,
               foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
             icon: const Icon(Icons.add, size: 18),
-            label: Text('New Asset', style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14)),
+            label: Text(
+              'New Asset',
+              style: GoogleFonts.inter(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
           ),
         ],
       ),
@@ -134,12 +145,18 @@ class _Sidebar extends ConsumerWidget {
                     color: kPrimaryGreen.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.health_and_safety, color: kPrimaryGreen),
+                  child: const Icon(
+                    Icons.health_and_safety,
+                    color: kPrimaryGreen,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Text(
                   'AssetVault',
-                  style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.inter(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -255,8 +272,12 @@ class _SidebarItem extends StatelessWidget {
                     label,
                     style: GoogleFonts.inter(
                       fontSize: 14,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                      color: isSelected ? (iconColor ?? kPrimaryGreen) : kTextMuted,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w500,
+                      color: isSelected
+                          ? (iconColor ?? kPrimaryGreen)
+                          : kTextMuted,
                     ),
                   ),
                 ),

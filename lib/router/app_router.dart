@@ -64,71 +64,60 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/',
             parentNavigatorKey: shellNavigatorKey,
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: DashboardScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: DashboardScreen()),
           ),
           GoRoute(
             path: '/all-assets',
             parentNavigatorKey: shellNavigatorKey,
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: AssetListScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: AssetListScreen()),
           ),
           GoRoute(
             path: '/category/:id',
             parentNavigatorKey: shellNavigatorKey,
             pageBuilder: (context, state) {
               final id = state.pathParameters['id']!;
-              return NoTransitionPage(
-                child: AssetListScreen(filterTypeId: id),
-              );
+              return NoTransitionPage(child: AssetListScreen(filterTypeId: id));
             },
           ),
           GoRoute(
             path: '/add-asset',
             parentNavigatorKey: shellNavigatorKey,
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: AssetFormScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: AssetFormScreen()),
           ),
           GoRoute(
             path: '/asset/:id',
             parentNavigatorKey: shellNavigatorKey,
             pageBuilder: (context, state) {
               final id = state.pathParameters['id']!;
-              return NoTransitionPage(
-                child: AssetDetailScreen(assetId: id),
-              );
+              return NoTransitionPage(child: AssetDetailScreen(assetId: id));
             },
           ),
           GoRoute(
             path: '/settings',
             parentNavigatorKey: shellNavigatorKey,
-            pageBuilder: (context, state) => const NoTransitionPage(
-              child: SettingsScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: SettingsScreen()),
             routes: [
               GoRoute(
                 path: 'webdav',
                 parentNavigatorKey: shellNavigatorKey,
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: WebDavSettingsScreen(),
-                ),
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: WebDavSettingsScreen()),
               ),
               GoRoute(
                 path: 'asset-types',
                 parentNavigatorKey: shellNavigatorKey,
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: AssetTypeManagerScreen(),
-                ),
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: AssetTypeManagerScreen()),
               ),
               GoRoute(
                 path: 'asset-types/add',
                 parentNavigatorKey: shellNavigatorKey,
-                pageBuilder: (context, state) => const NoTransitionPage(
-                  child: AssetTypeFormScreen(),
-                ),
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: AssetTypeFormScreen()),
               ),
             ],
           ),

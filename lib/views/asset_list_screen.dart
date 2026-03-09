@@ -26,10 +26,14 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
     final searchQuery = ref.watch(searchQueryProvider);
 
     var filtered = assets.where((a) {
-      final matchType = widget.filterTypeId == null || a.typeId == widget.filterTypeId;
-      final matchSearch = searchQuery.isEmpty ||
+      final matchType =
+          widget.filterTypeId == null || a.typeId == widget.filterTypeId;
+      final matchSearch =
+          searchQuery.isEmpty ||
           a.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
-          a.tags.any((t) => t.name.toLowerCase().contains(searchQuery.toLowerCase()));
+          a.tags.any(
+            (t) => t.name.toLowerCase().contains(searchQuery.toLowerCase()),
+          );
       return matchType && matchSearch;
     }).toList();
 
@@ -49,7 +53,12 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
     }
 
     final filterTypeName = widget.filterTypeId != null
-        ? assetTypes.firstWhere((t) => t.id == widget.filterTypeId, orElse: () => assetTypes.first).name
+        ? assetTypes
+              .firstWhere(
+                (t) => t.id == widget.filterTypeId,
+                orElse: () => assetTypes.first,
+              )
+              .name
         : null;
 
     return Scaffold(
@@ -64,8 +73,10 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
           Expanded(
             child: filtered.isEmpty
                 ? Center(
-                    child: Text('No matches found.',
-                        style: GoogleFonts.inter(color: kTextMuted, fontSize: 14)),
+                    child: Text(
+                      'No matches found.',
+                      style: GoogleFonts.inter(color: kTextMuted, fontSize: 14),
+                    ),
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 8),
@@ -124,10 +135,14 @@ class _ListHeader extends StatelessWidget {
                     Text(
                       typeName ?? 'All Assets',
                       style: GoogleFonts.inter(
-                          fontSize: 20, fontWeight: FontWeight.w700),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                    Text('$count items',
-                        style: const TextStyle(color: kTextMuted, fontSize: 13)),
+                    Text(
+                      '$count items',
+                      style: const TextStyle(color: kTextMuted, fontSize: 13),
+                    ),
                   ],
                 ),
               ),
@@ -168,12 +183,13 @@ class _SortDropdown extends StatelessWidget {
           isDense: true,
           dropdownColor: kSurfaceColor,
           style: GoogleFonts.inter(fontSize: 13, color: Colors.white),
-          icon: const Icon(Icons.keyboard_arrow_down, size: 16, color: kTextMuted),
+          icon: const Icon(
+            Icons.keyboard_arrow_down,
+            size: 16,
+            color: kTextMuted,
+          ),
           items: _labels.entries
-              .map((e) => DropdownMenuItem(
-                    value: e.key,
-                    child: Text(e.value),
-                  ))
+              .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
               .toList(),
           onChanged: (v) => v != null ? onChanged(v) : null,
         ),
@@ -204,11 +220,9 @@ class _AssetTile extends StatelessWidget {
     final expireAt = asset.expireAt as int?;
     String? dateStr;
     if (expireAt != null) {
-      dateStr = DateTime.fromMillisecondsSinceEpoch(expireAt)
-          .toLocal()
-          .toString()
-          .split(' ')[0]
-          .replaceAll('-', '–');
+      dateStr = DateTime.fromMillisecondsSinceEpoch(
+        expireAt,
+      ).toLocal().toString().split(' ')[0].replaceAll('-', '–');
     }
 
     return InkWell(
@@ -245,13 +259,18 @@ class _AssetTile extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(asset.name as String,
-                          style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w500, fontSize: 14)),
+                      Text(
+                        asset.name as String,
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 14,
+                        ),
+                      ),
                       const SizedBox(width: 8),
-                      Text('• ${assetType.name}',
-                          style: const TextStyle(
-                              color: kTextMuted, fontSize: 12)),
+                      Text(
+                        '• ${assetType.name}',
+                        style: const TextStyle(color: kTextMuted, fontSize: 12),
+                      ),
                     ],
                   ),
                   if ((asset.tags as List).isNotEmpty) ...[
@@ -260,17 +279,25 @@ class _AssetTile extends StatelessWidget {
                       spacing: 4,
                       children: (asset.tags as List)
                           .take(4)
-                          .map((t) => Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 7, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: kBorderColor,
-                                  borderRadius: BorderRadius.circular(4),
+                          .map(
+                            (t) => Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: kBorderColor,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                t.name as String,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.white70,
                                 ),
-                                child: Text(t.name as String,
-                                    style: const TextStyle(
-                                        fontSize: 11, color: Colors.white70)),
-                              ))
+                              ),
+                            ),
+                          )
                           .toList(),
                     ),
                   ],
@@ -280,9 +307,10 @@ class _AssetTile extends StatelessWidget {
             // Date & chevron
             if (dateStr != null) ...[
               const SizedBox(width: 12),
-              Text(dateStr,
-                  style: GoogleFonts.inter(
-                      fontSize: 12, color: kTextMuted)),
+              Text(
+                dateStr,
+                style: GoogleFonts.inter(fontSize: 12, color: kTextMuted),
+              ),
             ],
             const SizedBox(width: 8),
             const Icon(Icons.more_horiz, color: kTextMuted, size: 18),
