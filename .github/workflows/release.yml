@@ -1,0 +1,203 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Code Generation
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build Android APK
+        run: flutter build apk --release
+
+      - name: Build Web
+        run: flutter build web --release
+
+      - name: Build macOS
+        run: flutter build macos --release
+
+      - name: Build iOS (No Codesign)
+        run: flutter build ios --release --no-codesign
+
+      - name: Stage and upload Android
+        run: |
+          mkdir -p staging/android-apk
+          cp build/app/outputs/flutter-apk/app-release.apk staging/android-apk/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: staging/android-apk
+
+      - name: Stage and upload Web
+        run: |
+          mkdir -p staging/web
+          cd build && zip -r ../staging/web/web.zip web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: staging/web
+
+      - name: Stage and upload macOS
+        run: |
+          mkdir -p staging/macos
+          cd build/macos/Build/Products/Release
+          zip -r ../../../../../staging/macos/macos.zip asset_vault.app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: staging/macos
+
+      - name: Stage and upload iOS
+        run: |
+          mkdir -p staging/ios
+          cd build/ios/iphoneos && zip -r ../../../../staging/ios/ios.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios
+          path: staging/ios
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Code Generation
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build Windows
+        run: flutter build windows --release
+
+      - name: Stage and upload Windows
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path staging/windows
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath staging/windows/windows.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: staging/windows
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Code Generation
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build Linux
+        run: flutter build linux --release
+
+      - name: Stage and upload Linux
+        run: |
+          mkdir -p staging/linux
+          cd build/linux/x64/release && zip -r ../../../../../staging/linux/linux.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: staging/linux
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [build-macos, build-windows, build-linux]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate release notes (for Release body)
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --latest --strip all
+        env:
+          OUTPUT: release_notes.md
+
+      - name: Generate CHANGELOG.md (full)
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+        env:
+          OUTPUT: CHANGELOG.md
+
+      - name: Commit and push CHANGELOG
+        run: |
+          git fetch origin main
+          git checkout main
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git diff --staged --quiet || (git commit -m "chore: update CHANGELOG for ${{ github.ref_name }}" && git push origin main)
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          VERSION="${{ github.ref_name }}"
+          mkdir -p release-assets
+          cp artifacts/android-apk/app-release.apk "release-assets/AssetVault-${VERSION}-android.apk"
+          cp artifacts/web/web.zip "release-assets/AssetVault-${VERSION}-web.zip"
+          cp artifacts/macos/macos.zip "release-assets/AssetVault-${VERSION}-macos.zip"
+          cp artifacts/ios/ios.zip "release-assets/AssetVault-${VERSION}-ios.zip"
+          cp artifacts/windows/windows.zip "release-assets/AssetVault-${VERSION}-windows.zip"
+          cp artifacts/linux/linux.zip "release-assets/AssetVault-${VERSION}-linux.zip"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body_path: release_notes.md
+          files: release-assets/*
+          draft: false

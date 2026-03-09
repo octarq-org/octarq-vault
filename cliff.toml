@@ -1,0 +1,49 @@
+# git-cliff config for changelog / release notes
+# https://git-cliff.org/docs/configuration
+
+[changelog]
+header = ""
+footer = ""
+trim = true
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+tag_pattern = "v[0-9].*"
+sort_commits = "newest"
+
+[[commit_parsers]]
+message = "^feat"
+group = "Features"
+
+[[commit_parsers]]
+message = "^fix"
+group = "Bug Fixes"
+
+[[commit_parsers]]
+message = "^docs?"
+group = "Documentation"
+
+[[commit_parsers]]
+message = "^perf"
+group = "Performance"
+
+[[commit_parsers]]
+message = "^refactor"
+group = "Refactor"
+
+[[commit_parsers]]
+message = "^style"
+group = "Styling"
+
+[[commit_parsers]]
+message = "^test"
+group = "Testing"
+
+[[commit_parsers]]
+message = "^chore|^ci|^build"
+group = "Misc"
+
+[[commit_parsers]]
+message = "^revert"
+group = "Revert"
