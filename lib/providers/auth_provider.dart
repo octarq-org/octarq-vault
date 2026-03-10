@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../utils/platform_utils.dart';
 import 'service_providers.dart';
+import '../services/e2ee_sync_service.dart';
 
 enum AuthState { initializing, unsetup, locked, unlocked }
 
@@ -19,7 +20,7 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> _init() async {
     try {
       final storage = ref.read(secureStorageServiceProvider);
-      final hasKey = await storage.hasStoredKey();
+      bool hasKey = await storage.hasStoredKey();
 
       // Check if we're still alive after the async call
       if (!ref.mounted) return;
@@ -28,22 +29,24 @@ class AuthNotifier extends Notifier<AuthState> {
         print('AuthNotifier._init: hasStoredKey=$hasKey');
       }
 
-      if (hasKey) {
-        state = AuthState.locked;
-        return;
-      }
-
-      // Fallback: check if DB file exists even if Keychain lost the key
       if (!kIsWeb) {
         try {
           final dbPath = p.join(await getDatabasesPath(), 'asset_vault_enc.db');
+          final dbExists = await fileExists(dbPath);
+
           if (!ref.mounted) return;
-          if (await fileExists(dbPath)) {
-            if (!ref.mounted) return;
+
+          if (hasKey && !dbExists) {
             if (kDebugMode) {
               print(
-                'AuthNotifier._init: DB file exists but no key in storage — vault exists',
+                'AuthNotifier._init: Orphaned key detected (DB missing). Wiping key.',
               );
+            }
+            await storage.clearAll();
+            hasKey = false;
+          } else if (!hasKey && dbExists) {
+            if (kDebugMode) {
+              print('AuthNotifier._init: DB exists but no key in storage.');
             }
             state = AuthState.locked;
             return;
@@ -51,6 +54,11 @@ class AuthNotifier extends Notifier<AuthState> {
         } catch (_) {
           // getDatabasesPath or File ops may fail in test env, ignore
         }
+      }
+
+      if (hasKey) {
+        state = AuthState.locked;
+        return;
       }
 
       if (!ref.mounted) return;
@@ -139,6 +147,54 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  Future<bool> unlockWithExternalPayload(
+    String password,
+    Uint8List payload,
+  ) async {
+    _lastError = null;
+    try {
+      final encryption = ref.read(encryptionServiceProvider);
+      final storage = ref.read(secureStorageServiceProvider);
+      final syncService = ref.read(e2eeSyncServiceProvider);
+
+      final saltBase64 = E2EESyncService.extractSaltFromPayload(payload);
+      if (saltBase64 == null) {
+        _lastError =
+            'Not a valid vault backup. Use the .enc file from Asset Vault (Export/Google Drive), not the internal database.';
+        return false;
+      }
+
+      await encryption.deriveKey(password, saltBase64);
+      final key = encryption.masterKey;
+
+      // Try decrypting to verify password is correct
+      try {
+        syncService.unpackCiphertextToSnapshot(payload);
+      } catch (e) {
+        _lastError = 'Incorrect password or corrupted file.';
+        encryption.wipeKey();
+        return false;
+      }
+
+      // If successful, persist the salt and key
+      await storage.storeMasterKey(key, saltBase64);
+
+      final db = ref.read(databaseServiceProvider);
+      if (!kIsWeb) {
+        await db.init(key);
+      }
+
+      state = AuthState.unlocked;
+      return true;
+    } catch (e, st) {
+      _lastError = e.toString();
+      if (kDebugMode) {
+        print('External unlock failed: $e\n$st');
+      }
+      return false;
+    }
+  }
+
   Future<bool> unlockWithBiometrics() async {
     _lastError = null;
     try {
@@ -148,6 +204,11 @@ class AuthNotifier extends Notifier<AuthState> {
       if (key != null) {
         final encryption = ref.read(encryptionServiceProvider);
         encryption.setMasterKey(key);
+
+        final saltBase64 = await storage.getSalt();
+        if (saltBase64 != null) {
+          encryption.setSalt(saltBase64);
+        }
 
         final db = ref.read(databaseServiceProvider);
         if (!kIsWeb) {

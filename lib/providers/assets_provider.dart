@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/asset.dart';
 import '../models/field.dart';
+import '../services/local_file_sync_service.dart';
+import '../services/google_drive_service.dart';
 import 'service_providers.dart';
 
 class AssetsNotifier extends Notifier<List<Asset>> {
@@ -13,7 +15,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
 
   Future<void> loadAssets() async {
     if (kIsWeb) {
-      state = [];
+      // In web, initial load is triggered via user interaction with Drive or Local File.
       return;
     }
     try {
@@ -90,6 +92,51 @@ class AssetsNotifier extends Notifier<List<Asset>> {
     }
 
     state = [...state, asset];
+    _triggerWebSync();
+  }
+
+  Future<void> updateAsset(Asset updatedAsset) async {
+    if (!kIsWeb) {
+      final db = ref.read(databaseServiceProvider).db;
+
+      await db.transaction((txn) async {
+        await txn.update(
+          'assets',
+          {
+            'type_id': updatedAsset.typeId,
+            'name': updatedAsset.name,
+            'expire_at': updatedAsset.expireAt,
+            'updated_at': DateTime.now().millisecondsSinceEpoch,
+            'is_archived': updatedAsset.isArchived ? 1 : 0,
+          },
+          where: 'id = ?',
+          whereArgs: [updatedAsset.id],
+        );
+
+        await txn.delete(
+          'asset_fields',
+          where: 'asset_id = ?',
+          whereArgs: [updatedAsset.id],
+        );
+
+        for (var field in updatedAsset.fields) {
+          await txn.insert('asset_fields', {
+            'id': field.id,
+            'asset_id': field.assetId,
+            'key': field.key,
+            'value_enc': field.valueEnc,
+            'iv': field.iv,
+            'is_sensitive': field.isSensitive ? 1 : 0,
+          });
+        }
+      });
+    }
+
+    state = [
+      for (final asset in state)
+        if (asset.id == updatedAsset.id) updatedAsset else asset,
+    ];
+    _triggerWebSync();
   }
 
   Future<void> deleteAsset(String id) async {
@@ -98,6 +145,31 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       await db.delete('assets', where: 'id = ?', whereArgs: [id]);
     }
     state = state.where((a) => a.id != id).toList();
+    _triggerWebSync();
+  }
+
+  void setWebAssets(List<Asset> assets) {
+    if (kIsWeb) {
+      state = assets;
+    }
+  }
+
+  void _triggerWebSync() {
+    if (!kIsWeb) return;
+
+    // Push the new state to all active Sync services
+    // The services will internally check if they have sessions/handles established
+    final localSync = ref.read(localFileSyncServiceProvider);
+    if (localSync.hasActiveHandle) {
+      localSync.syncToLocal(state);
+    }
+
+    final driveSync = ref.read(googleDriveServiceProvider);
+    driveSync.hasCredentials().then((hasCreds) {
+      if (hasCreds) {
+        driveSync.syncToDrive(state);
+      }
+    });
   }
 }
 

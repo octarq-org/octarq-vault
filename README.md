@@ -1,98 +1,94 @@
-# AssetVault · 个人数字资产管理 App
+# AssetVault · Personal Digital Asset Manager
 
-> **面向技术从业者的一站式加密资产管理工具**
+[![中文](https://img.shields.io/badge/README-中文-2ea043)](README.zh-CN.md)
 
-AssetVault 是一款为技术从业者（开发者、站长、加密货币用户）量身打造的数字资产管理工具，支持本地加密、离线优先、动态字段和到期提醒设计。
+> **One-stop encrypted asset management for technical practitioners**
 
-## 🌟 核心特性
-1. **全类型资产支持**：预设域名、VPS、SSL证书、邮箱、SaaS订阅、服务 API Key。
-2. **多重加密安全架构**：基于主密码和盐（Salt）利用 `Argon2id` 导出 AES-256 主密钥。结合手机底层安全区（Keychain / Keystore）+ 本地生物识别（Face ID / Touch ID）保护。数据库级密文存储基于 `SQLCipher`，关键字段运用 `AES-256-GCM` 额外套壳。
-3. **离线与本地优先**：所有数据存放于设备本地独立运行。
-4. **智能追踪提示**：本地调度系统级别定时/过期推送预警。
-5. **数据无缝导出**：支持导出整个加密数据库 JSON 结构至剪贴板，用于跨设备快速手动接力。
+AssetVault is a digital asset manager built for technical practitioners (developers, site operators, crypto users). It supports local encryption, offline-first design, dynamic fields, and expiry reminders.
 
-## 🛠️ 技术栈
-*   **框架**: Flutter (`v3.11+`)
-*   **路由**: `go_router`
-*   **状态管理**: `flutter_riverpod`
-*   **本地数据库**: `sqflite_sqlcipher` (AES-256 数据库加密)
-*   **安全与密码学**: `pointycastle` (AES-GCM), `dargon2_flutter` (Argon2id 加密分析)
-*   **安全存储**: `flutter_secure_storage`, `local_auth`
-*   **工程化 CodeGen**: `freezed`, `json_serializable`, `build_runner`
+## Features
+1. **All asset types**: Presets for domains, VPS, SSL certs, email, SaaS subscriptions, and service API keys.
+2. **Layered encryption**: Master key derived from master password + salt via Argon2id; AES-256. Protected by device secure enclave (Keychain / Keystore) and local biometrics (Face ID / Touch ID). DB-level cipher storage with SQLCipher; critical fields wrapped with AES-256-GCM.
+3. **Offline & local-first**: All data stays on device and runs independently.
+4. **Smart reminders**: Local scheduler for system-level scheduled and expiry notifications.
+5. **Export**: Full encrypted DB exported as JSON to clipboard for quick manual handoff across devices.
+
+## Tech stack
+* **Framework**: Flutter (v3.11+)
+* **Routing**: `go_router`
+* **State**: `flutter_riverpod`
+* **Local DB**: `sqflite_sqlcipher` (AES-256 DB encryption)
+* **Crypto**: `pointycastle` (AES-GCM), `dargon2_flutter` (Argon2id)
+* **Secure storage**: `flutter_secure_storage`, `local_auth`
+* **CodeGen**: `freezed`, `json_serializable`, `build_runner`
 
 ---
 
-## 💻 本地工程运行指南
+## Run locally
 
-### 环境要求
-1. macOS (推荐) / Linux / Windows 物理机
-2. Flutter SDK v3.11 及以上
-3. Xcode (iOS 测试)及相关 Command Line Tools
-4. Android Studio / Java 17+ (Android 测试)
-5. CocoaPods (用于安装 iOS 平台依赖)
+### Requirements
+1. macOS (recommended) / Linux / Windows
+2. Flutter SDK v3.11+
+3. Xcode and Command Line Tools (for iOS)
+4. Android Studio / Java 17+ (for Android)
+5. CocoaPods (iOS dependencies)
 
-### 本地编译与调试
-1. **克隆项目**:
+### Build & run
+1. **Clone**:
    ```bash
    git clone https://github.com/app/assetvault.git
    cd asset_vault
    ```
 
-2. **安装 Flutter 依赖**:
+2. **Install dependencies**:
    ```bash
    flutter pub get
    ```
 
-3. **执行代码生成 (CodeGen)**:
-   > 🔴 必须执行此步骤生成 Freezed 模型及 JSON 序列化的相关底层代码。
+3. **Run code generation**:
+   > Required for Freezed models and JSON serialization.
    ```bash
    dart run build_runner build --delete-conflicting-outputs
    ```
 
-4. **（可选）pre-commit 钩子**  
-   pre-commit 时：`dart format`、`build_runner`、`flutter analyze`；pre-push 时：`flutter test`。  
+4. **(Optional) pre-commit hooks**  
+   Pre-commit: `dart format`, `build_runner`, `flutter analyze`. Pre-push: `flutter test`.  
    ```bash
    pip install pre-commit
    pre-commit install && pre-commit install --hook-type pre-push
    ```
 
-5. **运行 iOS / Android 开发版本**:
+5. **Run on device/simulator**:
    ```bash
-   # 测试 iOS
    flutter run -d ios
-
-   # 测试 Android
    flutter run -d android
    ```
 
-### 持续集成 (CI/CD)
-本项目已集成 Github Actions 自动化的 CI 审计及编译链路（详见 `.github/workflows/ci.yml`）。
-包含每次 PR/Push 时的:
-- `flutter analyze` 语法校验
-- `flutter test` 单元测试通过性
-- Android APK 生产包构建
-- iOS (No Codesign) 验证构建
+### CI/CD
+Github Actions runs on every PR/push (see `.github/workflows/ci.yml`):
+- `flutter analyze`
+- `flutter test`
+- Android APK release build
+- iOS (no codesign) build check
 
-### 构建发行版本 (Build Release)
+### Release builds
 
-如果你需要打包独立可执行文件用于分发，可以使用以下命令：
-
-**构建 macOS 桌面版:**
+**macOS app:**
 ```bash
 flutter build macos
 ```
-*构建产物输出于: `build/macos/Build/Products/Release/asset-vault.app`*
+Output: `build/macos/Build/Products/Release/asset-vault.app`
 
-**构建 Web 静态版本:**
+**Web (static):**
 ```bash
 flutter build web
 ```
-*构建产物输出于: `build/web/`，该目录下的文件可直接部署至任何静态服务器（如 Vercel, NGINX 等）*
+Output: `build/web/` — deploy to any static host (Vercel, NGINX, etc.)
 
-## 🔮 Roadmap 计划
-- [ ] Asset Form 的深色主题调优与更动态化的 Tags 添加逻辑
-- [ ] iCloud / WebDAV 等自选通道的数据备份
-- [ ] 桌面端（macOS / Windows）的键鼠适配增强优化
+## Roadmap
+- [ ] Dark theme and richer Tags for Asset Form
+- [ ] Optional backup via iCloud / WebDAV
+- [ ] Better keyboard & mouse support on desktop (macOS / Windows)
 
-## 📄 协议许可
+## License
 MIT License. All rights reserved.

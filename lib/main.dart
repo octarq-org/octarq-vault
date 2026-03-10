@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dargon2_flutter/dargon2_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'router/app_router.dart';
 
 // ─── Design Tokens ──────────────────────────────────────────────────────────
@@ -14,8 +15,20 @@ const kBorderColor = Color(0xFF2B2E3E); // subtle divider
 const kTextMuted = Color(0xFF7B8099);
 // ─────────────────────────────────────────────────────────────────────────────
 
-void main() {
+Future<void> main() async {
   DArgon2Flutter.init();
+  if (kIsWeb) {
+    await GoogleSignIn.instance.initialize(
+      clientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
+      // scopes: [
+      //   'https://www.googleapis.com/auth/drive.appdata',
+      //   'https://www.googleapis.com/auth/drive.file',
+      //   'https://www.googleapis.com/auth/drive.metadata',
+      //   // 'https://www.googleapis.com/auth/drive.metadata.readonly',
+      //   // 'https://www.googleapis.com/auth/drive.readonly',
+      // ],
+    );
+  }
   runApp(const ProviderScope(child: AssetVaultApp()));
 }
 
