@@ -150,6 +150,15 @@ class DatabaseService {
     await db.delete('asset_types', where: 'id = ?', whereArgs: [id]);
   }
 
+  Future<void> deleteAllAssetTypes() async {
+    await db.delete('asset_types');
+  }
+
+  Future<void> deleteAllTags() async {
+    await db.delete('asset_tags');
+    await db.delete('tags');
+  }
+
   // --- Relations ---
   Future<List<Map<String, dynamic>>> getAllRelations() async {
     return await db.query('relations');
@@ -175,5 +184,9 @@ class DatabaseService {
 
   Future<void> deleteRelation(String id) async {
     await db.delete('relations', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> deleteAllRelations() async {
+    await db.delete('relations');
   }
 }

@@ -8,7 +8,12 @@ import '../models/tag.dart';
 import '../models/reminder.dart';
 import '../services/local_file_sync_service.dart';
 import '../services/google_drive_service.dart';
+import '../services/webdav_service.dart';
+import '../services/e2ee_sync_service.dart';
 import 'service_providers.dart';
+import '../models/sync_settings.dart';
+import 'sync_settings_provider.dart';
+import 'asset_types_provider.dart';
 
 class AssetsNotifier extends Notifier<List<Asset>> {
   @override
@@ -18,7 +23,24 @@ class AssetsNotifier extends Notifier<List<Asset>> {
   }
 
   Future<void> loadAssets() async {
-    if (kIsWeb) return;
+    if (kIsWeb) {
+      try {
+        final storage = ref.read(webVaultStorageProvider);
+        final blob = await storage.readEncrypted();
+        if (blob == null || blob.isEmpty) return;
+        final syncService = ref.read(e2eeSyncServiceProvider);
+        final snapshot = syncService.unpackCiphertextToSnapshot(blob);
+        state = snapshot.assets;
+        await ref
+            .read(assetTypesProvider.notifier)
+            .setCustomTypesFromSnapshot(snapshot.customAssetTypes);
+      } catch (e) {
+        if (kDebugMode) {
+          print('loadAssets(web): $e');
+        }
+      }
+      return;
+    }
     try {
       final dbService = ref.read(databaseServiceProvider);
       final db = dbService.db;
@@ -94,7 +116,9 @@ class AssetsNotifier extends Notifier<List<Asset>> {
 
       state = assets;
     } catch (e) {
-      // Database not ready, probably locked.
+      if (kDebugMode) {
+        print('loadAssets: $e');
+      }
     }
   }
 
@@ -159,7 +183,42 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       });
     }
     state = [...state, asset];
-    _triggerWebSync();
+    await _triggerSync();
+  }
+
+  /// Add multiple assets in one go; calls _triggerSync() once at the end.
+  Future<void> batchAddAssets(List<Asset> assets) async {
+    if (assets.isEmpty) return;
+    if (!kIsWeb) {
+      final db = ref.read(databaseServiceProvider).db;
+      for (final asset in assets) {
+        await db.transaction((txn) async {
+          await txn.insert('assets', {
+            'id': asset.id,
+            'type_id': asset.typeId,
+            'name': asset.name,
+            'expire_at': asset.expireAt,
+            'created_at': asset.createdAt,
+            'updated_at': asset.updatedAt,
+            'is_archived': asset.isArchived ? 1 : 0,
+          });
+          for (var field in asset.fields) {
+            await txn.insert('asset_fields', {
+              'id': field.id,
+              'asset_id': field.assetId,
+              'key': field.key,
+              'value_enc': field.valueEnc,
+              'iv': field.iv,
+              'is_sensitive': field.isSensitive ? 1 : 0,
+            });
+          }
+          await _persistTags(txn, asset);
+          await _persistReminders(txn, asset);
+        });
+      }
+    }
+    state = [...state, ...assets];
+    await _triggerSync();
   }
 
   Future<void> updateAsset(Asset updatedAsset) async {
@@ -201,7 +260,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       for (final asset in state)
         if (asset.id == updatedAsset.id) updatedAsset else asset,
     ];
-    _triggerWebSync();
+    await _triggerSync();
   }
 
   Future<void> deleteAsset(String id) async {
@@ -210,7 +269,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       await db.delete('assets', where: 'id = ?', whereArgs: [id]);
     }
     state = state.where((a) => a.id != id).toList();
-    _triggerWebSync();
+    await _triggerSync();
   }
 
   Future<void> archiveAsset(String id) async {
@@ -250,18 +309,123 @@ class AssetsNotifier extends Notifier<List<Asset>> {
     }
   }
 
-  void _triggerWebSync() {
-    if (!kIsWeb) return;
-    final localSync = ref.read(localFileSyncServiceProvider);
-    if (localSync.hasActiveHandle) {
-      localSync.syncToLocal(state);
+  /// Clear all assets (and related data). Used before JSON import to replace vault.
+  Future<void> clearAll() async {
+    state = [];
+    if (kIsWeb) {
+      final syncService = ref.read(e2eeSyncServiceProvider);
+      final blob = syncService.packSnapshotTOCiphertext(
+        [],
+        customAssetTypes: ref
+            .read(assetTypesProvider)
+            .where((t) => !t.isBuiltIn)
+            .toList(),
+      );
+      await ref.read(webVaultStorageProvider).writeEncrypted(blob);
+    } else {
+      final dbService = ref.read(databaseServiceProvider);
+      final db = dbService.db;
+      await db.delete('relations');
+      await db.delete('assets');
+      await dbService.deleteAllTags();
+      await dbService.deleteAllAssetTypes();
     }
-    final driveSync = ref.read(googleDriveServiceProvider);
-    driveSync.hasCredentials().then((hasCreds) {
-      if (hasCreds) {
-        driveSync.syncToDrive(state);
+  }
+
+  /// Replace vault with snapshot (e.g. after import .enc). On Web writes blob to IndexedDB.
+  Future<void> replaceFromSnapshot(
+    VaultSnapshot snapshot, {
+    Uint8List? encryptedBlob,
+  }) async {
+    state = snapshot.assets;
+    if (kIsWeb) {
+      await ref
+          .read(assetTypesProvider.notifier)
+          .setCustomTypesFromSnapshot(snapshot.customAssetTypes);
+      if (encryptedBlob != null) {
+        await ref.read(webVaultStorageProvider).writeEncrypted(encryptedBlob);
       }
+    } else {
+      final dbService = ref.read(databaseServiceProvider);
+      final db = dbService.db;
+      await db.delete('assets');
+      await dbService.deleteAllTags();
+      await dbService.deleteAllAssetTypes();
+      for (final a in snapshot.assets) {
+        await _insertOneAssetRaw(db, a);
+      }
+      await ref
+          .read(assetTypesProvider.notifier)
+          .setCustomTypesFromSnapshot(snapshot.customAssetTypes);
+    }
+    await _triggerSync();
+  }
+
+  Future<void> _insertOneAssetRaw(Database db, Asset asset) async {
+    await db.transaction((txn) async {
+      await txn.insert('assets', {
+        'id': asset.id,
+        'type_id': asset.typeId,
+        'name': asset.name,
+        'expire_at': asset.expireAt,
+        'created_at': asset.createdAt,
+        'updated_at': asset.updatedAt,
+        'is_archived': asset.isArchived ? 1 : 0,
+      });
+      for (var field in asset.fields) {
+        await txn.insert('asset_fields', {
+          'id': field.id,
+          'asset_id': field.assetId,
+          'key': field.key,
+          'value_enc': field.valueEnc,
+          'iv': field.iv,
+          'is_sensitive': field.isSensitive ? 1 : 0,
+        });
+      }
+      await _persistTags(txn, asset);
+      await _persistReminders(txn, asset);
     });
+  }
+
+  Future<void> _triggerSync() async {
+    final syncMethod = ref.read(syncSettingsProvider);
+    final customTypes = ref
+        .read(assetTypesProvider)
+        .where((t) => !t.isBuiltIn)
+        .toList();
+    if (kIsWeb) {
+      final syncService = ref.read(e2eeSyncServiceProvider);
+      final blob = syncService.packSnapshotTOCiphertext(
+        state,
+        customAssetTypes: customTypes,
+      );
+      await ref.read(webVaultStorageProvider).writeEncrypted(blob);
+      if (syncMethod == SyncMethod.localFile) {
+        final localSync = ref.read(localFileSyncServiceProvider);
+        if (localSync.hasActiveHandle) {
+          await localSync.syncToLocal(state, customAssetTypes: customTypes);
+        }
+      } else if (syncMethod == SyncMethod.googleDrive) {
+        final drive = ref.read(googleDriveServiceProvider);
+        final hasCreds = await drive.hasCredentials();
+        if (hasCreds) {
+          await drive.syncToDrive(state, customAssetTypes: customTypes);
+        }
+      }
+    } else {
+      if (syncMethod == SyncMethod.webdav) {
+        final webDav = ref.read(webDavServiceProvider);
+        final hasCreds = await webDav.hasCredentials();
+        if (hasCreds) {
+          final syncService = ref.read(e2eeSyncServiceProvider);
+          final blob = syncService.packSnapshotTOCiphertext(
+            state,
+            customAssetTypes: customTypes,
+          );
+          await webDav.backupEncrypted(blob);
+        }
+      }
+    }
   }
 }
 

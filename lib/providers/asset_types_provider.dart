@@ -17,6 +17,27 @@ class AssetTypesNotifier extends Notifier<List<AssetType>> {
     return [...defaultAssetTypes];
   }
 
+  /// Web (and import .enc): set custom types from snapshot; built-ins stay.
+  /// On non-Web also persists custom types to SQLite.
+  Future<void> setCustomTypesFromSnapshot(List<AssetType> customTypes) async {
+    state = [...defaultAssetTypes, ...customTypes];
+    if (kIsWeb) return;
+    final dbService = ref.read(databaseServiceProvider);
+    await dbService.deleteAllAssetTypes();
+    for (final type in customTypes) {
+      final fieldSchemaJson = jsonEncode(
+        type.fieldSchema.map((e) => e.toJson()).toList(),
+      );
+      await dbService.insertAssetType({
+        'id': type.id,
+        'name': type.name,
+        'icon': type.icon,
+        'field_schema': fieldSchemaJson,
+        'is_built_in': type.isBuiltIn ? 1 : 0,
+      });
+    }
+  }
+
   Future<void> loadCustomTypes() async {
     if (kIsWeb) {
       state = [...defaultAssetTypes];

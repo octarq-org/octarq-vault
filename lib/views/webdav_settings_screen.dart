@@ -161,10 +161,9 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
       final syncService = ref.read(e2eeSyncServiceProvider);
       final snapshot = syncService.unpackCiphertextToSnapshot(encrypted);
 
-      final assetsNotifier = ref.read(assetsProvider.notifier);
-      for (var asset in snapshot.assets) {
-        await assetsNotifier.addAsset(asset);
-      }
+      await ref
+          .read(assetsProvider.notifier)
+          .replaceFromSnapshot(snapshot, encryptedBlob: encrypted);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -398,7 +397,7 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
       if (!createNew) {
         final snapshot = await localSync.readFromLocal();
         if (snapshot != null) {
-          ref.read(assetsProvider.notifier).setWebAssets(snapshot.assets);
+          await ref.read(assetsProvider.notifier).replaceFromSnapshot(snapshot);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -442,7 +441,7 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
       final localSync = ref.read(localFileSyncServiceProvider);
       final snapshot = await localSync.importFromUpload();
       if (snapshot != null) {
-        ref.read(assetsProvider.notifier).setWebAssets(snapshot.assets);
+        await ref.read(assetsProvider.notifier).replaceFromSnapshot(snapshot);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -498,7 +497,7 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
       await driveSync.signIn();
       final snapshot = await driveSync.readFromDrive();
       if (snapshot != null) {
-        ref.read(assetsProvider.notifier).setWebAssets(snapshot.assets);
+        await ref.read(assetsProvider.notifier).replaceFromSnapshot(snapshot);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

@@ -4,6 +4,7 @@ import '../services/database_service.dart';
 import '../services/encryption_service.dart';
 import '../services/secure_storage_service.dart';
 import '../services/notification_service.dart';
+import '../services/web_vault_storage.dart';
 
 final databaseServiceProvider = Provider<DatabaseService>(
   (ref) => DatabaseService(),
@@ -16,4 +17,7 @@ final secureStorageServiceProvider = Provider<SecureStorageService>(
 );
 final notificationServiceProvider = Provider<NotificationService>(
   (ref) => NotificationService(),
+);
+final webVaultStorageProvider = Provider<WebVaultStorage>(
+  (ref) => WebVaultStorage(),
 );

@@ -152,7 +152,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         try {
           final syncService = ref.read(e2eeSyncServiceProvider);
           final snapshot = syncService.unpackCiphertextToSnapshot(payload);
-          ref.read(assetsProvider.notifier).setWebAssets(snapshot.assets);
+          await ref
+              .read(assetsProvider.notifier)
+              .replaceFromSnapshot(snapshot, encryptedBlob: payload);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Vault restored successfully!')),

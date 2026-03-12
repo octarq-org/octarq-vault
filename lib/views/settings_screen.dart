@@ -5,13 +5,57 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../providers/auth_provider.dart';
 import '../providers/assets_provider.dart';
+import '../providers/sync_settings_provider.dart';
 import '../models/asset.dart';
+import '../models/sync_settings.dart';
 import '../main.dart';
 import '../providers/service_providers.dart';
 import '../providers/relations_provider.dart';
+import '../services/enc_file_io.dart';
+import '../services/e2ee_sync_service.dart';
+
+/// Returns error message if invalid; null if OK. Does not modify any data.
+String? _validateImportJson(
+  List<dynamic> assetList,
+  List<dynamic>? relationList,
+) {
+  if (assetList.isEmpty) return 'No assets in JSON.';
+  final assetIds = <String>{};
+  for (var i = 0; i < assetList.length; i++) {
+    final item = assetList[i];
+    if (item is! Map<String, dynamic>) {
+      return 'Item at index $i: expected object.';
+    }
+    try {
+      final asset = Asset.fromJson(item);
+      assetIds.add(asset.id);
+    } catch (e) {
+      return 'Asset at index $i: $e';
+    }
+  }
+  if (relationList != null && relationList.isNotEmpty) {
+    for (var i = 0; i < relationList.length; i++) {
+      final r = relationList[i];
+      if (r is! Map<String, dynamic>) {
+        return 'Relation at index $i: expected object.';
+      }
+      if (r['id'] == null ||
+          r['from_asset_id'] == null ||
+          r['to_asset_id'] == null ||
+          r['relation_type'] == null) {
+        return 'Relation at index $i: missing id, from_asset_id, to_asset_id or relation_type.';
+      }
+      final from = r['from_asset_id'] as String;
+      final to = r['to_asset_id'] as String;
+      if (!assetIds.contains(from) || !assetIds.contains(to)) {
+        return 'Relation at index $i: from_asset_id or to_asset_id not in assets.';
+      }
+    }
+  }
+  return null;
+}
 
 class AutoLockNotifier extends Notifier<int> {
   @override
@@ -40,6 +84,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void initState() {
     super.initState();
     _loadBiometricPref();
+    ref.read(syncSettingsProvider.notifier).load();
   }
 
   Future<void> _loadBiometricPref() async {
@@ -201,13 +246,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         }
         return;
       }
-      final assetsNotifier = ref.read(assetsProvider.notifier);
-      int imported = 0;
-      for (var item in assetList) {
-        final asset = Asset.fromJson(item as Map<String, dynamic>);
-        await assetsNotifier.addAsset(asset);
-        imported++;
+
+      // Validate before touching data: parse all assets and relations
+      String? validationError = _validateImportJson(assetList, relationList);
+      if (validationError != null) {
+        if (mounted) {
+          scaffoldMsgr.showSnackBar(
+            SnackBar(content: Text('Import invalid: $validationError')),
+          );
+        }
+        return;
       }
+
+      final toAdd = assetList
+          .map((item) => Asset.fromJson(item as Map<String, dynamic>))
+          .toList();
+      final assetsNotifier = ref.read(assetsProvider.notifier);
+      await assetsNotifier.clearAll();
+      await assetsNotifier.batchAddAssets(toAdd);
       if (!kIsWeb && relationList != null && relationList.isNotEmpty) {
         final db = ref.read(databaseServiceProvider);
         for (var r in relationList) {
@@ -223,7 +279,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       }
       if (mounted) {
         scaffoldMsgr.showSnackBar(
-          SnackBar(content: Text('Successfully imported $imported assets!')),
+          SnackBar(
+            content: Text('Successfully imported ${toAdd.length} assets!'),
+          ),
         );
       }
     } catch (e) {
@@ -242,9 +300,170 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _importEncFile(WidgetRef ref) async {
+    final bytes = await pickEncFileBytes(ref);
+    if (bytes == null || bytes.isEmpty || !mounted) return;
+    final pwd = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        final c = TextEditingController();
+        return AlertDialog(
+          title: const Text('Unlock backup'),
+          content: TextField(
+            controller: c,
+            obscureText: true,
+            decoration: const InputDecoration(
+              labelText: 'Master password',
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (v) => Navigator.pop(ctx, v),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, c.text),
+              child: const Text('Unlock'),
+            ),
+          ],
+        );
+      },
+    );
+    if (pwd == null || pwd.isEmpty || !mounted) return;
+    final success = await ref
+        .read(authProvider.notifier)
+        .unlockWithExternalPayload(pwd, bytes);
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ref.read(authProvider.notifier).lastError ?? 'Wrong password',
+          ),
+        ),
+      );
+      return;
+    }
+    try {
+      final syncService = ref.read(e2eeSyncServiceProvider);
+      final snapshot = syncService.unpackCiphertextToSnapshot(bytes);
+      await ref
+          .read(assetsProvider.notifier)
+          .replaceFromSnapshot(snapshot, encryptedBlob: bytes);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Imported ${snapshot.assets.length} assets from .enc file',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+      }
+    }
+  }
+
+  Future<void> _exportSyncSettings(WidgetRef ref) async {
+    final data = ref.read(syncSettingsProvider.notifier).exportSettings();
+    await Clipboard.setData(ClipboardData(text: data.toJsonString()));
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sync settings copied to clipboard')),
+      );
+    }
+  }
+
+  Future<void> _importSyncSettings(WidgetRef ref) async {
+    final text = await Clipboard.getData(Clipboard.kTextPlain);
+    if (text?.text == null || text!.text!.trim().isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Clipboard empty')));
+      }
+      return;
+    }
+    try {
+      final data = SyncSettingsExport.fromJsonString(text.text!);
+      await ref.read(syncSettingsProvider.notifier).importSettings(data);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Sync settings applied')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Invalid sync settings JSON: $e')),
+        );
+      }
+    }
+  }
+
+  void _showSyncMethodPicker() {
+    final current = ref.read(syncSettingsProvider);
+    final options = [
+      SyncMethod.none,
+      SyncMethod.webdav,
+      if (kIsWeb) SyncMethod.googleDrive,
+      if (kIsWeb) SyncMethod.localFile,
+    ];
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDlgState) => AlertDialog(
+          backgroundColor: kSurfaceColor,
+          title: const Text('Sync method'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: options.map((m) {
+              final isSelected = current == m;
+              return ListTile(
+                title: Text(_syncMethodLabel(m)),
+                leading: Icon(
+                  isSelected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
+                  color: isSelected ? kPrimaryGreen : kTextMuted,
+                ),
+                onTap: () async {
+                  await ref
+                      .read(syncSettingsProvider.notifier)
+                      .setSyncMethod(m);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                },
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _syncMethodLabel(SyncMethod m) {
+    switch (m) {
+      case SyncMethod.none:
+        return 'None';
+      case SyncMethod.webdav:
+        return 'WebDAV';
+      case SyncMethod.googleDrive:
+        return 'Google Drive';
+      case SyncMethod.localFile:
+        return 'Local file (browser)';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final autoLockMinutes = ref.watch(autoLockMinutesProvider);
+    final syncMethod = ref.watch(syncSettingsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -276,14 +495,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onTap: _showAutoLockPicker,
           ),
           const Divider(),
-          const _SettingsSectionHeader('Data Management'),
+          const _SettingsSectionHeader('Sync'),
+          ListTile(
+            leading: const Icon(Icons.sync),
+            title: const Text('Sync method'),
+            subtitle: Text(_syncMethodLabel(syncMethod)),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _showSyncMethodPicker,
+          ),
           ListTile(
             leading: const Icon(Icons.cloud_sync),
-            title: const Text('WebDAV Sync Settings'),
-            subtitle: const Text('Backup encrypted vault to remote server'),
+            title: const Text('WebDAV / Drive / Local file'),
+            subtitle: const Text('Configure credentials and link files'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.go('/settings/webdav'),
           ),
+          ListTile(
+            leading: const Icon(Icons.upload_file),
+            title: const Text('Export sync settings'),
+            subtitle: const Text('Copy sync method to clipboard (JSON)'),
+            onTap: () => _exportSyncSettings(ref),
+          ),
+          ListTile(
+            leading: const Icon(Icons.download),
+            title: const Text('Import sync settings'),
+            subtitle: const Text('Paste JSON from clipboard'),
+            onTap: () => _importSyncSettings(ref),
+          ),
+          const Divider(),
+          const _SettingsSectionHeader('Data Management'),
           ListTile(
             leading: const Icon(Icons.schema),
             title: const Text('Manage Custom Asset Types'),
@@ -300,6 +540,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           const Divider(),
           const _SettingsSectionHeader('Import / Export'),
+          ListTile(
+            leading: const Icon(Icons.file_download),
+            title: const Text('Export .enc file'),
+            subtitle: const Text('Encrypted backup (all platforms)'),
+            onTap: () => exportEncToFile(ref),
+          ),
+          ListTile(
+            leading: const Icon(Icons.file_upload),
+            title: const Text('Import .enc file'),
+            subtitle: const Text('Replace vault with backup (enter password)'),
+            onTap: () => _importEncFile(ref),
+          ),
           ListTile(
             leading: const Icon(Icons.download),
             title: const Text('Export JSON to Clipboard'),
