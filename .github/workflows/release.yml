@@ -7,6 +7,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-macos:
     runs-on: macos-latest
@@ -73,8 +76,8 @@ jobs:
 
       - name: Stage and upload iOS
         run: |
-          mkdir -p staging/ios
-          cd build/ios/iphoneos && zip -r ../../../../staging/ios/ios.zip .
+          mkdir -p "$GITHUB_WORKSPACE/staging/ios"
+          cd build/ios/iphoneos && zip -r "$GITHUB_WORKSPACE/staging/ios/ios.zip" .
       - uses: actions/upload-artifact@v4
         with:
           name: ios
@@ -118,7 +121,7 @@ jobs:
       - name: Install Linux Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libsecret-1-dev
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
