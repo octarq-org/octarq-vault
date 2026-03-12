@@ -13,6 +13,10 @@ const kBgColor = Color(0xFF14161F); // deepest bg
 const kSurfaceColor = Color(0xFF1E2130); // card / sidebar
 const kBorderColor = Color(0xFF2B2E3E); // subtle divider
 const kTextMuted = Color(0xFF7B8099);
+
+/// Official site (landing) and docs. Used in Settings and README.
+const kWebsiteUrl = 'https://vault.octarq.org';
+const kDocsUrl = 'https://vault.octarq.org/docs';
 // ─────────────────────────────────────────────────────────────────────────────
 
 Future<void> main() async {
@@ -29,11 +33,11 @@ Future<void> main() async {
       // ],
     );
   }
-  runApp(const ProviderScope(child: AssetVaultApp()));
+  runApp(const ProviderScope(child: OctarqVaultApp()));
 }
 
-class AssetVaultApp extends ConsumerWidget {
-  const AssetVaultApp({super.key});
+class OctarqVaultApp extends ConsumerWidget {
+  const OctarqVaultApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -58,7 +62,7 @@ class AssetVaultApp extends ConsumerWidget {
           ),
         },
         child: MaterialApp.router(
-          title: 'AssetVault',
+          title: 'OctarqVault',
           debugShowCheckedModeBanner: false,
           themeMode: ThemeMode.dark,
           darkTheme: _buildDarkTheme(),

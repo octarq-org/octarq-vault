@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_provider.dart';
 import '../providers/assets_provider.dart';
 import '../providers/sync_settings_provider.dart';
@@ -460,6 +461,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Cannot open: $url')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final autoLockMinutes = ref.watch(autoLockMinutesProvider);
@@ -561,6 +573,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             leading: const Icon(Icons.upload),
             title: const Text('Import JSON (from clipboard)'),
             onTap: () => _importJson(ref),
+          ),
+          const Divider(),
+          const _SettingsSectionHeader('About'),
+          ListTile(
+            leading: const Icon(Icons.language),
+            title: const Text('Website'),
+            subtitle: const Text('vault.octarq.org'),
+            trailing: const Icon(Icons.open_in_new, size: 18),
+            onTap: () => _openUrl(kWebsiteUrl),
+          ),
+          ListTile(
+            leading: const Icon(Icons.menu_book_outlined),
+            title: const Text('Help & Docs'),
+            subtitle: const Text('vault.octarq.org/docs'),
+            trailing: const Icon(Icons.open_in_new, size: 18),
+            onTap: () => _openUrl(kDocsUrl),
           ),
         ],
       ),

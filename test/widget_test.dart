@@ -13,8 +13,8 @@ import 'package:asset_vault/main.dart';
 void main() {
   testWidgets('App loads smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const ProviderScope(child: AssetVaultApp()));
+    await tester.pumpWidget(const ProviderScope(child: OctarqVaultApp()));
 
-    expect(find.byType(AssetVaultApp), findsOneWidget);
+    expect(find.byType(OctarqVaultApp), findsOneWidget);
   });
 }

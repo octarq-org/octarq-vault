@@ -81,7 +81,14 @@ class _LockScreenState extends ConsumerState<LockScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.lock, size: 80, color: Colors.blueAccent),
+            Image.asset(
+              'assets/logo.png',
+              width: 64,
+              height: 64,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(height: 16),
+            const Icon(Icons.lock_outline, size: 48, color: Colors.grey),
             const SizedBox(height: 24),
             const Text(
               'Vault Locked',

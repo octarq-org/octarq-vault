@@ -258,7 +258,21 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Welcome to AssetVault')),
+      appBar: AppBar(
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              'assets/logo.png',
+              width: 28,
+              height: 28,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(width: 10),
+            const Text('Welcome to OctarqVault'),
+          ],
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(

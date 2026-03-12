@@ -140,20 +140,18 @@ class _Sidebar extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: kPrimaryGreen.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.health_and_safety,
-                    color: kPrimaryGreen,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.asset(
+                    'assets/logo.png',
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.contain,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'AssetVault',
+                  'OctarqVault',
                   style: GoogleFonts.inter(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,

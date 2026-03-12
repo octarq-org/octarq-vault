@@ -1,10 +1,13 @@
-# AssetVault · Personal Digital Asset Manager
+# OctarqVault · Personal Digital Asset Manager
 
 [![中文](https://img.shields.io/badge/README-中文-2ea043)](README.zh-CN.md)
 
 > **One-stop encrypted asset management for technical practitioners**
 
-AssetVault is a digital asset manager built for technical practitioners (developers, site operators, crypto users). It supports local encryption, offline-first design, dynamic fields, and expiry reminders.
+OctarqVault is a digital asset manager built for technical practitioners (developers, site operators, crypto users). It supports local encryption, offline-first design, dynamic fields, and expiry reminders.
+
+- **Website**: [vault.octarq.org](https://vault.octarq.org)
+- **Docs**: [vault.octarq.org/docs](https://vault.octarq.org/docs)
 
 ## Features
 1. **All asset types**: Presets for domains, VPS, SSL certs, email, SaaS subscriptions, and service API keys.

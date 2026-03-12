@@ -160,7 +160,7 @@ class AuthNotifier extends Notifier<AuthState> {
       final saltBase64 = E2EESyncService.extractSaltFromPayload(payload);
       if (saltBase64 == null) {
         _lastError =
-            'Not a valid vault backup. Use the .enc file from Asset Vault (Export/Google Drive), not the internal database.';
+            'Not a valid vault backup. Use the .enc file from OctarqVault (Export/Google Drive), not the internal database.';
         return false;
       }
 
@@ -199,7 +199,9 @@ class AuthNotifier extends Notifier<AuthState> {
     _lastError = null;
     try {
       final storage = ref.read(secureStorageServiceProvider);
-      final key = await storage.getMasterKeyWithBiometrics('Unlock AssetVault');
+      final key = await storage.getMasterKeyWithBiometrics(
+        'Unlock OctarqVault',
+      );
 
       if (key != null) {
         final encryption = ref.read(encryptionServiceProvider);

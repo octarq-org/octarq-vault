@@ -1,8 +1,11 @@
-# AssetVault · 个人数字资产管理 App
+# OctarqVault · 个人数字资产管理 App
 
 > **面向技术从业者的一站式加密资产管理工具**
 
-AssetVault 是一款为技术从业者（开发者、站长、加密货币用户）量身打造的数字资产管理工具，支持本地加密、离线优先、动态字段和到期提醒设计。
+OctarqVault 是一款为技术从业者（开发者、站长、加密货币用户）量身打造的数字资产管理工具，支持本地加密、离线优先、动态字段和到期提醒设计。
+
+- **官网**: [vault.octarq.org](https://vault.octarq.org)
+- **帮助文档**: [vault.octarq.org/docs](https://vault.octarq.org/docs)
 
 ## 🌟 核心特性
 1. **全类型资产支持**：预设域名、VPS、SSL证书、邮箱、SaaS订阅、服务 API Key。

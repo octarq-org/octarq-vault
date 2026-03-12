@@ -1,6 +1,6 @@
 {
-    "name": "asset_vault",
-    "short_name": "asset_vault",
+    "name": "OctarqVault",
+    "short_name": "OctarqVault",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
