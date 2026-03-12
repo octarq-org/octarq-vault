@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
 import '../utils/platform_utils.dart';
 import 'service_providers.dart';
 import '../services/e2ee_sync_service.dart';
@@ -31,7 +30,7 @@ class AuthNotifier extends Notifier<AuthState> {
 
       if (!kIsWeb) {
         try {
-          final dbPath = p.join(await getDatabasesPath(), 'asset_vault_enc.db');
+          final dbPath = await getVaultDatabasePath();
           final dbExists = await fileExists(dbPath);
 
           if (!ref.mounted) return;
@@ -45,11 +44,23 @@ class AuthNotifier extends Notifier<AuthState> {
             await storage.clearAll();
             hasKey = false;
           } else if (!hasKey && dbExists) {
-            if (kDebugMode) {
-              print('AuthNotifier._init: DB exists but no key in storage.');
+            final salt = await storage.getSalt();
+            if (salt == null || salt.isEmpty) {
+              // No salt: cannot unlock (e.g. after bundle ID change). Wipe orphan DB → setup.
+              if (kDebugMode) {
+                print(
+                  'AuthNotifier._init: DB exists but no salt; wiping orphan DB.',
+                );
+              }
+              await deleteDatabase(dbPath);
+              if (await fileExists(dbPath)) forceDeleteFile(dbPath);
+            } else {
+              if (kDebugMode) {
+                print('AuthNotifier._init: DB exists but no key in storage.');
+              }
+              state = AuthState.locked;
+              return;
             }
-            state = AuthState.locked;
-            return;
           }
         } catch (_) {
           // getDatabasesPath or File ops may fail in test env, ignore
@@ -83,13 +94,13 @@ class AuthNotifier extends Notifier<AuthState> {
       // when re-creating a vault with a new key
       if (!kIsWeb) {
         try {
-          final dbPath = p.join(await getDatabasesPath(), 'asset_vault_enc.db');
+          final dbPath = await getVaultDatabasePath();
           if (await fileExists(dbPath)) {
             if (kDebugMode) {
               print('setupMasterPassword: deleting stale DB at $dbPath');
             }
-            // Cannot use File in web, sqflite exposes deleteDatabase
             await deleteDatabase(dbPath);
+            if (await fileExists(dbPath)) forceDeleteFile(dbPath);
           }
         } catch (_) {}
       }
@@ -139,6 +150,7 @@ class AuthNotifier extends Notifier<AuthState> {
       state = AuthState.unlocked;
       return true;
     } catch (e, st) {
+      if (await _handleDbOpenFailure(e)) return false;
       _lastError = e.toString();
       if (kDebugMode) {
         print('Unlock failed: $e\n$st');
@@ -181,6 +193,11 @@ class AuthNotifier extends Notifier<AuthState> {
 
       final db = ref.read(databaseServiceProvider);
       if (!kIsWeb) {
+        final dbPath = await getVaultDatabasePath();
+        if (await fileExists(dbPath)) {
+          await deleteDatabase(dbPath);
+          if (await fileExists(dbPath)) forceDeleteFile(dbPath);
+        }
         await db.init(key);
       }
 
@@ -222,6 +239,7 @@ class AuthNotifier extends Notifier<AuthState> {
       }
       return false;
     } catch (e, st) {
+      if (await _handleDbOpenFailure(e)) return false;
       _lastError = e.toString();
       if (kDebugMode) {
         print('Biometric unlock failed: $e\n$st');
@@ -236,6 +254,39 @@ class AuthNotifier extends Notifier<AuthState> {
       await ref.read(databaseServiceProvider).close();
     }
     state = AuthState.locked;
+  }
+
+  Future<void> _wipeDbAndStorage() async {
+    await ref.read(secureStorageServiceProvider).clearAll();
+    if (!kIsWeb) {
+      try {
+        final dbPath = await getVaultDatabasePath();
+        if (await fileExists(dbPath)) {
+          await deleteDatabase(dbPath);
+          if (await fileExists(dbPath)) forceDeleteFile(dbPath);
+        }
+      } catch (_) {}
+    }
+  }
+
+  static bool _isCorruptDbError(Object e) {
+    final msg = e.toString().toLowerCase();
+    return msg.contains('file is not a database') ||
+        msg.contains('open_failed') ||
+        msg.contains('databaseexception') ||
+        msg.contains('out of memory') ||
+        msg.contains('code=7') ||
+        msg.contains('during open');
+  }
+
+  /// On DB open failure (corrupt/wrong key), close db then wipe and go to setup.
+  Future<bool> _handleDbOpenFailure(Object e) async {
+    if (!_isCorruptDbError(e)) return false;
+    _lastError = 'Vault file was corrupted or invalid. Creating a new vault.';
+    await ref.read(databaseServiceProvider).close();
+    await _wipeDbAndStorage();
+    state = AuthState.unsetup;
+    return true; // caller should treat as "handled", not retry
   }
 }
 

@@ -68,7 +68,7 @@ jobs:
         run: |
           mkdir -p staging/macos
           cd build/macos/Build/Products/Release
-          zip -r ../../../../../staging/macos/macos.zip asset_vault.app
+          zip -r ../../../../../staging/macos/macos.zip OctarqVault.app
       - uses: actions/upload-artifact@v4
         with:
           name: macos
@@ -189,21 +189,21 @@ jobs:
         run: |
           VERSION="${{ github.ref_name }}"
           mkdir -p release-assets
-          cp artifacts/android-apk/app-release.apk "release-assets/AssetVault-${VERSION}-android.apk"
-          cp artifacts/web/web.zip "release-assets/AssetVault-${VERSION}-web.zip"
-          cp artifacts/macos/macos.zip "release-assets/AssetVault-${VERSION}-macos.zip"
-          cp artifacts/ios/ios.zip "release-assets/AssetVault-${VERSION}-ios.zip"
-          cp artifacts/windows/windows.zip "release-assets/AssetVault-${VERSION}-windows.zip"
-          cp artifacts/linux/linux.zip "release-assets/AssetVault-${VERSION}-linux.zip"
+          cp artifacts/android-apk/app-release.apk "release-assets/OctarqVault-${VERSION}-android.apk"
+          cp artifacts/web/web.zip "release-assets/OctarqVault-${VERSION}-web.zip"
+          cp artifacts/macos/macos.zip "release-assets/OctarqVault-${VERSION}-macos.zip"
+          cp artifacts/ios/ios.zip "release-assets/OctarqVault-${VERSION}-ios.zip"
+          cp artifacts/windows/windows.zip "release-assets/OctarqVault-${VERSION}-windows.zip"
+          cp artifacts/linux/linux.zip "release-assets/OctarqVault-${VERSION}-linux.zip"
 
       - name: Deploy Web to Cloudflare Pages
-        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+        if: vars.CLOUDFLARE_DEPLOY == 'true'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           unzip -q artifacts/web/web.zip -d _web
-          npx wrangler@latest pages deploy _web/web --project-name=asset-vault
+          npx wrangler@latest pages deploy _web/web --project-name=octarq-vault
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -211,5 +211,11 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           body_path: release_notes.md
-          files: release-assets/*
+          files: |
+            release-assets/OctarqVault-${{ github.ref_name }}-android.apk
+            release-assets/OctarqVault-${{ github.ref_name }}-web.zip
+            release-assets/OctarqVault-${{ github.ref_name }}-macos.zip
+            release-assets/OctarqVault-${{ github.ref_name }}-ios.zip
+            release-assets/OctarqVault-${{ github.ref_name }}-windows.zip
+            release-assets/OctarqVault-${{ github.ref_name }}-linux.zip
           draft: false

@@ -3,7 +3,7 @@ import 'dart:js_interop';
 import 'package:flutter/foundation.dart';
 import 'package:web/web.dart' as web;
 
-const _dbName = 'AssetVault';
+const _dbName = 'OctarqVault';
 const _storeName = 'vault';
 const _key = 'enc';
 

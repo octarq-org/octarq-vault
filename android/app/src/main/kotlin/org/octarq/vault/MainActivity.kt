@@ -1,4 +1,4 @@
-package app.assetvault.asset_vault
+package org.octarq.vault
 
 import io.flutter.embedding.android.FlutterActivity
 

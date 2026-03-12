@@ -39,8 +39,8 @@ OctarqVault is a digital asset manager built for technical practitioners (develo
 ### Build & run
 1. **Clone**:
    ```bash
-   git clone https://github.com/app/assetvault.git
-   cd asset_vault
+   git clone https://github.com/Jungley8/octarq-vault.git
+   cd octarq-vault
    ```
 
 2. **Install dependencies**:

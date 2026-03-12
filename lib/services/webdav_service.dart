@@ -73,29 +73,29 @@ class WebDavService {
   Future<void> backupJson(String jsonPayload) async {
     await _connectFromStorage();
     try {
-      await _client!.mkdir('/AssetVault');
+      await _client!.mkdir('/OctarqVault');
     } catch (_) {}
     final bytes = jsonPayload.codeUnits;
-    await _client!.write('/AssetVault/backup.json', Uint8List.fromList(bytes));
+    await _client!.write('/OctarqVault/backup.json', Uint8List.fromList(bytes));
   }
 
   Future<String> restoreJson() async {
     await _connectFromStorage();
-    final bytes = await _client!.read('/AssetVault/backup.json');
+    final bytes = await _client!.read('/OctarqVault/backup.json');
     return String.fromCharCodes(bytes);
   }
 
   Future<void> backupEncrypted(Uint8List encryptedPayload) async {
     await _connectFromStorage();
     try {
-      await _client!.mkdir('/AssetVault');
+      await _client!.mkdir('/OctarqVault');
     } catch (_) {}
-    await _client!.write('/AssetVault/backup.avault', encryptedPayload);
+    await _client!.write('/OctarqVault/backup.avault', encryptedPayload);
   }
 
   Future<Uint8List> restoreEncrypted() async {
     await _connectFromStorage();
-    final bytes = await _client!.read('/AssetVault/backup.avault');
+    final bytes = await _client!.read('/OctarqVault/backup.avault');
     return Uint8List.fromList(bytes);
   }
 

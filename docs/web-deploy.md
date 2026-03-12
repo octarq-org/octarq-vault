@@ -2,7 +2,11 @@
 
 ## Cloudflare Pages
 
-打 tag 触发 Release workflow 后，若配置了下列 Secrets，会自动把 web 产物部署到 Cloudflare Pages：
+打 tag 触发 Release workflow 后，若开启部署则会自动把 web 产物部署到 Cloudflare Pages。
+
+**开启方式**：在仓库 **Settings** → **Secrets and variables** → **Actions** → **Variables** 中新增变量 `CLOUDFLARE_DEPLOY`，值设为 `true`。
+
+**Secrets**（同上 Settings → Secrets 中配置）：
 
 | Secret | 说明 |
 |--------|------|
@@ -13,10 +17,10 @@
 
 ```bash
 npx wrangler pages project create
-# 项目名填 asset-vault（与 workflow 里 --project-name 一致）
+# 项目名填 octarq-vault（与 workflow 里 --project-name 一致）
 ```
 
-部署后的地址：`https://asset-vault.pages.dev`（或你绑定的自定义域名）。
+部署后的地址：`https://octarq-vault.pages.dev`（或你绑定的自定义域名 vault.octarq.org）。
 
 ## Google 登录（Web Client）
 
@@ -26,7 +30,7 @@ Web 端 Google Drive 同步需要 OAuth 2.0 的 **Web 应用** 客户端 ID。
 2. **创建凭据** → **OAuth 2.0 客户端 ID**。
 3. 应用类型选 **Web 应用**。
 4. **已授权的 JavaScript 来源** 添加你的 Web 地址，例如：
-   - `https://asset-vault.pages.dev`
+   - `https://octarq-vault.pages.dev`
    - `https://vault.octarq.org`（若已绑定自定义域名）
 5. 创建后复制 **客户端 ID**（形如 `xxx.apps.googleusercontent.com`）。
 

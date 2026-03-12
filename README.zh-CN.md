@@ -37,8 +37,8 @@ OctarqVault 是一款为技术从业者（开发者、站长、加密货币用�
 ### 本地编译与调试
 1. **克隆项目**:
    ```bash
-   git clone https://github.com/app/assetvault.git
-   cd asset_vault
+   git clone https://github.com/Jungley8/octarq-vault.git
+   cd octarq-vault
    ```
 
 2. **安装 Flutter 依赖**:

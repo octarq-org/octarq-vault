@@ -1,13 +1,15 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
-import 'package:path/path.dart';
 import 'dart:typed_data';
+
+import '../utils/platform_utils.dart';
 
 class DatabaseService {
   Database? _db;
 
   Future<void> init(Uint8List masterKeyBytes) async {
+    await close();
     final hexKey = _bytesToHex(masterKeyBytes);
-    final dbPath = join(await getDatabasesPath(), 'asset_vault_enc.db');
+    final dbPath = await getVaultDatabasePath();
 
     _db = await openDatabase(
       dbPath,
