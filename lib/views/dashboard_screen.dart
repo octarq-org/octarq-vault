@@ -78,6 +78,8 @@ class DashboardScreen extends ConsumerWidget {
                         valueColor: approachingExpirations.isNotEmpty
                             ? const Color(0xFFFFB74D)
                             : null,
+                        onTap: () =>
+                            context.go('/all-assets?filter=expiring-soon'),
                       ),
                       const SizedBox(width: 16),
                       _StatCard(
@@ -117,7 +119,7 @@ class DashboardScreen extends ConsumerWidget {
                                 ),
                                 const Spacer(),
                                 TextButton(
-                                  onPressed: () {},
+                                  onPressed: () => context.go('/all-assets'),
                                   style: TextButton.styleFrom(
                                     padding: EdgeInsets.zero,
                                     minimumSize: Size.zero,
@@ -204,6 +206,7 @@ class _StatCard extends StatelessWidget {
     required this.icon,
     required this.iconColor,
     this.valueColor,
+    this.onTap,
   });
 
   final String title;
@@ -211,45 +214,51 @@ class _StatCard extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
   final Color? valueColor;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: kSurfaceColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: kBorderColor),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      color: kTextMuted,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    value,
-                    style: GoogleFonts.inter(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: valueColor ?? Colors.white,
-                    ),
-                  ),
-                ],
+    final content = Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: kTextMuted,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-            Icon(icon, color: iconColor, size: 28),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                value,
+                style: GoogleFonts.inter(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  color: valueColor ?? Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Icon(icon, color: iconColor, size: 28),
+      ],
+    );
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: kSurfaceColor,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: kBorderColor),
+          ),
+          child: content,
         ),
       ),
     );

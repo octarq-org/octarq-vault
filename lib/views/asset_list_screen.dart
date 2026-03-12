@@ -10,31 +10,82 @@ import '../main.dart';
 
 class AssetListScreen extends ConsumerStatefulWidget {
   final String? filterTypeId;
-  const AssetListScreen({super.key, this.filterTypeId});
+  final bool filterExpiringSoon;
+  const AssetListScreen({
+    super.key,
+    this.filterTypeId,
+    this.filterExpiringSoon = false,
+  });
 
   @override
   ConsumerState<AssetListScreen> createState() => _AssetListScreenState();
 }
 
 class _AssetListScreenState extends ConsumerState<AssetListScreen> {
-  String _sortMode = 'added'; // 'added' | 'name' | 'expiry'
+  String _sortMode = 'added';
+  bool _showArchived = false;
+
+  /// 'all' | 'expiring-soon' (0-30 days) | 'expired'
+  String _expiryFilter = 'all';
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.filterExpiringSoon) {
+      _sortMode = 'expiry';
+      _expiryFilter = 'expiring-soon';
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant AssetListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.filterExpiringSoon && _expiryFilter != 'expiring-soon') {
+      _sortMode = 'expiry';
+      _expiryFilter = 'expiring-soon';
+    }
+  }
+
+  final Set<String> _selectedIds = {};
+  bool get _isSelectMode => _selectedIds.isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
     final assets = ref.watch(assetsProvider);
     final assetTypes = ref.watch(assetTypesProvider);
     final searchQuery = ref.watch(searchQueryProvider);
+    final now = DateTime.now();
 
     var filtered = assets.where((a) {
+      if (_expiryFilter == 'expiring-soon') {
+        if (a.expireAt == null) return false;
+        final diff = DateTime.fromMillisecondsSinceEpoch(
+          a.expireAt!,
+        ).difference(now).inDays;
+        if (diff < 0 || diff > 30) {
+          return false;
+        }
+      } else if (_expiryFilter == 'expired') {
+        if (a.expireAt == null) {
+          return false;
+        }
+        if (DateTime.fromMillisecondsSinceEpoch(a.expireAt!).isAfter(now)) {
+          return false;
+        }
+      }
+      if (a.isArchived && widget.filterTypeId == null && !_showArchived) {
+        return false;
+      }
       final matchType =
           widget.filterTypeId == null || a.typeId == widget.filterTypeId;
-      final matchSearch =
-          searchQuery.isEmpty ||
-          a.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
-          a.tags.any(
-            (t) => t.name.toLowerCase().contains(searchQuery.toLowerCase()),
-          );
-      return matchType && matchSearch;
+      if (searchQuery.isEmpty) return matchType;
+      final q = searchQuery.toLowerCase();
+      final matchName = a.name.toLowerCase().contains(q);
+      final matchTag = a.tags.any((t) => t.name.toLowerCase().contains(q));
+      final matchField = a.fields.any(
+        (f) => !f.isSensitive && f.valueEnc.toLowerCase().contains(q),
+      );
+      return matchType && (matchName || matchTag || matchField);
     }).toList();
 
     // Sort
@@ -52,14 +103,18 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
         filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     }
 
-    final filterTypeName = widget.filterTypeId != null
-        ? assetTypes
-              .firstWhere(
-                (t) => t.id == widget.filterTypeId,
-                orElse: () => assetTypes.first,
-              )
-              .name
-        : null;
+    final filterTypeName = _expiryFilter == 'expiring-soon'
+        ? 'Expiring in 30 days'
+        : _expiryFilter == 'expired'
+        ? 'Expired'
+        : (widget.filterTypeId != null
+              ? assetTypes
+                    .firstWhere(
+                      (t) => t.id == widget.filterTypeId,
+                      orElse: () => assetTypes.first,
+                    )
+                    .name
+              : null);
 
     return Scaffold(
       body: Column(
@@ -67,9 +122,31 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
           _ListHeader(
             sortMode: _sortMode,
             onSortChanged: (v) => setState(() => _sortMode = v),
+            expiryFilter: _expiryFilter,
+            onExpiryFilterChanged: (v) => setState(() => _expiryFilter = v),
             count: filtered.length,
             typeName: filterTypeName,
+            showArchived: _showArchived,
+            onToggleArchived: () =>
+                setState(() => _showArchived = !_showArchived),
           ),
+          if (_isSelectMode)
+            _BatchActionBar(
+              selectedCount: _selectedIds.length,
+              onArchive: () async {
+                await ref
+                    .read(assetsProvider.notifier)
+                    .batchArchive(_selectedIds.toList());
+                setState(() => _selectedIds.clear());
+              },
+              onDelete: () async {
+                await ref
+                    .read(assetsProvider.notifier)
+                    .batchDelete(_selectedIds.toList());
+                setState(() => _selectedIds.clear());
+              },
+              onClear: () => setState(() => _selectedIds.clear()),
+            ),
           Expanded(
             child: filtered.isEmpty
                 ? Center(
@@ -87,10 +164,27 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
                         (t) => t.id == asset.typeId,
                         orElse: () => assetTypes.first,
                       );
+                      final isSelected = _selectedIds.contains(asset.id);
                       return _AssetTile(
                         asset: asset,
                         assetType: assetType,
-                        onTap: () => context.go('/asset/${asset.id}'),
+                        isSelected: isSelected,
+                        onTap: () {
+                          if (_isSelectMode) {
+                            setState(() {
+                              if (isSelected) {
+                                _selectedIds.remove(asset.id);
+                              } else {
+                                _selectedIds.add(asset.id);
+                              }
+                            });
+                          } else {
+                            context.go('/asset/${asset.id}');
+                          }
+                        },
+                        onLongPress: () {
+                          setState(() => _selectedIds.add(asset.id));
+                        },
                       );
                     },
                   ),
@@ -103,18 +197,74 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
 
 // ─── List Header ────────────────────────────────────────────────────────────
 
+class _BatchActionBar extends StatelessWidget {
+  const _BatchActionBar({
+    required this.selectedCount,
+    required this.onArchive,
+    required this.onDelete,
+    required this.onClear,
+  });
+  final int selectedCount;
+  final VoidCallback onArchive;
+  final VoidCallback onDelete;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+      color: kSurfaceColor,
+      child: Row(
+        children: [
+          Text(
+            '$selectedCount selected',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
+          ),
+          const Spacer(),
+          TextButton.icon(
+            onPressed: onArchive,
+            icon: const Icon(Icons.archive_outlined, size: 16),
+            label: const Text('Archive', style: TextStyle(fontSize: 13)),
+            style: TextButton.styleFrom(foregroundColor: kPrimaryGreen),
+          ),
+          const SizedBox(width: 8),
+          TextButton.icon(
+            onPressed: onDelete,
+            icon: const Icon(Icons.delete_outline, size: 16),
+            label: const Text('Delete', style: TextStyle(fontSize: 13)),
+            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: onClear,
+            child: const Text('Cancel', style: TextStyle(fontSize: 13)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ListHeader extends StatelessWidget {
   const _ListHeader({
     required this.sortMode,
     required this.onSortChanged,
+    required this.expiryFilter,
+    required this.onExpiryFilterChanged,
     required this.count,
     this.typeName,
+    required this.showArchived,
+    required this.onToggleArchived,
   });
 
   final String sortMode;
   final ValueChanged<String> onSortChanged;
+  final String expiryFilter;
+  final ValueChanged<String> onExpiryFilterChanged;
   final int count;
   final String? typeName;
+  final bool showArchived;
+  final VoidCallback onToggleArchived;
 
   @override
   Widget build(BuildContext context) {
@@ -146,12 +296,72 @@ class _ListHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              // Sort dropdown
+              _ExpiryFilterDropdown(
+                value: expiryFilter,
+                onChanged: onExpiryFilterChanged,
+              ),
+              const SizedBox(width: 8),
+              TextButton.icon(
+                onPressed: onToggleArchived,
+                icon: Icon(
+                  showArchived
+                      ? Icons.visibility_off_outlined
+                      : Icons.archive_outlined,
+                  size: 16,
+                ),
+                label: Text(
+                  showArchived ? 'Hide Archived' : 'Show Archived',
+                  style: const TextStyle(fontSize: 12),
+                ),
+                style: TextButton.styleFrom(foregroundColor: kTextMuted),
+              ),
+              const SizedBox(width: 8),
               _SortDropdown(value: sortMode, onChanged: onSortChanged),
             ],
           ),
           const SizedBox(height: 12),
         ],
+      ),
+    );
+  }
+}
+
+class _ExpiryFilterDropdown extends StatelessWidget {
+  const _ExpiryFilterDropdown({required this.value, required this.onChanged});
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  static const _labels = {
+    'all': 'All',
+    'expiring-soon': 'Expiring in 30d',
+    'expired': 'Expired',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: kBorderColor),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          isDense: true,
+          dropdownColor: kSurfaceColor,
+          style: GoogleFonts.inter(fontSize: 13, color: Colors.white),
+          icon: const Icon(
+            Icons.keyboard_arrow_down,
+            size: 16,
+            color: kTextMuted,
+          ),
+          items: _labels.entries
+              .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+              .toList(),
+          onChanged: (v) => v != null ? onChanged(v) : null,
+        ),
       ),
     );
   }
@@ -205,11 +415,15 @@ class _AssetTile extends StatelessWidget {
     required this.asset,
     required this.assetType,
     required this.onTap,
+    this.onLongPress,
+    this.isSelected = false,
   });
 
   final dynamic asset;
   final dynamic assetType;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -218,6 +432,7 @@ class _AssetTile extends StatelessWidget {
         : (asset.name as String).toUpperCase();
     final color = getTypeColor(assetType.id);
     final expireAt = asset.expireAt as int?;
+    final bool isArchived = asset.isArchived as bool;
     String? dateStr;
     if (expireAt != null) {
       dateStr = DateTime.fromMillisecondsSinceEpoch(
@@ -227,17 +442,23 @@ class _AssetTile extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
+      onLongPress: onLongPress,
       hoverColor: Colors.white.withValues(alpha: 0.03),
-      child: Padding(
+      child: Container(
+        color: isSelected ? kPrimaryGreen.withValues(alpha: 0.08) : null,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         child: Row(
           children: [
-            // Avatar
+            if (isSelected)
+              Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: Icon(Icons.check_circle, size: 20, color: kPrimaryGreen),
+              ),
             Container(
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
+                color: color.withValues(alpha: isArchived ? 0.06 : 0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Center(
@@ -246,13 +467,12 @@ class _AssetTile extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: color,
+                    color: isArchived ? kTextMuted : color,
                   ),
                 ),
               ),
             ),
             const SizedBox(width: 14),
-            // Name + type + tags
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -264,6 +484,7 @@ class _AssetTile extends StatelessWidget {
                         style: GoogleFonts.inter(
                           fontWeight: FontWeight.w500,
                           fontSize: 14,
+                          color: isArchived ? kTextMuted : null,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -271,6 +492,23 @@ class _AssetTile extends StatelessWidget {
                         '• ${assetType.name}',
                         style: const TextStyle(color: kTextMuted, fontSize: 12),
                       ),
+                      if (isArchived) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: kBorderColor,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'Archived',
+                            style: TextStyle(fontSize: 10, color: kTextMuted),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   if ((asset.tags as List).isNotEmpty) ...[
@@ -304,7 +542,6 @@ class _AssetTile extends StatelessWidget {
                 ],
               ),
             ),
-            // Date & chevron
             if (dateStr != null) ...[
               const SizedBox(width: 12),
               Text(

@@ -151,6 +151,10 @@ class DatabaseService {
   }
 
   // --- Relations ---
+  Future<List<Map<String, dynamic>>> getAllRelations() async {
+    return await db.query('relations');
+  }
+
   Future<List<Map<String, dynamic>>> getRelationsForAsset(
     String assetId,
   ) async {

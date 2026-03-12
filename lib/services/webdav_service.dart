@@ -72,25 +72,31 @@ class WebDavService {
 
   Future<void> backupJson(String jsonPayload) async {
     await _connectFromStorage();
-
-    // Ensure directory exists
     try {
       await _client!.mkdir('/AssetVault');
-    } catch (_) {
-      // Might already exist
-    }
-
-    // Convert string to bytes
+    } catch (_) {}
     final bytes = jsonPayload.codeUnits;
     await _client!.write('/AssetVault/backup.json', Uint8List.fromList(bytes));
   }
 
   Future<String> restoreJson() async {
     await _connectFromStorage();
-
-    // Read bytes from remote server
     final bytes = await _client!.read('/AssetVault/backup.json');
     return String.fromCharCodes(bytes);
+  }
+
+  Future<void> backupEncrypted(Uint8List encryptedPayload) async {
+    await _connectFromStorage();
+    try {
+      await _client!.mkdir('/AssetVault');
+    } catch (_) {}
+    await _client!.write('/AssetVault/backup.avault', encryptedPayload);
+  }
+
+  Future<Uint8List> restoreEncrypted() async {
+    await _connectFromStorage();
+    final bytes = await _client!.read('/AssetVault/backup.avault');
+    return Uint8List.fromList(bytes);
   }
 
   Future<void> clearCredentials() async {

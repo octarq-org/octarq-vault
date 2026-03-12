@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/auth_provider.dart';
+import '../providers/assets_provider.dart';
 import '../views/splash_screen.dart';
 import '../views/setup_screen.dart';
 import '../views/lock_screen.dart';
@@ -14,6 +15,7 @@ import '../views/asset_detail_screen.dart';
 import '../views/settings_screen.dart';
 import '../views/webdav_settings_screen.dart';
 import '../views/asset_type_manager_screen.dart';
+import '../views/tag_manager_screen.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 final shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -70,8 +72,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/all-assets',
             parentNavigatorKey: shellNavigatorKey,
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: AssetListScreen()),
+            pageBuilder: (context, state) {
+              final filterExpiring =
+                  state.uri.queryParameters['filter'] == 'expiring-soon';
+              return NoTransitionPage(
+                child: AssetListScreen(filterExpiringSoon: filterExpiring),
+              );
+            },
           ),
           GoRoute(
             path: '/category/:id',
@@ -84,8 +91,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/add-asset',
             parentNavigatorKey: shellNavigatorKey,
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: AssetFormScreen()),
+            pageBuilder: (context, state) {
+              final typeId = state.uri.queryParameters['type'];
+              return NoTransitionPage(
+                child: AssetFormScreen(defaultTypeId: typeId),
+              );
+            },
           ),
           GoRoute(
             path: '/asset/:id',
@@ -93,6 +104,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) {
               final id = state.pathParameters['id']!;
               return NoTransitionPage(child: AssetDetailScreen(assetId: id));
+            },
+          ),
+          GoRoute(
+            path: '/edit-asset/:id',
+            parentNavigatorKey: shellNavigatorKey,
+            pageBuilder: (context, state) {
+              final id = state.pathParameters['id']!;
+              return NoTransitionPage(child: _EditAssetWrapper(assetId: id));
             },
           ),
           GoRoute(
@@ -119,6 +138,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                 pageBuilder: (context, state) =>
                     const NoTransitionPage(child: AssetTypeFormScreen()),
               ),
+              GoRoute(
+                path: 'tags',
+                parentNavigatorKey: shellNavigatorKey,
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: TagManagerScreen()),
+              ),
             ],
           ),
         ],
@@ -126,3 +151,18 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+class _EditAssetWrapper extends ConsumerWidget {
+  final String assetId;
+  const _EditAssetWrapper({required this.assetId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final assets = ref.watch(assetsProvider);
+    final asset = assets.where((a) => a.id == assetId).firstOrNull;
+    if (asset == null) {
+      return const Scaffold(body: Center(child: Text('Asset not found')));
+    }
+    return AssetFormScreen(editingAsset: asset);
+  }
+}

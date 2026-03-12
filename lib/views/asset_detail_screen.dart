@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:uuid/uuid.dart';
 
+import '../models/asset.dart';
 import '../models/field.dart';
 import '../providers/assets_provider.dart';
 import '../providers/asset_types_provider.dart';
@@ -58,11 +60,39 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
         ],
       ),
     );
-
     if (confirmed == true) {
       await ref.read(assetsProvider.notifier).deleteAsset(widget.assetId);
       if (mounted) context.go('/');
     }
+  }
+
+  void _toggleArchive(Asset asset) async {
+    if (asset.isArchived) {
+      await ref.read(assetsProvider.notifier).unarchiveAsset(asset.id);
+    } else {
+      await ref.read(assetsProvider.notifier).archiveAsset(asset.id);
+    }
+  }
+
+  void _duplicateAsset(Asset asset) async {
+    final newId = const Uuid().v4();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final newFields = asset.fields
+        .map((f) => f.copyWith(id: const Uuid().v4(), assetId: newId))
+        .toList();
+    final newReminders = asset.reminders
+        .map((r) => r.copyWith(id: const Uuid().v4(), assetId: newId))
+        .toList();
+    final duplicate = asset.copyWith(
+      id: newId,
+      name: '${asset.name} (Copy)',
+      createdAt: now,
+      updatedAt: now,
+      fields: newFields,
+      reminders: newReminders,
+    );
+    await ref.read(assetsProvider.notifier).addAsset(duplicate);
+    if (mounted) context.go('/asset/$newId');
   }
 
   @override
@@ -70,10 +100,16 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
     final assets = ref.watch(assetsProvider);
     final assetTypes = ref.watch(assetTypesProvider);
 
-    final asset = assets.firstWhere(
-      (a) => a.id == widget.assetId,
-      orElse: () => throw StateError('Item missing'),
-    );
+    final assetOrNull = assets.where((a) => a.id == widget.assetId).firstOrNull;
+    if (assetOrNull == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Asset')),
+        body: const Center(
+          child: Text('Asset not found', style: TextStyle(color: kTextMuted)),
+        ),
+      );
+    }
+    final asset = assetOrNull;
 
     final assetType = assetTypes.firstWhere(
       (t) => t.id == asset.typeId,
@@ -97,6 +133,26 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
       appBar: AppBar(
         title: Text(asset.name),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, size: 20),
+            tooltip: 'Edit asset',
+            onPressed: () => context.go('/edit-asset/${asset.id}'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.copy_outlined, size: 20),
+            tooltip: 'Duplicate asset',
+            onPressed: () => _duplicateAsset(asset),
+          ),
+          IconButton(
+            icon: Icon(
+              asset.isArchived
+                  ? Icons.unarchive_outlined
+                  : Icons.archive_outlined,
+              size: 20,
+            ),
+            tooltip: asset.isArchived ? 'Unarchive' : 'Archive',
+            onPressed: () => _toggleArchive(asset),
+          ),
           IconButton(
             icon: Icon(
               _showSecrets

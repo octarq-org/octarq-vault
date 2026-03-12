@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../main.dart';
+import '../providers/assets_provider.dart';
 import '../providers/asset_types_provider.dart';
 import '../providers/search_provider.dart';
 import '../utils/icon_helper.dart';
@@ -79,19 +80,19 @@ class _GlobalTopBar extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 24),
-          // Notification Bell
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(
-              Icons.notifications_none_rounded,
-              color: kTextMuted,
-            ),
-            splashRadius: 20,
-          ),
+          _NotificationBell(),
           const SizedBox(width: 16),
-          // Add Asset Button
+          // Add Asset Button (pass type when on category page)
           FilledButton.icon(
-            onPressed: () => context.go('/add-asset'),
+            onPressed: () {
+              final location = GoRouterState.of(context).matchedLocation;
+              final typeId = location.startsWith('/category/')
+                  ? location.replaceFirst('/category/', '')
+                  : null;
+              context.go(
+                typeId != null ? '/add-asset?type=$typeId' : '/add-asset',
+              );
+            },
             style: FilledButton.styleFrom(
               backgroundColor: kPrimaryGreen,
               foregroundColor: Colors.black,
@@ -225,6 +226,115 @@ class _Sidebar extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _NotificationBell extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final assets = ref.watch(assetsProvider);
+    final now = DateTime.now();
+    final expiringSoon = assets.where((a) {
+      if (a.expireAt == null || a.isArchived) return false;
+      final days = DateTime.fromMillisecondsSinceEpoch(
+        a.expireAt!,
+      ).difference(now).inDays;
+      return days >= 0 && days <= 30;
+    }).toList()..sort((a, b) => a.expireAt!.compareTo(b.expireAt!));
+
+    return Stack(
+      children: [
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.notifications_none_rounded, color: kTextMuted),
+          tooltip: 'Notifications',
+          color: kSurfaceColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          offset: const Offset(0, 40),
+          itemBuilder: (ctx) {
+            if (expiringSoon.isEmpty) {
+              return [
+                const PopupMenuItem(
+                  enabled: false,
+                  child: Text(
+                    'No upcoming expirations',
+                    style: TextStyle(color: kTextMuted, fontSize: 13),
+                  ),
+                ),
+              ];
+            }
+            return expiringSoon.take(8).map((a) {
+              final days = DateTime.fromMillisecondsSinceEpoch(
+                a.expireAt!,
+              ).difference(now).inDays;
+              final dateStr = DateTime.fromMillisecondsSinceEpoch(
+                a.expireAt!,
+              ).toLocal().toString().split(' ')[0];
+              return PopupMenuItem<String>(
+                value: a.id,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 16,
+                      color: days <= 7
+                          ? const Color(0xFFFF5252)
+                          : const Color(0xFFFFB74D),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            a.name,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            'Expires $dateStr ($days days)',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: kTextMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList();
+          },
+          onSelected: (id) => context.go('/asset/$id'),
+        ),
+        if (expiringSoon.isNotEmpty)
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color:
+                    expiringSoon.any(
+                      (a) =>
+                          DateTime.fromMillisecondsSinceEpoch(
+                            a.expireAt!,
+                          ).difference(now).inDays <=
+                          7,
+                    )
+                    ? const Color(0xFFFF5252)
+                    : const Color(0xFFFFB74D),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

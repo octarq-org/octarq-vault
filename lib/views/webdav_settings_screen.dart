@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,10 +5,11 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:flutter/foundation.dart';
 import '../services/webdav_service.dart';
+import '../services/e2ee_sync_service.dart';
 import '../services/local_file_sync_service.dart';
 import '../services/google_drive_service.dart';
 import '../providers/assets_provider.dart';
-import '../models/asset.dart';
+import '../providers/asset_types_provider.dart';
 import '../widgets/google_sign_in_button.dart';
 
 class WebDavSettingsScreen extends ConsumerStatefulWidget {
@@ -124,16 +124,23 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
     setState(() => _isLoading = true);
     try {
       final assets = ref.read(assetsProvider);
-      final jsonList = assets.map((a) => a.toJson()).toList();
-      final jsonString = jsonEncode(jsonList);
+      final syncService = ref.read(e2eeSyncServiceProvider);
+      final customTypes = ref
+          .read(assetTypesProvider)
+          .where((t) => !t.isBuiltIn)
+          .toList();
+      final encrypted = syncService.packSnapshotTOCiphertext(
+        assets,
+        customAssetTypes: customTypes,
+      );
 
       final webDavService = ref.read(webDavServiceProvider);
-      await webDavService.backupJson(jsonString);
+      await webDavService.backupEncrypted(encrypted);
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Backup successful!')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('E2EE backup successful!')),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -150,21 +157,20 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
     setState(() => _isLoading = true);
     try {
       final webDavService = ref.read(webDavServiceProvider);
-      final jsonString = await webDavService.restoreJson();
+      final encrypted = await webDavService.restoreEncrypted();
+      final syncService = ref.read(e2eeSyncServiceProvider);
+      final snapshot = syncService.unpackCiphertextToSnapshot(encrypted);
 
-      final jsonList = jsonDecode(jsonString) as List;
       final assetsNotifier = ref.read(assetsProvider.notifier);
-
-      int imported = 0;
-      for (var jsonMap in jsonList) {
-        final asset = Asset.fromJson(jsonMap as Map<String, dynamic>);
+      for (var asset in snapshot.assets) {
         await assetsNotifier.addAsset(asset);
-        imported++;
       }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Restore successful! ($imported assets)')),
+          SnackBar(
+            content: Text('Restored ${snapshot.assets.length} assets (E2EE)'),
+          ),
         );
       }
     } catch (e) {

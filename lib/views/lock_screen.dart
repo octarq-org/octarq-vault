@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 
 class LockScreen extends ConsumerStatefulWidget {
@@ -12,13 +14,26 @@ class LockScreen extends ConsumerStatefulWidget {
 class _LockScreenState extends ConsumerState<LockScreen> {
   final _passwordController = TextEditingController();
   bool _isUnlocking = false;
+  bool _biometricEnabled = true;
 
   @override
   void initState() {
     super.initState();
-    // Only attempt biometric unlock if available — don't block the UI
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _tryBiometricUnlock();
+    if (!kIsWeb) {
+      _loadBiometricSetting().then((_) {
+        if (_biometricEnabled) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _tryBiometricUnlock();
+          });
+        }
+      });
+    }
+  }
+
+  Future<void> _loadBiometricSetting() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _biometricEnabled = prefs.getBool('biometric_enabled') ?? true;
     });
   }
 
@@ -94,11 +109,13 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                     onPressed: _unlock,
                     child: const Text('Unlock'),
                   ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: _isUnlocking ? null : _tryBiometricUnlock,
-              child: const Text('Use Biometrics'),
-            ),
+            if (!kIsWeb && _biometricEnabled) ...[
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: _isUnlocking ? null : _tryBiometricUnlock,
+                child: const Text('Use Biometrics'),
+              ),
+            ],
           ],
         ),
       ),
