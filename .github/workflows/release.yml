@@ -38,7 +38,7 @@ jobs:
         run: flutter build apk --release
 
       - name: Build Web
-        run: flutter build web --release
+        run: flutter build web --release --dart-define=GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
 
       - name: Build macOS
         run: flutter build macos --release
@@ -141,7 +141,7 @@ jobs:
       - name: Stage and upload Linux
         run: |
           mkdir -p staging/linux
-          cd build/linux/x64/release && zip -r ../../../../../staging/linux/linux.zip .
+          cd build/linux/x64/release && zip -r ../../../../staging/linux/linux.zip .
       - uses: actions/upload-artifact@v4
         with:
           name: linux
@@ -195,6 +195,15 @@ jobs:
           cp artifacts/ios/ios.zip "release-assets/AssetVault-${VERSION}-ios.zip"
           cp artifacts/windows/windows.zip "release-assets/AssetVault-${VERSION}-windows.zip"
           cp artifacts/linux/linux.zip "release-assets/AssetVault-${VERSION}-linux.zip"
+
+      - name: Deploy Web to Cloudflare Pages
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          unzip -q artifacts/web/web.zip -d _web
+          npx wrangler@latest pages deploy _web/web --project-name=asset-vault
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

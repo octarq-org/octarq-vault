@@ -22,16 +22,13 @@ const kDocsUrl = 'https://vault.octarq.org/docs';
 Future<void> main() async {
   DArgon2Flutter.init();
   if (kIsWeb) {
-    await GoogleSignIn.instance.initialize(
-      clientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
-      // scopes: [
-      //   'https://www.googleapis.com/auth/drive.appdata',
-      //   'https://www.googleapis.com/auth/drive.file',
-      //   'https://www.googleapis.com/auth/drive.metadata',
-      //   // 'https://www.googleapis.com/auth/drive.metadata.readonly',
-      //   // 'https://www.googleapis.com/auth/drive.readonly',
-      // ],
+    const clientId = String.fromEnvironment(
+      'GOOGLE_CLIENT_ID',
+      defaultValue: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
     );
+    if (clientId.isNotEmpty && !clientId.startsWith('YOUR_')) {
+      await GoogleSignIn.instance.initialize(clientId: clientId);
+    }
   }
   runApp(const ProviderScope(child: OctarqVaultApp()));
 }
