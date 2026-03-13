@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dargon2_flutter/dargon2_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'l10n/app_localizations.dart';
+import 'providers/locale_provider.dart';
 import 'router/app_router.dart';
 
 // ─── Design Tokens ──────────────────────────────────────────────────────────
@@ -59,11 +61,14 @@ class OctarqVaultApp extends ConsumerWidget {
           ),
         },
         child: MaterialApp.router(
-          title: 'OctarqVault',
+          title: 'OctarqVault', // app name, keep for system
           debugShowCheckedModeBanner: false,
           themeMode: ThemeMode.dark,
           darkTheme: _buildDarkTheme(),
           routerConfig: router,
+          locale: ref.watch(localeProvider),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
         ),
       ),
     );

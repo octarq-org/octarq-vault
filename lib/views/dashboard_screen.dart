@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../providers/assets_provider.dart';
 import '../providers/asset_types_provider.dart';
 import '../utils/icon_helper.dart';
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -12,6 +13,7 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final assets = ref.watch(assetsProvider);
     final assetTypes = ref.watch(assetTypesProvider);
 
@@ -64,14 +66,14 @@ class DashboardScreen extends ConsumerWidget {
                   Row(
                     children: [
                       _StatCard(
-                        title: 'Total Assets',
+                        title: l10n.totalAssets,
                         value: '${assets.length}',
                         icon: Icons.inventory_2_outlined,
                         iconColor: kPrimaryGreen,
                       ),
                       const SizedBox(width: 16),
                       _StatCard(
-                        title: 'Expiring < 30 Days',
+                        title: l10n.expiringWithin30Days,
                         value: '${approachingExpirations.length}',
                         icon: Icons.warning_amber_rounded,
                         iconColor: const Color(0xFFFFB74D),
@@ -83,7 +85,7 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                       const SizedBox(width: 16),
                       _StatCard(
-                        title: 'Est. Monthly Cost',
+                        title: l10n.estMonthlyCost,
                         value: '\$${totalMonthlyCost.toStringAsFixed(2)}',
                         icon: Icons.trending_up_rounded,
                         iconColor: const Color(0xFF4FC3F7),
@@ -109,7 +111,7 @@ class DashboardScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  'ACTION REQUIRED',
+                                  l10n.actionRequired,
                                   style: GoogleFonts.inter(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
@@ -127,7 +129,7 @@ class DashboardScreen extends ConsumerWidget {
                                         MaterialTapTargetSize.shrinkWrap,
                                   ),
                                   child: Text(
-                                    'View all →',
+                                    l10n.viewAll,
                                     style: GoogleFonts.inter(
                                       fontSize: 12,
                                       color: kPrimaryGreen,
@@ -167,7 +169,7 @@ class DashboardScreen extends ConsumerWidget {
                       Expanded(
                         child: _SectionCard(
                           header: Text(
-                            'RECENTLY ADDED',
+                            l10n.recentlyAdded,
                             style: GoogleFonts.inter(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -355,7 +357,7 @@ class _ExpiryRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Expiring soon',
+                  AppLocalizations.of(context)!.expiringSoon,
                   style: TextStyle(
                     fontSize: 11,
                     color: urgentColor.withValues(alpha: 0.8),
@@ -492,13 +494,13 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'No assets yet',
+            AppLocalizations.of(context)!.noAssetsYet,
             style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Add your first digital asset to get started.',
-            style: TextStyle(color: kTextMuted, fontSize: 14),
+          Text(
+            AppLocalizations.of(context)!.addFirstAssetHint,
+            style: const TextStyle(color: kTextMuted, fontSize: 14),
           ),
           const SizedBox(height: 24),
           FilledButton.icon(
@@ -512,7 +514,7 @@ class _EmptyState extends StatelessWidget {
             ),
             icon: const Icon(Icons.add, size: 18),
             label: Text(
-              'Add Asset',
+              AppLocalizations.of(context)!.addAsset,
               style: GoogleFonts.inter(fontWeight: FontWeight.w600),
             ),
           ),

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 
 class LockScreen extends ConsumerStatefulWidget {
@@ -50,7 +51,11 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     final pwd = _passwordController.text;
     if (pwd.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your master password')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.pleaseEnterMasterPassword,
+          ),
+        ),
       );
       return;
     }
@@ -63,9 +68,13 @@ class _LockScreenState extends ConsumerState<LockScreen> {
 
     if (!success && mounted) {
       final error = ref.read(authProvider.notifier).lastError;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error ?? 'Incorrect password')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error ?? AppLocalizations.of(context)!.incorrectPassword,
+          ),
+        ),
+      );
     }
 
     if (mounted) {
@@ -90,22 +99,22 @@ class _LockScreenState extends ConsumerState<LockScreen> {
             const SizedBox(height: 16),
             const Icon(Icons.lock_outline, size: 48, color: Colors.grey),
             const SizedBox(height: 24),
-            const Text(
-              'Vault Locked',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            Text(
+              AppLocalizations.of(context)!.vaultLocked,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Enter your master password to unlock',
-              style: TextStyle(color: Colors.grey),
+            Text(
+              AppLocalizations.of(context)!.enterMasterPasswordToUnlock,
+              style: const TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 32),
             TextField(
               controller: _passwordController,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Master Password',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.masterPassword,
+                border: const OutlineInputBorder(),
               ),
               onSubmitted: (_) => _unlock(),
             ),
@@ -114,13 +123,13 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                 ? const CircularProgressIndicator()
                 : ElevatedButton(
                     onPressed: _unlock,
-                    child: const Text('Unlock'),
+                    child: Text(AppLocalizations.of(context)!.unlock),
                   ),
             if (!kIsWeb && _biometricEnabled) ...[
               const SizedBox(height: 8),
               TextButton(
                 onPressed: _isUnlocking ? null : _tryBiometricUnlock,
-                child: const Text('Use Biometrics'),
+                child: Text(AppLocalizations.of(context)!.useBiometrics),
               ),
             ],
           ],

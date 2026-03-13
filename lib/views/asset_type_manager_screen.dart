@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/asset_type.dart';
 import '../providers/asset_types_provider.dart';
 import '../utils/icon_helper.dart';
@@ -19,11 +20,12 @@ class _AssetTypeManagerScreenState
     extends ConsumerState<AssetTypeManagerScreen> {
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final assetTypes = ref.watch(assetTypesProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Asset Types'),
+        title: Text(l10n.manageAssetTypes),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -39,7 +41,7 @@ class _AssetTypeManagerScreenState
             leading: Icon(getIconData(type.icon)),
             title: Text(type.name),
             subtitle: Text(
-              '${type.fieldSchema.length} fields ${type.isBuiltIn ? '(Built-in)' : '(Custom)'}',
+              '${type.fieldSchema.length} ${l10n.fields} ${type.isBuiltIn ? '(Built-in)' : '(Custom)'}',
             ),
             trailing: type.isBuiltIn
                 ? null
@@ -49,20 +51,18 @@ class _AssetTypeManagerScreenState
                       final confirm = await showDialog<bool>(
                         context: context,
                         builder: (ctx) => AlertDialog(
-                          title: const Text('Delete Custom Type'),
-                          content: const Text(
-                            'Are you sure? Existing assets of this type might lose their template mappings.',
-                          ),
+                          title: Text(l10n.deleteCustomType),
+                          content: Text(l10n.deleteCustomTypeConfirmation),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Cancel'),
+                              child: Text(l10n.cancel),
                             ),
                             TextButton(
                               onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text(
-                                'Delete',
-                                style: TextStyle(color: Colors.red),
+                              child: Text(
+                                l10n.delete,
+                                style: const TextStyle(color: Colors.red),
                               ),
                             ),
                           ],
@@ -128,9 +128,10 @@ class _AssetTypeFormScreenState extends ConsumerState<AssetTypeFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New Asset Type'),
+        title: Text(l10n.newAssetType),
         actions: [IconButton(icon: const Icon(Icons.check), onPressed: _save)],
       ),
       body: Form(
@@ -140,14 +141,12 @@ class _AssetTypeFormScreenState extends ConsumerState<AssetTypeFormScreen> {
           children: [
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Asset Type Name (e.g., Crypto Wallet)',
-              ),
-              validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+              decoration: InputDecoration(labelText: l10n.assetTypeNameHint),
+              validator: (v) => v == null || v.isEmpty ? l10n.required : null,
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              decoration: const InputDecoration(labelText: 'Icon'),
+              decoration: InputDecoration(labelText: l10n.icon),
               initialValue: _selectedIcon,
               items:
                   [
@@ -180,13 +179,16 @@ class _AssetTypeFormScreenState extends ConsumerState<AssetTypeFormScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Fields Configuration',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  l10n.fieldsConfiguration,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 TextButton.icon(
                   icon: const Icon(Icons.add),
-                  label: const Text('Add Field'),
+                  label: Text(l10n.addField),
                   onPressed: _addField,
                 ),
               ],
@@ -207,8 +209,8 @@ class _AssetTypeFormScreenState extends ConsumerState<AssetTypeFormScreen> {
                           Expanded(
                             child: TextFormField(
                               initialValue: field.label,
-                              decoration: const InputDecoration(
-                                labelText: 'Field Label (e.g., Private Key)',
+                              decoration: InputDecoration(
+                                labelText: l10n.fieldLabelHint,
                               ),
                               onChanged: (v) => _fields[idx] = field.copyWith(
                                 label: v,
@@ -228,8 +230,8 @@ class _AssetTypeFormScreenState extends ConsumerState<AssetTypeFormScreen> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              decoration: const InputDecoration(
-                                labelText: 'Data Type',
+                              decoration: InputDecoration(
+                                labelText: l10n.dataType,
                               ),
                               initialValue: field.type,
                               items: ['text', 'password', 'number', 'date']
@@ -247,15 +249,15 @@ class _AssetTypeFormScreenState extends ConsumerState<AssetTypeFormScreen> {
                         ],
                       ),
                       SwitchListTile(
-                        title: const Text('AES-256-GCM Encrypted'),
-                        subtitle: const Text('Fields like passwords, keys'),
+                        title: Text(l10n.aesEncrypted),
+                        subtitle: Text(l10n.aesEncryptedSubtitle),
                         value: field.isEncrypted,
                         onChanged: (v) => setState(
                           () => _fields[idx] = field.copyWith(isEncrypted: v),
                         ),
                       ),
                       SwitchListTile(
-                        title: const Text('Required Input'),
+                        title: Text(l10n.requiredInput),
                         value: field.isRequired,
                         onChanged: (v) => setState(
                           () => _fields[idx] = field.copyWith(isRequired: v),

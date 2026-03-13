@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:flutter/foundation.dart';
+import '../l10n/app_localizations.dart';
 import '../services/webdav_service.dart';
 import '../services/e2ee_sync_service.dart';
 import '../services/local_file_sync_service.dart';
@@ -94,15 +95,23 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Connected to WebDAV successfully!')),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.webdavConnectedSuccess),
+          ),
         );
       }
       setState(() => _isConnected = true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Connection failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(
+                context,
+              )!.webdavConnectionFailed(e.toString()),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -139,14 +148,20 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('E2EE backup successful!')),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.e2eeBackupSuccess),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Backup failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.backupFailed(e.toString()),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -168,15 +183,23 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Restored ${snapshot.assets.length} assets (E2EE)'),
+            content: Text(
+              AppLocalizations.of(
+                context,
+              )!.restoredAssetsE2ee(snapshot.assets.length),
+            ),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Restore failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.restoreFailed(e.toString()),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -192,8 +215,9 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
   }
 
   Widget _buildWebDavUI(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('WebDAV Backup')),
+      appBar: AppBar(title: Text(l10n.webdavBackup)),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
@@ -209,10 +233,10 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
                           color: Colors.green,
                         ),
                         const SizedBox(height: 24),
-                        const Text(
-                          'WebDAV Connected',
+                        Text(
+                          l10n.webdavConnected,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                           ),
@@ -221,7 +245,7 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
                         ElevatedButton.icon(
                           onPressed: _backup,
                           icon: const Icon(Icons.cloud_upload),
-                          label: const Text('Backup to WebDAV'),
+                          label: Text(l10n.backupToWebdav),
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.all(16),
                           ),
@@ -230,7 +254,7 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
                         OutlinedButton.icon(
                           onPressed: _restore,
                           icon: const Icon(Icons.cloud_download),
-                          label: const Text('Restore from WebDAV'),
+                          label: Text(l10n.restoreFromWebdav),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.all(16),
                           ),
@@ -241,7 +265,7 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
                           style: TextButton.styleFrom(
                             foregroundColor: Colors.red,
                           ),
-                          child: const Text('Disconnect & Clear Credentials'),
+                          child: Text(l10n.disconnectClearCredentials),
                         ),
                       ],
                     )
@@ -250,39 +274,41 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const Text(
-                            'Configure your WebDAV server (e.g., Nextcloud, ownCloud, Nutstore) to securely backup your encrypted database payload.',
-                            style: TextStyle(color: Colors.grey),
+                          Text(
+                            l10n.webdavConfigureDescription,
+                            style: const TextStyle(color: Colors.grey),
                           ),
                           const SizedBox(height: 24),
                           TextFormField(
                             controller: _urlController,
-                            decoration: const InputDecoration(
-                              labelText: 'Server URL',
-                              hintText:
-                                  'https://example.com/remote.php/webdav/',
+                            decoration: InputDecoration(
+                              labelText: l10n.serverUrl,
+                              hintText: l10n.serverUrlHint,
                             ),
-                            validator: (val) =>
-                                val == null || val.isEmpty ? 'Required' : null,
+                            validator: (val) => val == null || val.isEmpty
+                                ? l10n.required
+                                : null,
                           ),
                           const SizedBox(height: 16),
                           TextFormField(
                             controller: _userController,
-                            decoration: const InputDecoration(
-                              labelText: 'Username',
+                            decoration: InputDecoration(
+                              labelText: l10n.username,
                             ),
-                            validator: (val) =>
-                                val == null || val.isEmpty ? 'Required' : null,
+                            validator: (val) => val == null || val.isEmpty
+                                ? l10n.required
+                                : null,
                           ),
                           const SizedBox(height: 16),
                           TextFormField(
                             controller: _passController,
-                            decoration: const InputDecoration(
-                              labelText: 'Password / App Token',
+                            decoration: InputDecoration(
+                              labelText: l10n.passwordOrAppToken,
                             ),
                             obscureText: true,
-                            validator: (val) =>
-                                val == null || val.isEmpty ? 'Required' : null,
+                            validator: (val) => val == null || val.isEmpty
+                                ? l10n.required
+                                : null,
                           ),
                           const SizedBox(height: 32),
                           ElevatedButton(
@@ -290,7 +316,7 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.all(16),
                             ),
-                            child: const Text('Connect'),
+                            child: Text(l10n.connect),
                           ),
                         ],
                       ),
@@ -300,34 +326,38 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
   }
 
   Widget _buildWebSyncUI(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('E2EE Web Sync')),
+      appBar: AppBar(title: Text(l10n.e2eeWebSync)),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
               padding: const EdgeInsets.all(16.0),
               child: ListView(
                 children: [
-                  const Text(
-                    'Local Disk Sync (E2EE Encrypted)',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    l10n.localDiskSyncE2ee,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Maintain a local encrypted vault file. This file will be silently updated on your desktop after every change.',
-                    style: TextStyle(color: Colors.grey),
+                  Text(
+                    l10n.localDiskSyncDescription,
+                    style: const TextStyle(color: Colors.grey),
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     onPressed: () => _handleLocalSync(createNew: true),
                     icon: const Icon(Icons.add_box),
-                    label: const Text('Create New Encrypted Vault File'),
+                    label: Text(l10n.createNewEncryptedVaultFile),
                   ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     onPressed: () => _handleLocalSync(createNew: false),
                     icon: const Icon(Icons.file_open),
-                    label: const Text('Link Existing Vault File'),
+                    label: Text(l10n.linkExistingVaultFile),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -336,24 +366,27 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
                       TextButton.icon(
                         onPressed: _handleLocalImportFallback,
                         icon: const Icon(Icons.upload_file),
-                        label: const Text('Import Fallback'),
+                        label: Text(l10n.importFallback),
                       ),
                       TextButton.icon(
                         onPressed: _handleLocalExportFallback,
                         icon: const Icon(Icons.download),
-                        label: const Text('Export Fallback'),
+                        label: Text(l10n.exportFallback),
                       ),
                     ],
                   ),
                   const Divider(height: 48),
-                  const Text(
-                    'Google Drive Sync (E2EE Encrypted)',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    l10n.googleDriveSyncE2ee,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Sync automatically to a hidden appDataFolder in your Google Drive. Completely zero-knowledge.',
-                    style: TextStyle(color: Colors.grey),
+                  Text(
+                    l10n.googleDriveSyncDescription,
+                    style: const TextStyle(color: Colors.grey),
                   ),
                   const SizedBox(height: 16),
                   if (kIsWeb && !_isGoogleSignedIn)
@@ -371,15 +404,13 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
                     ElevatedButton.icon(
                       onPressed: _handleGoogleDriveSignInAndSync,
                       icon: const Icon(Icons.cloud_sync),
-                      label: const Text('Authorize & Sync with Google Drive'),
+                      label: Text(l10n.authorizeSyncGoogleDrive),
                     ),
                     const SizedBox(height: 8),
                     OutlinedButton.icon(
                       onPressed: _handleGoogleDrivePull,
                       icon: const Icon(Icons.cloud_download),
-                      label: const Text(
-                        'Pull from Google Drive (Overwrite Local)',
-                      ),
+                      label: Text(l10n.pullFromGoogleDrive),
                     ),
                   ],
                 ],
@@ -402,7 +433,9 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Restored ${snapshot.assets.length} assets from file',
+                  AppLocalizations.of(
+                    context,
+                  )!.restoredAssetsFromFile(snapshot.assets.length),
                 ),
               ),
             );
@@ -415,19 +448,18 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         if (e.toString().contains('File System Access API')) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Your browser does not support picking files directly. Please use the Import/Export fallback buttons below.',
-              ),
-              duration: Duration(seconds: 4),
+            SnackBar(
+              content: Text(l10n.browserNoFilePickUseFallback),
+              duration: const Duration(seconds: 4),
             ),
           );
         } else {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.errorGeneric(e.toString()))),
+          );
         }
       }
     } finally {
@@ -445,16 +477,24 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Imported ${snapshot.assets.length} assets!'),
+              content: Text(
+                AppLocalizations.of(
+                  context,
+                )!.importSuccessCount(snapshot.assets.length),
+              ),
             ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Import Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.importError(e.toString()),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -474,16 +514,22 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
       await driveSync.syncToDrive(ref.read(assetsProvider));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Successfully securely pushed to Google Drive'),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.pushedToGoogleDriveSuccess,
+            ),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Drive Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.driveError(e.toString()),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -502,7 +548,9 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Restored ${snapshot.assets.length} assets from Drive',
+                AppLocalizations.of(
+                  context,
+                )!.restoredAssetsFromDrive(snapshot.assets.length),
               ),
             ),
           );
@@ -510,15 +558,21 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No backup found on Drive.')),
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.noBackupFoundOnDrive),
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Drive Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.driveError(e.toString()),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

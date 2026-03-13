@@ -1,17 +1,30 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:asset_vault/models/asset_type.dart';
 import 'package:asset_vault/providers/asset_types_provider.dart';
+import 'package:asset_vault/providers/locale_preference_provider.dart';
 import 'package:asset_vault/utils/default_asset_types.dart';
+
+class _ZhLocalePreferenceNotifier extends LocalePreferenceNotifier {
+  @override
+  String build() => 'zh';
+}
 
 void main() {
   group('AssetTypesNotifier', () {
     late ProviderContainer container;
 
     setUp(() {
-      container = ProviderContainer();
+      container = ProviderContainer(
+        overrides: [
+          localePreferenceProvider.overrideWith(
+            _ZhLocalePreferenceNotifier.new,
+          ),
+        ],
+      );
     });
 
     tearDown(() {
@@ -20,7 +33,10 @@ void main() {
 
     test('initial state contains all default asset types', () {
       final types = container.read(assetTypesProvider);
-      expect(types.length, equals(defaultAssetTypes.length));
+      expect(
+        types.length,
+        equals(getDefaultAssetTypes(const Locale('zh')).length),
+      );
     });
 
     test('initial state contains expected built-in types', () {

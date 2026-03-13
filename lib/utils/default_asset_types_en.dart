@@ -1,7 +1,4 @@
-import 'package:flutter/material.dart';
-
 import '../models/asset_type.dart';
-import 'default_asset_types_en.dart';
 
 const _billingCycleOptions = ['Monthly', 'Quarterly', 'Yearly', 'Lifetime'];
 const _autoRenewOptions = ['Enabled', 'Disabled'];
@@ -10,136 +7,134 @@ const _kycOptions = ['None', 'Level 1', 'Level 2', 'Level 3'];
 const _tfaOptions = ['Disabled', 'TOTP', 'SMS', 'Hardware Key'];
 const _subscriptionLevelOptions = ['Free', 'Pro', 'Team', 'Enterprise'];
 
-/// 按系统语言返回内置分类，zh 用中文，其余用英文。
-List<AssetType> getDefaultAssetTypes(Locale locale) {
-  if (locale.languageCode == 'zh') return defaultAssetTypesZh;
-  return defaultAssetTypesEn;
-}
-
-final List<AssetType> defaultAssetTypesZh = [
+List<AssetType> get defaultAssetTypesEn => [
   const AssetType(
     id: 'type_domain',
-    name: '域名 (Domain)',
+    name: 'Domain',
     icon: 'language',
     isBuiltIn: true,
     fieldSchema: [
       AssetTypeFieldSchema(
         key: 'registrar',
-        label: '注册商',
+        label: 'Registrar',
         type: 'text',
         isRequired: true,
       ),
-      AssetTypeFieldSchema(key: 'dns', label: 'DNS 配置', type: 'text'),
+      AssetTypeFieldSchema(key: 'dns', label: 'DNS', type: 'text'),
       AssetTypeFieldSchema(
         key: 'auto_renew',
-        label: '自动续费',
+        label: 'Auto Renew',
         type: 'select',
         options: _autoRenewOptions,
       ),
       AssetTypeFieldSchema(
         key: 'billing_cycle',
-        label: '计费周期',
+        label: 'Billing Cycle',
         type: 'select',
         options: _billingCycleOptions,
       ),
-      AssetTypeFieldSchema(key: 'cost', label: '费用', type: 'number'),
+      AssetTypeFieldSchema(key: 'cost', label: 'Cost', type: 'number'),
     ],
   ),
   const AssetType(
     id: 'type_ssl',
-    name: 'SSL 证书',
+    name: 'SSL Certificate',
     icon: 'security',
     isBuiltIn: true,
     fieldSchema: [
       AssetTypeFieldSchema(
         key: 'issuer',
-        label: '颁发机构',
+        label: 'Issuer',
         type: 'text',
         isRequired: true,
       ),
-      AssetTypeFieldSchema(key: 'domain_bind', label: '域名绑定', type: 'text'),
+      AssetTypeFieldSchema(key: 'domain_bind', label: 'Domain', type: 'text'),
       AssetTypeFieldSchema(
         key: 'auto_renew',
-        label: '自动续签',
+        label: 'Auto Renew',
         type: 'select',
         options: _autoRenewOptions,
       ),
       AssetTypeFieldSchema(
         key: 'billing_cycle',
-        label: '计费周期',
+        label: 'Billing Cycle',
         type: 'select',
         options: _billingCycleOptions,
       ),
-      AssetTypeFieldSchema(key: 'cost', label: '费用', type: 'number'),
+      AssetTypeFieldSchema(key: 'cost', label: 'Cost', type: 'number'),
     ],
   ),
   const AssetType(
     id: 'type_vps',
-    name: 'VPS / 云服务器',
+    name: 'VPS / Cloud Server',
     icon: 'dns',
     isBuiltIn: true,
     fieldSchema: [
       AssetTypeFieldSchema(
         key: 'provider',
-        label: '服务商',
+        label: 'Provider',
         type: 'text',
         isRequired: true,
       ),
-      AssetTypeFieldSchema(key: 'ip', label: 'IP 地址', type: 'text'),
-      AssetTypeFieldSchema(key: 'specs', label: '配置规格', type: 'text'),
+      AssetTypeFieldSchema(key: 'ip', label: 'IP Address', type: 'text'),
+      AssetTypeFieldSchema(key: 'specs', label: 'Specs', type: 'text'),
       AssetTypeFieldSchema(
         key: 'billing_cycle',
-        label: '费用周期',
+        label: 'Billing Cycle',
         type: 'select',
         options: _billingCycleOptions,
       ),
-      AssetTypeFieldSchema(key: 'cost', label: '费用', type: 'number'),
+      AssetTypeFieldSchema(key: 'cost', label: 'Cost', type: 'number'),
     ],
   ),
   const AssetType(
     id: 'type_email',
-    name: '邮箱账号',
+    name: 'Email Account',
     icon: 'email',
     isBuiltIn: true,
     fieldSchema: [
       AssetTypeFieldSchema(
         key: 'provider',
-        label: '服务商',
+        label: 'Provider',
         type: 'text',
         isRequired: true,
       ),
       AssetTypeFieldSchema(
         key: 'password',
-        label: '密码',
+        label: 'Password',
         type: 'password',
         isEncrypted: true,
         isRequired: true,
       ),
-      AssetTypeFieldSchema(key: 'recovery_email', label: '恢复邮箱', type: 'text'),
-      AssetTypeFieldSchema(key: 'phone_bind', label: '绑定手机', type: 'text'),
+      AssetTypeFieldSchema(
+        key: 'recovery_email',
+        label: 'Recovery Email',
+        type: 'text',
+      ),
+      AssetTypeFieldSchema(key: 'phone_bind', label: 'Phone', type: 'text'),
     ],
   ),
   const AssetType(
     id: 'type_account',
-    name: '平台账号',
+    name: 'Platform Account',
     icon: 'account_circle',
     isBuiltIn: true,
     fieldSchema: [
       AssetTypeFieldSchema(
         key: 'platform',
-        label: '平台名',
+        label: 'Platform',
         type: 'text',
         isRequired: true,
       ),
       AssetTypeFieldSchema(
         key: 'username',
-        label: '用户名',
+        label: 'Username',
         type: 'text',
         isRequired: true,
       ),
       AssetTypeFieldSchema(
         key: 'password',
-        label: '密码',
+        label: 'Password',
         type: 'password',
         isEncrypted: true,
         isRequired: true,
@@ -148,25 +143,25 @@ final List<AssetType> defaultAssetTypesZh = [
   ),
   const AssetType(
     id: 'type_bankcard',
-    name: '银行卡 / 信用卡',
+    name: 'Bank / Credit Card',
     icon: 'credit_card',
     isBuiltIn: true,
     fieldSchema: [
       AssetTypeFieldSchema(
         key: 'bank',
-        label: '银行',
+        label: 'Bank',
         type: 'text',
         isRequired: true,
       ),
       AssetTypeFieldSchema(
         key: 'card_type',
-        label: '卡种',
+        label: 'Card Type',
         type: 'select',
         options: _cardTypeOptions,
       ),
       AssetTypeFieldSchema(
         key: 'card_number',
-        label: '卡号后四位',
+        label: 'Last 4 Digits',
         type: 'text',
         isEncrypted: true,
       ),
@@ -176,7 +171,11 @@ final List<AssetType> defaultAssetTypesZh = [
         type: 'password',
         isEncrypted: true,
       ),
-      AssetTypeFieldSchema(key: 'billing_day', label: '账单日', type: 'number'),
+      AssetTypeFieldSchema(
+        key: 'billing_day',
+        label: 'Billing Day',
+        type: 'number',
+      ),
     ],
   ),
   const AssetType(
@@ -187,7 +186,7 @@ final List<AssetType> defaultAssetTypesZh = [
     fieldSchema: [
       AssetTypeFieldSchema(
         key: 'platform',
-        label: '平台',
+        label: 'Platform',
         type: 'text',
         isRequired: true,
       ),
@@ -198,57 +197,61 @@ final List<AssetType> defaultAssetTypesZh = [
         isEncrypted: true,
         isRequired: true,
       ),
-      AssetTypeFieldSchema(key: 'permissions', label: '权限范围', type: 'text'),
+      AssetTypeFieldSchema(
+        key: 'permissions',
+        label: 'Permissions',
+        type: 'text',
+      ),
     ],
   ),
   const AssetType(
     id: 'type_saas',
-    name: 'SaaS 订阅',
+    name: 'SaaS Subscription',
     icon: 'subscriptions',
     isBuiltIn: true,
     fieldSchema: [
       AssetTypeFieldSchema(
         key: 'provider',
-        label: '服务商',
+        label: 'Provider',
         type: 'text',
         isRequired: true,
       ),
       AssetTypeFieldSchema(
         key: 'plan',
-        label: '订阅计划',
+        label: 'Plan',
         type: 'select',
         options: _subscriptionLevelOptions,
       ),
       AssetTypeFieldSchema(
         key: 'billing_cycle',
-        label: '计费周期',
+        label: 'Billing Cycle',
         type: 'select',
         options: _billingCycleOptions,
       ),
-      AssetTypeFieldSchema(key: 'cost', label: '订阅费用', type: 'number'),
+      AssetTypeFieldSchema(key: 'cost', label: 'Cost', type: 'number'),
     ],
   ),
   const AssetType(
     id: 'type_exchange',
-    name: '加密货币交易所',
+    name: 'Crypto Exchange',
     icon: 'currency_bitcoin',
     isBuiltIn: true,
     fieldSchema: [
       AssetTypeFieldSchema(
         key: 'exchange',
-        label: '交易所名称',
+        label: 'Exchange',
         type: 'text',
         isRequired: true,
       ),
       AssetTypeFieldSchema(
         key: 'kyc_level',
-        label: 'KYC 等级',
+        label: 'KYC Level',
         type: 'select',
         options: _kycOptions,
       ),
       AssetTypeFieldSchema(
         key: 'tfa_status',
-        label: '2FA 状态',
+        label: '2FA',
         type: 'select',
         options: _tfaOptions,
       ),
@@ -262,17 +265,17 @@ final List<AssetType> defaultAssetTypesZh = [
     fieldSchema: [
       AssetTypeFieldSchema(
         key: 'usage',
-        label: '用途',
+        label: 'Usage',
         type: 'text',
         isRequired: true,
       ),
       AssetTypeFieldSchema(
         key: 'fingerprint',
-        label: '密钥指纹',
+        label: 'Fingerprint',
         type: 'text',
         isEncrypted: true,
       ),
-      AssetTypeFieldSchema(key: 'server', label: '关联服务器', type: 'text'),
+      AssetTypeFieldSchema(key: 'server', label: 'Server', type: 'text'),
     ],
   ),
 ];

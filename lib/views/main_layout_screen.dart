@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../l10n/app_localizations.dart';
 import '../main.dart';
 import '../providers/assets_provider.dart';
 import '../providers/asset_types_provider.dart';
@@ -66,8 +67,8 @@ class _GlobalTopBar extends ConsumerWidget {
                 onChanged: (val) {
                   ref.read(searchQueryProvider.notifier).updateQuery(val);
                 },
-                decoration: const InputDecoration(
-                  hintText: 'Search assets, tags, or fields...',
+                decoration: InputDecoration(
+                  hintText: AppLocalizations.of(context)!.searchHint,
                   hintStyle: TextStyle(color: kTextMuted, fontSize: 14),
                   prefixIcon: Icon(Icons.search, color: kTextMuted, size: 18),
                   border: InputBorder.none,
@@ -103,7 +104,7 @@ class _GlobalTopBar extends ConsumerWidget {
             ),
             icon: const Icon(Icons.add, size: 18),
             label: Text(
-              'New Asset',
+              AppLocalizations.of(context)!.newAsset,
               style: GoogleFonts.inter(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
@@ -151,7 +152,7 @@ class _Sidebar extends ConsumerWidget {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'OctarqVault',
+                  AppLocalizations.of(context)!.appTitle,
                   style: GoogleFonts.inter(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -164,14 +165,14 @@ class _Sidebar extends ConsumerWidget {
           // Main Nav
           _SidebarItem(
             icon: Icons.dashboard_outlined,
-            label: 'Dashboard',
+            label: AppLocalizations.of(context)!.dashboard,
             isSelected: location == '/',
             onTap: () => context.go('/'),
           ),
           const SizedBox(height: 4),
           _SidebarItem(
             icon: Icons.inventory_2_outlined,
-            label: 'All Assets',
+            label: AppLocalizations.of(context)!.allAssets,
             isSelected: location == '/all-assets',
             onTap: () => context.go('/all-assets'),
           ),
@@ -182,7 +183,7 @@ class _Sidebar extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
             child: Text(
-              'CATEGORIES',
+              AppLocalizations.of(context)!.categories,
               style: GoogleFonts.inter(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -217,7 +218,7 @@ class _Sidebar extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: _SidebarItem(
               icon: Icons.settings_outlined,
-              label: 'Settings',
+              label: AppLocalizations.of(context)!.settings,
               isSelected: location.startsWith('/settings'),
               onTap: () => context.go('/settings'),
             ),
@@ -245,7 +246,7 @@ class _NotificationBell extends ConsumerWidget {
       children: [
         PopupMenuButton<String>(
           icon: const Icon(Icons.notifications_none_rounded, color: kTextMuted),
-          tooltip: 'Notifications',
+          tooltip: AppLocalizations.of(context)!.notifications,
           color: kSurfaceColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -254,11 +255,11 @@ class _NotificationBell extends ConsumerWidget {
           itemBuilder: (ctx) {
             if (expiringSoon.isEmpty) {
               return [
-                const PopupMenuItem(
+                PopupMenuItem(
                   enabled: false,
                   child: Text(
-                    'No upcoming expirations',
-                    style: TextStyle(color: kTextMuted, fontSize: 13),
+                    AppLocalizations.of(ctx)!.noUpcomingExpirations,
+                    style: const TextStyle(color: kTextMuted, fontSize: 13),
                   ),
                 ),
               ];
@@ -294,7 +295,9 @@ class _NotificationBell extends ConsumerWidget {
                             ),
                           ),
                           Text(
-                            'Expires $dateStr ($days days)',
+                            AppLocalizations.of(
+                              ctx,
+                            )!.expiresOnDays(dateStr, days),
                             style: const TextStyle(
                               fontSize: 11,
                               color: kTextMuted,

@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:uuid/uuid.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/asset.dart';
+import '../utils/relation_type_label.dart';
 import '../models/field.dart';
 import '../providers/assets_provider.dart';
 import '../providers/asset_types_provider.dart';
@@ -13,15 +15,6 @@ import '../providers/service_providers.dart';
 import '../providers/relations_provider.dart';
 import '../utils/icon_helper.dart';
 import '../main.dart';
-
-const _relationTypes = [
-  'Hosted On',
-  'Depends On',
-  'Uses',
-  'Managed By',
-  'Related To',
-  'Linked Account',
-];
 
 class AssetDetailScreen extends ConsumerStatefulWidget {
   final String assetId;
@@ -35,26 +28,27 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
   bool _showSecrets = false;
 
   void _deleteAsset() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: kSurfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text('Delete Asset'),
-        content: const Text(
-          'Are you sure you want to permanently delete this asset?',
-          style: TextStyle(color: kTextMuted),
+        title: Text(l10n.deleteAsset),
+        content: Text(
+          l10n.deleteAssetConfirmation,
+          style: const TextStyle(color: kTextMuted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: Colors.redAccent),
+            child: Text(
+              l10n.delete,
+              style: const TextStyle(color: Colors.redAccent),
             ),
           ),
         ],
@@ -101,11 +95,15 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
     final assetTypes = ref.watch(assetTypesProvider);
 
     final assetOrNull = assets.where((a) => a.id == widget.assetId).firstOrNull;
+    final l10n = AppLocalizations.of(context)!;
     if (assetOrNull == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Asset')),
-        body: const Center(
-          child: Text('Asset not found', style: TextStyle(color: kTextMuted)),
+        appBar: AppBar(title: Text(l10n.asset)),
+        body: Center(
+          child: Text(
+            l10n.assetNotFound,
+            style: const TextStyle(color: kTextMuted),
+          ),
         ),
       );
     }
@@ -135,12 +133,12 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined, size: 20),
-            tooltip: 'Edit asset',
+            tooltip: l10n.editAsset,
             onPressed: () => context.go('/edit-asset/${asset.id}'),
           ),
           IconButton(
             icon: const Icon(Icons.copy_outlined, size: 20),
-            tooltip: 'Duplicate asset',
+            tooltip: l10n.duplicateAsset,
             onPressed: () => _duplicateAsset(asset),
           ),
           IconButton(
@@ -150,7 +148,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                   : Icons.archive_outlined,
               size: 20,
             ),
-            tooltip: asset.isArchived ? 'Unarchive' : 'Archive',
+            tooltip: asset.isArchived ? l10n.unarchive : l10n.archive,
             onPressed: () => _toggleArchive(asset),
           ),
           IconButton(
@@ -160,7 +158,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                   : Icons.visibility_outlined,
               size: 20,
             ),
-            tooltip: _showSecrets ? 'Hide secrets' : 'Reveal secrets',
+            tooltip: _showSecrets ? l10n.hideSecrets : l10n.revealSecrets,
             onPressed: () => setState(() => _showSecrets = !_showSecrets),
           ),
           IconButton(
@@ -169,7 +167,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
               size: 20,
               color: Colors.redAccent,
             ),
-            tooltip: 'Delete asset',
+            tooltip: l10n.deleteAsset,
             onPressed: _deleteAsset,
           ),
         ],
@@ -188,19 +186,19 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
           const SizedBox(height: 24),
 
           // ── Details ──────────────────────────────────────────────
-          _SectionTitle('Details'),
+          _SectionTitle(l10n.details),
           const SizedBox(height: 10),
           _DetailCard(
             children: [
               _DetailRow(
-                label: 'Type',
+                label: l10n.type,
                 value: assetType.name,
                 icon: typeIcon,
                 iconColor: typeColor,
               ),
               if (asset.expireAt != null)
                 _DetailRow(
-                  label: 'Expiration Date',
+                  label: l10n.expirationDate,
                   value: DateTime.fromMillisecondsSinceEpoch(
                     asset.expireAt!,
                   ).toLocal().toString().split(' ')[0],
@@ -209,7 +207,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                   valueColor: isExpiring ? const Color(0xFFFFB74D) : null,
                 ),
               _DetailRow(
-                label: 'Added',
+                label: l10n.added,
                 value: DateTime.fromMillisecondsSinceEpoch(
                   asset.createdAt,
                 ).toLocal().toString().split('.')[0],
@@ -222,7 +220,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
 
           // ── Fields ───────────────────────────────────────────────
           if (assetType.fieldSchema.isNotEmpty) ...[
-            _SectionTitle('Fields'),
+            _SectionTitle(l10n.fields),
             const SizedBox(height: 10),
             _DetailCard(
               children: assetType.fieldSchema.map((schema) {
@@ -241,7 +239,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                       fieldData.iv,
                     );
                   } catch (_) {
-                    displayValue = 'Error decrypting';
+                    displayValue = l10n.errorDecrypting;
                   }
                 } else if (!fieldData.isSensitive) {
                   displayValue = fieldData.valueEnc;
@@ -258,7 +256,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                           );
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('${schema.label} copied'),
+                              content: Text(l10n.fieldCopied(schema.label)),
                               duration: const Duration(seconds: 1),
                               backgroundColor: kSurfaceColor,
                             ),
@@ -274,12 +272,12 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
           // ── Linked Assets ────────────────────────────────────────
           Row(
             children: [
-              const Expanded(child: _SectionTitle('Linked Assets')),
+              Expanded(child: _SectionTitle(l10n.linkedAssets)),
               TextButton.icon(
                 onPressed: () =>
                     _showLinkDialog(context, assets, widget.assetId, ref),
                 icon: const Icon(Icons.add_link, size: 16),
-                label: const Text('Link', style: TextStyle(fontSize: 13)),
+                label: Text(l10n.link, style: const TextStyle(fontSize: 13)),
                 style: TextButton.styleFrom(
                   foregroundColor: kPrimaryGreen,
                   padding: const EdgeInsets.symmetric(
@@ -306,7 +304,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                       const Icon(Icons.link_off, color: kTextMuted, size: 18),
                       const SizedBox(width: 10),
                       Text(
-                        'No linked assets.',
+                        l10n.noLinkedAssets,
                         style: const TextStyle(color: kTextMuted, fontSize: 13),
                       ),
                     ],
@@ -334,7 +332,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
 
                   return _RelationRow(
                     name: otherAsset.name,
-                    relType: relType,
+                    relType: relationTypeLabel(l10n, relType),
                     isFromMe: isFromMe,
                     color: otherColor,
                     onTap: () => context.push('/asset/$otherId'),
@@ -346,17 +344,17 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          title: const Text('Remove Link?'),
+                          title: Text(l10n.removeLinkConfirm),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('Cancel'),
+                              child: Text(l10n.cancel),
                             ),
                             TextButton(
                               onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text(
-                                'Remove',
-                                style: TextStyle(color: Colors.redAccent),
+                              child: Text(
+                                l10n.remove,
+                                style: const TextStyle(color: Colors.redAccent),
                               ),
                             ),
                           ],
@@ -374,7 +372,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
             },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, _) => Text(
-              'Error loading relations: $err',
+              l10n.errorLoadingRelations(err.toString()),
               style: const TextStyle(color: Colors.redAccent),
             ),
           ),
@@ -403,7 +401,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
             borderRadius: BorderRadius.circular(14),
           ),
           title: Text(
-            'Link Asset',
+            AppLocalizations.of(ctx)!.linkAsset,
             style: GoogleFonts.inter(fontWeight: FontWeight.w600),
           ),
           content: Column(
@@ -412,7 +410,9 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
             children: [
               // Target asset dropdown
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Target Asset'),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(ctx)!.targetAsset,
+                ),
                 initialValue: selectedAssetId,
                 dropdownColor: kSurfaceColor,
                 style: const TextStyle(fontSize: 14, color: Colors.white),
@@ -429,12 +429,21 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
               const SizedBox(height: 16),
               // Relation type dropdown
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Relation Type'),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(ctx)!.relationType,
+                ),
                 initialValue: selectedRelationType,
                 dropdownColor: kSurfaceColor,
                 style: const TextStyle(fontSize: 14, color: Colors.white),
-                items: _relationTypes
-                    .map((rt) => DropdownMenuItem(value: rt, child: Text(rt)))
+                items: relationTypeValues
+                    .map(
+                      (rt) => DropdownMenuItem(
+                        value: rt,
+                        child: Text(
+                          relationTypeLabel(AppLocalizations.of(ctx)!, rt),
+                        ),
+                      ),
+                    )
                     .toList(),
                 onChanged: (val) =>
                     setDlgState(() => selectedRelationType = val),
@@ -444,7 +453,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(ctx)!.cancel),
             ),
             FilledButton(
               onPressed: selectedAssetId != null && selectedRelationType != null
@@ -465,7 +474,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                 disabledBackgroundColor: kBorderColor,
               ),
               child: Text(
-                'Link',
+                AppLocalizations.of(ctx)!.link,
                 style: GoogleFonts.inter(fontWeight: FontWeight.w600),
               ),
             ),
@@ -581,7 +590,7 @@ class _HeroHeader extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Expiring soon',
+                    AppLocalizations.of(context)!.expiringSoon,
                     style: GoogleFonts.inter(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -754,7 +763,7 @@ class _FieldRow extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.copy, size: 14, color: kTextMuted),
               onPressed: onCopy,
-              tooltip: 'Copy',
+              tooltip: AppLocalizations.of(context)!.copy,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
             ),

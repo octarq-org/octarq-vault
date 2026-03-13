@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:uuid/uuid.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/tag.dart';
 import '../providers/assets_provider.dart';
 import '../main.dart';
@@ -59,7 +60,7 @@ class _TagManagerScreenState extends ConsumerState<TagManagerScreen> {
             borderRadius: BorderRadius.circular(14),
           ),
           title: Text(
-            'New Tag',
+            AppLocalizations.of(ctx)!.newTag,
             style: GoogleFonts.inter(fontWeight: FontWeight.w600),
           ),
           content: Column(
@@ -68,12 +69,14 @@ class _TagManagerScreenState extends ConsumerState<TagManagerScreen> {
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(labelText: 'Tag Name'),
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(ctx)!.tagName,
+                ),
                 autofocus: true,
               ),
               const SizedBox(height: 16),
               Text(
-                'Color',
+                AppLocalizations.of(ctx)!.color,
                 style: GoogleFonts.inter(fontSize: 12, color: kTextMuted),
               ),
               const SizedBox(height: 8),
@@ -104,7 +107,7 @@ class _TagManagerScreenState extends ConsumerState<TagManagerScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(ctx)!.cancel),
             ),
             FilledButton(
               onPressed: () {
@@ -122,7 +125,7 @@ class _TagManagerScreenState extends ConsumerState<TagManagerScreen> {
                 backgroundColor: kPrimaryGreen,
                 foregroundColor: Colors.black,
               ),
-              child: const Text('Create'),
+              child: Text(AppLocalizations.of(ctx)!.create),
             ),
           ],
         ),
@@ -131,26 +134,27 @@ class _TagManagerScreenState extends ConsumerState<TagManagerScreen> {
   }
 
   void _deleteTag(Tag tag) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: kSurfaceColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text('Delete Tag'),
+        title: Text(l10n.deleteTag),
         content: Text(
-          'Remove "${tag.name}" from all assets?',
+          l10n.deleteTagConfirmation(tag.name),
           style: const TextStyle(color: kTextMuted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: Colors.redAccent),
+            child: Text(
+              l10n.delete,
+              style: const TextStyle(color: Colors.redAccent),
             ),
           ),
         ],
@@ -171,16 +175,17 @@ class _TagManagerScreenState extends ConsumerState<TagManagerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final tags = _getAllTags();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Tags'),
+        title: Text(l10n.manageTags),
         actions: [
           IconButton(
             icon: const Icon(Icons.add, color: kPrimaryGreen),
             onPressed: _addTag,
-            tooltip: 'Add tag',
+            tooltip: l10n.addTag,
           ),
         ],
       ),
@@ -196,13 +201,13 @@ class _TagManagerScreenState extends ConsumerState<TagManagerScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'No tags yet',
+                    l10n.noTagsYet,
                     style: GoogleFonts.inter(color: kTextMuted, fontSize: 16),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Tags are created when you add them to assets.',
-                    style: TextStyle(color: kTextMuted, fontSize: 13),
+                  Text(
+                    l10n.tagsCreatedWhenAdded,
+                    style: const TextStyle(color: kTextMuted, fontSize: 13),
                   ),
                 ],
               ),
@@ -234,7 +239,7 @@ class _TagManagerScreenState extends ConsumerState<TagManagerScreen> {
                   ),
                   title: Text(tag.name),
                   subtitle: Text(
-                    '$count asset${count == 1 ? '' : 's'}',
+                    l10n.assetCount(count),
                     style: const TextStyle(color: kTextMuted, fontSize: 12),
                   ),
                   trailing: IconButton(

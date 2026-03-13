@@ -1,0 +1,398 @@
+{
+  "@@locale": "en",
+  "appTitle": "OctarqVault",
+  "settings": "Settings",
+  "settingsTitle": "Settings",
+  "language": "Language",
+  "localeSystem": "System",
+  "localeZh": "中文",
+  "localeEn": "English",
+  "security": "Security",
+  "lockVault": "Lock Vault",
+  "biometricUnlock": "Biometric Unlock",
+  "biometricUnlockSubtitle": "Use Face ID / fingerprint to unlock",
+  "autoLockTimeout": "Auto-Lock Timeout",
+  "lockAfterMinutes": "Lock after {minutes} min in background",
+  "@lockAfterMinutes": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "oneMinute": "1 minute",
+  "minutesPlural": "{count} minutes",
+  "@minutesPlural": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "expiration": "Expiration",
+  "sync": "Sync",
+  "syncMethod": "Sync method",
+  "syncMethodNone": "None",
+  "syncMethodWebdav": "WebDAV",
+  "syncMethodGoogleDrive": "Google Drive",
+  "syncMethodLocalFile": "Local file (browser)",
+  "webdavDriveLocalFile": "WebDAV / Drive / Local file",
+  "configureCredentialsAndLinkFiles": "Configure credentials and link files",
+  "exportSyncSettings": "Export sync settings",
+  "exportSyncSettingsSubtitle": "Copy sync method to clipboard (JSON)",
+  "importSyncSettings": "Import sync settings",
+  "importSyncSettingsSubtitle": "Paste JSON from clipboard",
+  "dataManagement": "Data Management",
+  "manageCustomAssetTypes": "Manage Custom Asset Types",
+  "manageCustomAssetTypesSubtitle": "Create custom asset templates",
+  "manageTags": "Manage Tags",
+  "manageTagsSubtitle": "View and organize all tags",
+  "importExport": "Import / Export",
+  "exportEncFile": "Export .enc file",
+  "exportEncFileSubtitle": "Encrypted backup (all platforms)",
+  "importEncFile": "Import .enc file",
+  "importEncFileSubtitle": "Replace vault with backup (enter password)",
+  "exportJsonToClipboard": "Export JSON to Clipboard",
+  "importJsonFromClipboard": "Import JSON (from clipboard)",
+  "about": "About",
+  "website": "Website",
+  "websiteUrl": "vault.octarq.org",
+  "helpAndDocs": "Help & Docs",
+  "docsUrl": "vault.octarq.org/docs",
+  "cancel": "Cancel",
+  "ok": "OK",
+  "save": "Save",
+  "delete": "Delete",
+  "remove": "Remove",
+  "add": "Add",
+  "create": "Create",
+  "unlock": "Unlock",
+  "connect": "Connect",
+  "link": "Link",
+  "copy": "Copy",
+  "archive": "Archive",
+  "unarchive": "Unarchive",
+  "masterPassword": "Master Password",
+  "pleaseEnterMasterPassword": "Please enter your master password",
+  "incorrectPassword": "Incorrect password",
+  "vaultLocked": "Vault Locked",
+  "enterMasterPasswordToUnlock": "Enter your master password to unlock",
+  "useBiometrics": "Use Biometrics",
+  "searchHint": "Search assets, tags, or fields...",
+  "newAsset": "New Asset",
+  "dashboard": "Dashboard",
+  "allAssets": "All Assets",
+  "categories": "CATEGORIES",
+  "notifications": "Notifications",
+  "noUpcomingExpirations": "No upcoming expirations",
+  "expiresOnDays": "Expires {date} ({days} days)",
+  "@expiresOnDays": {
+    "placeholders": {
+      "date": {"type": "String"},
+      "days": {"type": "int"}
+    }
+  },
+  "totalAssets": "Total Assets",
+  "expiringWithin30Days": "Expiring < 30 Days",
+  "estMonthlyCost": "Est. Monthly Cost",
+  "actionRequired": "ACTION REQUIRED",
+  "viewAll": "View all →",
+  "recentlyAdded": "RECENTLY ADDED",
+  "expiringSoon": "Expiring soon",
+  "noAssetsYet": "No assets yet",
+  "addFirstAssetHint": "Add your first digital asset to get started.",
+  "addAsset": "Add Asset",
+  "asset": "Asset",
+  "assetNotFound": "Asset not found",
+  "assetType": "Asset Type",
+  "assetName": "Asset Name",
+  "details": "Details",
+  "fields": "Fields",
+  "type": "Type",
+  "expirationDate": "Expiration Date",
+  "added": "Added",
+  "editAsset": "Edit asset",
+  "duplicateAsset": "Duplicate asset",
+  "deleteAsset": "Delete Asset",
+  "deleteAssetConfirmation": "Are you sure you want to permanently delete this asset?",
+  "hideSecrets": "Hide secrets",
+  "revealSecrets": "Reveal secrets",
+  "errorDecrypting": "Error decrypting",
+  "fieldCopied": "{label} copied",
+  "@fieldCopied": {
+    "placeholders": {
+      "label": {"type": "String"}
+    }
+  },
+  "noLinkedAssets": "No linked assets.",
+  "removeLinkConfirm": "Remove Link?",
+  "errorLoadingRelations": "Error loading relations: {error}",
+  "@errorLoadingRelations": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "linkAsset": "Link Asset",
+  "targetAsset": "Target Asset",
+  "relationType": "Relation Type",
+  "relationHostedOn": "Hosted On",
+  "relationDependsOn": "Depends On",
+  "relationUses": "Uses",
+  "relationManagedBy": "Managed By",
+  "relationRelatedTo": "Related To",
+  "relationLinkedAccount": "Linked Account",
+  "addReminder": "Add Reminder",
+  "triggerType": "Trigger Type",
+  "beforeExpiration": "Before Expiration",
+  "recurring": "Recurring",
+  "daysBefore": "Days Before",
+  "daysCount": "{count} days",
+  "@daysCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "pleaseSelectType": "Please select a type",
+  "required": "Required",
+  "addTagHint": "Add tag...",
+  "noneTapToSet": "None — tap to set",
+  "clearDate": "Clear date",
+  "reminders": "Reminders",
+  "addReminderTooltip": "Add reminder",
+  "defaultReminderBeforeExpiry": "Default: 7 days before expiry",
+  "setExpirationToEnableReminders": "Set expiration to enable reminders",
+  "linkedAssets": "Linked Assets",
+  "addLink": "Add Link",
+  "noLinksAddAfterSave": "No links. Add links to create after save.",
+  "noOtherAssetsToLink": "No other assets to link.",
+  "linkToAsset": "Link to Asset",
+  "noAssetsToLinkSaveFirst": "No assets to link. Save this asset first, then add links on its detail page.",
+  "basicInfo": "Basic Info",
+  "tags": "Tags",
+  "saveAssetFailed": "Failed to save asset: {error}",
+  "@saveAssetFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "errorGeneric": "Error: {error}",
+  "@errorGeneric": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "manageAssetTypes": "Manage Asset Types",
+  "deleteCustomType": "Delete Custom Type",
+  "deleteCustomTypeConfirmation": "Are you sure? Existing assets of this type might lose their template mappings.",
+  "newAssetType": "New Asset Type",
+  "assetTypeNameHint": "Asset Type Name (e.g., Crypto Wallet)",
+  "icon": "Icon",
+  "fieldsConfiguration": "Fields Configuration",
+  "addField": "Add Field",
+  "fieldLabelHint": "Field Label (e.g., Private Key)",
+  "dataType": "Data Type",
+  "aesEncrypted": "AES-256-GCM Encrypted",
+  "aesEncryptedSubtitle": "Fields like passwords, keys",
+  "requiredInput": "Required Input",
+  "newTag": "New Tag",
+  "tagName": "Tag Name",
+  "color": "Color",
+  "deleteTag": "Delete Tag",
+  "deleteTagConfirmation": "Remove \"{name}\" from all assets?",
+  "@deleteTagConfirmation": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "addTag": "Add tag",
+  "noTagsYet": "No tags yet",
+  "tagsCreatedWhenAdded": "Tags are created when you add them to assets.",
+  "assetCount": "{count} assets",
+  "@assetCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "expiringIn30Days": "Expiring in 30 days",
+  "expired": "Expired",
+  "noMatchesFound": "No matches found.",
+  "selectedCount": "{count} selected",
+  "@selectedCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "itemsCount": "{count} items",
+  "@itemsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "hideArchived": "Hide Archived",
+  "showArchived": "Show Archived",
+  "filterAll": "All",
+  "filterExpiring30d": "Expiring in 30d",
+  "filterExpired": "Expired",
+  "sortByAdded": "Sort by: Added",
+  "sortByName": "Sort by: Name",
+  "sortByExpiry": "Sort by: Expiry",
+  "archived": "Archived",
+  "exportedJsonCopiedToClipboard": "Exported JSON copied to clipboard!",
+  "clipboardUnavailableWeb": "Clipboard unavailable (browser may require HTTPS). Try saving to a file instead.",
+  "clipboardUnavailable": "Could not copy to clipboard. Please try again.",
+  "syncSettingsCopiedToClipboard": "Sync settings copied to clipboard",
+  "syncSettingsApplied": "Sync settings applied",
+  "unlockBackup": "Unlock backup",
+  "wrongPassword": "Wrong password",
+  "importedEncCount": "Imported {count} assets from .enc file",
+  "@importedEncCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "clipboardEmpty": "Clipboard is empty.",
+  "invalidSyncSettingsJson": "Invalid sync settings JSON: {error}",
+  "@invalidSyncSettingsJson": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "cannotOpenUrl": "Cannot open: {url}",
+  "@cannotOpenUrl": {
+    "placeholders": {
+      "url": {"type": "String"}
+    }
+  },
+  "validationNoAssetsInJson": "No assets in JSON.",
+  "importSuccessCount": "Successfully imported {count} assets!",
+  "@importSuccessCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "importInvalid": "Import invalid: {error}",
+  "@importInvalid": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "importFailed": "Import failed: {error}",
+  "@importFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "invalidJsonOrFormat": "Invalid JSON or format.",
+  "webdavBackup": "WebDAV Backup",
+  "webdavConnected": "WebDAV Connected",
+  "webdavConnectedSuccess": "Connected to WebDAV successfully!",
+  "webdavConnectionFailed": "Connection failed: {error}",
+  "@webdavConnectionFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "e2eeBackupSuccess": "E2EE backup successful!",
+  "backupFailed": "Backup failed: {error}",
+  "@backupFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "restoredAssetsE2ee": "Restored {count} assets (E2EE)",
+  "@restoredAssetsE2ee": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "restoreFailed": "Restore failed: {error}",
+  "@restoreFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "backupToWebdav": "Backup to WebDAV",
+  "restoreFromWebdav": "Restore from WebDAV",
+  "disconnectClearCredentials": "Disconnect & Clear Credentials",
+  "webdavConfigureDescription": "Configure your WebDAV server (e.g., Nextcloud, ownCloud, Nutstore) to securely backup your encrypted database payload.",
+  "serverUrl": "Server URL",
+  "serverUrlHint": "https://example.com/remote.php/webdav/",
+  "username": "Username",
+  "passwordOrAppToken": "Password / App Token",
+  "e2eeWebSync": "E2EE Web Sync",
+  "localDiskSyncE2ee": "Local Disk Sync (E2EE Encrypted)",
+  "localDiskSyncDescription": "Maintain a local encrypted vault file. This file will be silently updated on your desktop after every change.",
+  "createNewEncryptedVaultFile": "Create New Encrypted Vault File",
+  "linkExistingVaultFile": "Link Existing Vault File",
+  "importFallback": "Import Fallback",
+  "exportFallback": "Export Fallback",
+  "googleDriveSyncE2ee": "Google Drive Sync (E2EE Encrypted)",
+  "googleDriveSyncDescription": "Sync automatically to a hidden appDataFolder in your Google Drive. Completely zero-knowledge.",
+  "authorizeSyncGoogleDrive": "Authorize & Sync with Google Drive",
+  "pullFromGoogleDrive": "Pull from Google Drive (Overwrite Local)",
+  "restoredAssetsFromFile": "Restored {count} assets from file",
+  "@restoredAssetsFromFile": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "browserNoFilePickUseFallback": "Your browser does not support picking files directly. Please use the Import/Export fallback buttons below.",
+  "pushedToGoogleDriveSuccess": "Successfully securely pushed to Google Drive",
+  "driveError": "Drive Error: {error}",
+  "@driveError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "restoredAssetsFromDrive": "Restored {count} assets from Drive",
+  "@restoredAssetsFromDrive": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "noBackupFoundOnDrive": "No backup found on Drive.",
+  "importError": "Import Error: {error}",
+  "@importError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "welcomeToOctarqVault": "Welcome to OctarqVault",
+  "setMasterPassword": "Set your Master Password",
+  "setupPasswordDescription": "This password encrypts all your data locally. If you forget it, the data cannot be recovered.",
+  "confirmPassword": "Confirm Password",
+  "createVault": "Create Vault",
+  "orRestoreExistingVault": "Or restore an existing vault",
+  "restoreFromGoogleDrive": "Restore from Google Drive",
+  "restoreFromLocalFile": "Restore from Local File",
+  "passwordTooShort": "Password too short (8 chars min)",
+  "passwordsDoNotMatch": "Passwords do not match",
+  "createVaultFailed": "Failed to create vault: {error}",
+  "@createVaultFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "unknownError": "Unknown error",
+  "vaultFound": "Vault Found",
+  "enterMasterPasswordToUnlock": "Enter your Master Password to unlock it.",
+  "vaultRestoredSuccess": "Vault restored successfully!",
+  "unlockFailed": "Unlock failed: {error}",
+  "@unlockFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "fallbackError": "Fallback Error: {error}",
+  "@fallbackError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "notificationAssetExpiringTitle": "Asset Expiring Soon",
+  "notificationAssetExpiringBody": "{name} is expiring in {days} days.",
+  "@notificationAssetExpiringBody": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "days": {"type": "int"}
+    }
+  },
+  "notificationChannelName": "Asset Expirations",
+  "notificationChannelDescription": "Notifications for expiring assets"
+}

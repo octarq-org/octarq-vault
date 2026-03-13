@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../providers/assets_provider.dart';
 import '../services/e2ee_sync_service.dart';
@@ -67,17 +68,18 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     final pwd = _passwordController.text;
     final confirm = _confirmController.text;
 
+    final l10n = AppLocalizations.of(context)!;
     if (pwd.length < 8) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password too short (8 chars min)')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.passwordTooShort)));
       return;
     }
 
     if (pwd != confirm) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
+      ).showSnackBar(SnackBar(content: Text(l10n.passwordsDoNotMatch)));
       return;
     }
 
@@ -88,11 +90,12 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         .setupMasterPassword(pwd);
 
     if (!success && mounted) {
+      final l10n = AppLocalizations.of(context)!;
       final error =
-          ref.read(authProvider.notifier).lastError ?? 'Unknown error';
+          ref.read(authProvider.notifier).lastError ?? l10n.unknownError;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to create vault: $error'),
+          content: Text(l10n.createVaultFailed(error)),
           duration: const Duration(seconds: 5),
         ),
       );
@@ -105,24 +108,27 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
 
   Future<void> _promptForPasswordToRestore(Uint8List payload) async {
     final pwdController = TextEditingController();
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+
     final result = await showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Vault Found'),
+          title: Text(l10n.vaultFound),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Enter your Master Password to unlock it.'),
+              Text(l10n.enterMasterPasswordToUnlock),
               const SizedBox(height: 16),
               TextField(
                 controller: pwdController,
                 obscureText: true,
                 autofocus: true,
-                decoration: const InputDecoration(
-                  labelText: 'Master Password',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.masterPassword,
+                  border: const OutlineInputBorder(),
                 ),
                 onSubmitted: (val) => Navigator.pop(context, val),
               ),
@@ -131,11 +137,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, pwdController.text),
-              child: const Text('Unlock'),
+              child: Text(l10n.unlock),
             ),
           ],
         );
@@ -156,8 +162,8 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               .read(assetsProvider.notifier)
               .replaceFromSnapshot(snapshot, encryptedBlob: payload);
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Vault restored successfully!')),
+            messenger.showSnackBar(
+              SnackBar(content: Text(l10n.vaultRestoredSuccess)),
             );
           }
         } catch (e) {
@@ -165,11 +171,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         }
       } else {
         final error =
-            ref.read(authProvider.notifier).lastError ?? 'Incorrect password';
+            ref.read(authProvider.notifier).lastError ?? l10n.incorrectPassword;
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Unlock failed: $error')));
+          messenger.showSnackBar(
+            SnackBar(content: Text(l10n.unlockFailed(error))),
+          );
         }
       }
       if (mounted) setState(() => _isCreating = false);
@@ -187,7 +193,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       if (bytes == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No backup found on Drive.')),
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.noBackupFoundOnDrive),
+            ),
           );
         }
         return;
@@ -196,9 +204,13 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       await _promptForPasswordToRestore(bytes);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.errorGeneric(e.toString()),
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isCreating = false);
@@ -241,14 +253,24 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           } catch (innerE) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Fallback Error: $innerE')),
+                SnackBar(
+                  content: Text(
+                    AppLocalizations.of(
+                      context,
+                    )!.fallbackError(innerE.toString()),
+                  ),
+                ),
               );
             }
           }
         } else if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context)!.errorGeneric(e.toString()),
+              ),
+            ),
+          );
         }
       }
       if (mounted) setState(() => _isCreating = false);
@@ -269,7 +291,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
               fit: BoxFit.contain,
             ),
             const SizedBox(width: 10),
-            const Text('Welcome to OctarqVault'),
+            Text(AppLocalizations.of(context)!.welcomeToOctarqVault),
           ],
         ),
       ),
@@ -278,32 +300,32 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              'Set your Master Password',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            Text(
+              AppLocalizations.of(context)!.setMasterPassword,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'This password encrypts all your data locally. If you forget it, the data cannot be recovered.',
+            Text(
+              AppLocalizations.of(context)!.setupPasswordDescription,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey),
+              style: const TextStyle(color: Colors.grey),
             ),
             const SizedBox(height: 32),
             TextField(
               controller: _passwordController,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Master Password',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.masterPassword,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _confirmController,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Confirm Password',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.confirmPassword,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 16),
@@ -311,15 +333,15 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 ? const CircularProgressIndicator()
                 : ElevatedButton(
                     onPressed: _submit,
-                    child: const Text('Create Vault'),
+                    child: Text(AppLocalizations.of(context)!.createVault),
                   ),
             if (!_isCreating && kIsWeb) ...[
               const SizedBox(height: 32),
               const Divider(),
               const SizedBox(height: 16),
-              const Text(
-                'Or restore an existing vault',
-                style: TextStyle(
+              Text(
+                AppLocalizations.of(context)!.orRestoreExistingVault,
+                style: const TextStyle(
                   color: Colors.grey,
                   fontWeight: FontWeight.bold,
                 ),
@@ -340,13 +362,15 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 OutlinedButton.icon(
                   onPressed: () => _handleRestoreFromDrive(),
                   icon: const Icon(Icons.cloud_download),
-                  label: const Text('Restore from Google Drive'),
+                  label: Text(
+                    AppLocalizations.of(context)!.restoreFromGoogleDrive,
+                  ),
                 ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: _handleRestoreFromLocal,
                 icon: const Icon(Icons.file_open),
-                label: const Text('Restore from Local File'),
+                label: Text(AppLocalizations.of(context)!.restoreFromLocalFile),
               ),
             ],
           ],

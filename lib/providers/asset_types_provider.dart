@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/asset_type.dart';
 import '../utils/default_asset_types.dart';
+import 'locale_provider.dart';
 import 'service_providers.dart';
 
 final assetTypesProvider =
@@ -12,15 +13,22 @@ final assetTypesProvider =
     });
 
 class AssetTypesNotifier extends Notifier<List<AssetType>> {
+  List<AssetType> _defaultsForCurrentLocale() =>
+      getDefaultAssetTypes(ref.read(localeProvider));
+
   @override
   List<AssetType> build() {
-    return [...defaultAssetTypes];
+    final locale = ref.watch(localeProvider);
+    ref.listen(localeProvider, (prev, next) {
+      if (prev != next) Future.microtask(() => loadCustomTypes());
+    });
+    return [...getDefaultAssetTypes(locale)];
   }
 
   /// Web (and import .enc): set custom types from snapshot; built-ins stay.
   /// On non-Web also persists custom types to SQLite.
   Future<void> setCustomTypesFromSnapshot(List<AssetType> customTypes) async {
-    state = [...defaultAssetTypes, ...customTypes];
+    state = [..._defaultsForCurrentLocale(), ...customTypes];
     if (kIsWeb) return;
     final dbService = ref.read(databaseServiceProvider);
     await dbService.deleteAllAssetTypes();
@@ -39,8 +47,9 @@ class AssetTypesNotifier extends Notifier<List<AssetType>> {
   }
 
   Future<void> loadCustomTypes() async {
+    final defaults = _defaultsForCurrentLocale();
     if (kIsWeb) {
-      state = [...defaultAssetTypes];
+      state = [...defaults];
       return;
     }
     final dbService = ref.read(databaseServiceProvider);
@@ -62,7 +71,7 @@ class AssetTypesNotifier extends Notifier<List<AssetType>> {
       );
     }).toList();
 
-    state = [...defaultAssetTypes, ...customTypes];
+    state = [...defaults, ...customTypes];
   }
 
   Future<void> addCustomType(AssetType type) async {

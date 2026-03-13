@@ -4,7 +4,9 @@ import 'package:uuid/uuid.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/asset.dart';
+import '../utils/relation_type_label.dart';
 import '../models/asset_type.dart';
 import '../models/field.dart';
 import '../models/tag.dart';
@@ -14,15 +16,6 @@ import '../providers/asset_types_provider.dart';
 import '../providers/relations_provider.dart';
 import '../providers/service_providers.dart';
 import '../main.dart';
-
-const _relationTypes = [
-  'Hosted On',
-  'Depends On',
-  'Uses',
-  'Managed By',
-  'Related To',
-  'Linked Account',
-];
 
 class AssetFormScreen extends ConsumerStatefulWidget {
   final Asset? editingAsset;
@@ -168,25 +161,27 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
               borderRadius: BorderRadius.circular(14),
             ),
             title: Text(
-              'Add Reminder',
+              AppLocalizations.of(ctx)!.addReminder,
               style: GoogleFonts.inter(fontWeight: FontWeight.w600),
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(labelText: 'Trigger Type'),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(ctx)!.triggerType,
+                  ),
                   initialValue: triggerType,
                   dropdownColor: kSurfaceColor,
                   style: const TextStyle(fontSize: 14, color: Colors.white),
-                  items: const [
+                  items: [
                     DropdownMenuItem(
                       value: 'expiration',
-                      child: Text('Before Expiration'),
+                      child: Text(AppLocalizations.of(ctx)!.beforeExpiration),
                     ),
                     DropdownMenuItem(
                       value: 'recurring',
-                      child: Text('Recurring'),
+                      child: Text(AppLocalizations.of(ctx)!.recurring),
                     ),
                   ],
                   onChanged: (val) =>
@@ -194,14 +189,18 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<int>(
-                  decoration: const InputDecoration(labelText: 'Days Before'),
+                  decoration: InputDecoration(
+                    labelText: AppLocalizations.of(ctx)!.daysBefore,
+                  ),
                   initialValue: offsetDays,
                   dropdownColor: kSurfaceColor,
                   style: const TextStyle(fontSize: 14, color: Colors.white),
                   items: [3, 7, 14, 30, 60, 90]
                       .map(
-                        (d) =>
-                            DropdownMenuItem(value: d, child: Text('$d days')),
+                        (d) => DropdownMenuItem(
+                          value: d,
+                          child: Text(AppLocalizations.of(ctx)!.daysCount(d)),
+                        ),
                       )
                       .toList(),
                   onChanged: (val) =>
@@ -212,7 +211,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
+                child: Text(AppLocalizations.of(ctx)!.cancel),
               ),
               FilledButton(
                 onPressed: () {
@@ -234,7 +233,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                   backgroundColor: kPrimaryGreen,
                   foregroundColor: Colors.black,
                 ),
-                child: const Text('Add'),
+                child: Text(AppLocalizations.of(ctx)!.add),
               ),
             ],
           ),
@@ -357,7 +356,9 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to save asset: $e'),
+            content: Text(
+              AppLocalizations.of(context)!.saveAssetFailed(e.toString()),
+            ),
             backgroundColor: Colors.red.shade800,
           ),
         );
@@ -369,11 +370,12 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final assetTypes = ref.watch(assetTypesProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Asset' : 'Add Asset'),
+        title: Text(_isEditing ? l10n.editAsset : l10n.addAsset),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
@@ -400,7 +402,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                       ),
                     ),
                     child: Text(
-                      'Save',
+                      l10n.save,
                       style: GoogleFonts.inter(fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -414,14 +416,14 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _SectionLabel('Basic Info'),
+              _SectionLabel(l10n.basicInfo),
               const SizedBox(height: 12),
               _FormCard(
                 children: [
                   DropdownButtonFormField<AssetType>(
-                    decoration: const InputDecoration(
-                      labelText: 'Asset Type',
-                      prefixIcon: Icon(Icons.category_outlined, size: 18),
+                    decoration: InputDecoration(
+                      labelText: l10n.assetType,
+                      prefixIcon: const Icon(Icons.category_outlined, size: 18),
                     ),
                     initialValue: _selectedType,
                     dropdownColor: kSurfaceColor,
@@ -434,23 +436,23 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                     }).toList(),
                     onChanged: _isEditing ? null : _onTypeChanged,
                     validator: (val) =>
-                        val == null ? 'Please select a type' : null,
+                        val == null ? l10n.pleaseSelectType : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Asset Name',
-                      prefixIcon: Icon(Icons.label_outline, size: 18),
+                    decoration: InputDecoration(
+                      labelText: l10n.assetName,
+                      prefixIcon: const Icon(Icons.label_outline, size: 18),
                     ),
                     validator: (val) =>
-                        val == null || val.isEmpty ? 'Required' : null,
+                        val == null || val.isEmpty ? l10n.required : null,
                   ),
                 ],
               ),
               const SizedBox(height: 24),
 
-              _SectionLabel('Tags'),
+              _SectionLabel(l10n.tags),
               const SizedBox(height: 12),
               _FormCard(
                 children: [
@@ -472,8 +474,8 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                         child: TextField(
                           controller: _tagInputController,
                           style: const TextStyle(fontSize: 13),
-                          decoration: const InputDecoration(
-                            hintText: 'Add tag...',
+                          decoration: InputDecoration(
+                            hintText: l10n.addTagHint,
                             border: InputBorder.none,
                             enabledBorder: InputBorder.none,
                             focusedBorder: InputBorder.none,
@@ -508,7 +510,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
               ),
               const SizedBox(height: 24),
 
-              _SectionLabel('Expiration'),
+              _SectionLabel(l10n.expiration),
               const SizedBox(height: 12),
               _FormCard(
                 children: [
@@ -532,9 +534,9 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'Expiration Date',
-                                  style: TextStyle(
+                                Text(
+                                  l10n.expirationDate,
+                                  style: const TextStyle(
                                     color: kTextMuted,
                                     fontSize: 12,
                                   ),
@@ -542,7 +544,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                                 const SizedBox(height: 2),
                                 Text(
                                   _expireAt == null
-                                      ? 'None — tap to set'
+                                      ? l10n.noneTapToSet
                                       : _expireAt!.toLocal().toString().split(
                                           ' ',
                                         )[0],
@@ -565,7 +567,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                                 color: kTextMuted,
                               ),
                               onPressed: () => setState(() => _expireAt = null),
-                              tooltip: 'Clear date',
+                              tooltip: l10n.clearDate,
                             ),
                         ],
                       ),
@@ -578,7 +580,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
               // Reminders
               Row(
                 children: [
-                  Expanded(child: _SectionLabel('Reminders')),
+                  Expanded(child: _SectionLabel(l10n.reminders)),
                   IconButton(
                     icon: const Icon(
                       Icons.add_alarm,
@@ -586,7 +588,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                       color: kPrimaryGreen,
                     ),
                     onPressed: _addReminder,
-                    tooltip: 'Add reminder',
+                    tooltip: l10n.addReminderTooltip,
                   ),
                 ],
               ),
@@ -604,8 +606,8 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                         const SizedBox(width: 10),
                         Text(
                           _expireAt != null
-                              ? 'Default: 7 days before expiry'
-                              : 'Set expiration to enable reminders',
+                              ? l10n.defaultReminderBeforeExpiry
+                              : l10n.setExpirationToEnableReminders,
                           style: const TextStyle(
                             color: kTextMuted,
                             fontSize: 13,
@@ -631,7 +633,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              '${r.triggerType == 'expiration' ? 'Before Expiration' : 'Recurring'}: ${r.offsetDays} days',
+                              '${r.triggerType == 'expiration' ? l10n.beforeExpiration : l10n.recurring}: ${l10n.daysCount(r.offsetDays)}',
                               style: const TextStyle(fontSize: 13),
                             ),
                           ),
@@ -659,15 +661,15 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
               // ── Linked Assets ────────────────────────────────────────
               Row(
                 children: [
-                  const Expanded(child: _SectionLabel('Linked Assets')),
+                  Expanded(child: _SectionLabel(l10n.linkedAssets)),
                   TextButton.icon(
                     onPressed: () => _isEditing
                         ? _showLinkDialog(ref, widget.editingAsset!.id)
                         : _showAddPendingLinkDialog(ref),
                     icon: const Icon(Icons.add_link, size: 16),
-                    label: const Text(
-                      'Add Link',
-                      style: TextStyle(fontSize: 13),
+                    label: Text(
+                      l10n.addLink,
+                      style: const TextStyle(fontSize: 13),
                     ),
                     style: TextButton.styleFrom(
                       foregroundColor: kPrimaryGreen,
@@ -681,13 +683,13 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
               ),
               const SizedBox(height: 12),
               _isEditing
-                  ? _buildLinkedAssetsEdit(ref)
-                  : _buildPendingLinks(ref),
+                  ? _buildLinkedAssetsEdit(context, ref)
+                  : _buildPendingLinks(context, ref),
               const SizedBox(height: 24),
 
               if (_selectedType != null &&
                   _selectedType!.fieldSchema.isNotEmpty) ...[
-                _SectionLabel('Details'),
+                _SectionLabel(l10n.details),
                 const SizedBox(height: 12),
                 _FormCard(
                   children: _selectedType!.fieldSchema.asMap().entries.map((
@@ -712,7 +714,8 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
     );
   }
 
-  Widget _buildLinkedAssetsEdit(WidgetRef ref) {
+  Widget _buildLinkedAssetsEdit(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final relationsAsync = ref.watch(
       assetRelationsProvider(widget.editingAsset!.id),
     );
@@ -727,7 +730,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                   const Icon(Icons.link_off, color: kTextMuted, size: 18),
                   const SizedBox(width: 10),
                   Text(
-                    'No linked assets.',
+                    l10n.noLinkedAssets,
                     style: const TextStyle(color: kTextMuted, fontSize: 13),
                   ),
                 ],
@@ -792,7 +795,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
       error: (e, _) => _FormCard(
         children: [
           Text(
-            'Error: $e',
+            AppLocalizations.of(context)!.errorGeneric(e.toString()),
             style: const TextStyle(color: Colors.redAccent, fontSize: 13),
           ),
         ],
@@ -800,7 +803,8 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
     );
   }
 
-  Widget _buildPendingLinks(WidgetRef ref) {
+  Widget _buildPendingLinks(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final assets = ref.watch(assetsProvider);
     if (_pendingLinks.isEmpty) {
       return _FormCard(
@@ -810,7 +814,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
               const Icon(Icons.link_off, color: kTextMuted, size: 18),
               const SizedBox(width: 10),
               Text(
-                'No links. Add links to create after save.',
+                l10n.noLinksAddAfterSave,
                 style: const TextStyle(color: kTextMuted, fontSize: 13),
               ),
             ],
@@ -832,7 +836,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  '$name — ${p.relationType}',
+                  '$name — ${relationTypeLabel(l10n, p.relationType)}',
                   style: const TextStyle(fontSize: 13),
                 ),
               ),
@@ -851,12 +855,13 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
   }
 
   void _showLinkDialog(WidgetRef ref, String currentId) {
+    final l10n = AppLocalizations.of(context)!;
     final assets = ref.read(assetsProvider);
     final available = assets.where((a) => a.id != currentId).toList();
     if (available.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('No other assets to link.')));
+      ).showSnackBar(SnackBar(content: Text(l10n.noOtherAssetsToLink)));
       return;
     }
     String? selectedAssetId;
@@ -870,7 +875,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
             borderRadius: BorderRadius.circular(14),
           ),
           title: Text(
-            'Link Asset',
+            l10n.linkAsset,
             style: GoogleFonts.inter(fontWeight: FontWeight.w600),
           ),
           content: Column(
@@ -878,7 +883,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Target Asset'),
+                decoration: InputDecoration(labelText: l10n.targetAsset),
                 initialValue: selectedAssetId,
                 dropdownColor: kSurfaceColor,
                 style: const TextStyle(fontSize: 14, color: Colors.white),
@@ -891,12 +896,17 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Relation Type'),
+                decoration: InputDecoration(labelText: l10n.relationType),
                 initialValue: selectedRelationType,
                 dropdownColor: kSurfaceColor,
                 style: const TextStyle(fontSize: 14, color: Colors.white),
-                items: _relationTypes
-                    .map((rt) => DropdownMenuItem(value: rt, child: Text(rt)))
+                items: relationTypeValues
+                    .map(
+                      (rt) => DropdownMenuItem(
+                        value: rt,
+                        child: Text(relationTypeLabel(l10n, rt)),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) => setDlgState(() => selectedRelationType = v),
               ),
@@ -905,7 +915,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: selectedAssetId != null && selectedRelationType != null
@@ -926,7 +936,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                 disabledBackgroundColor: kBorderColor,
               ),
               child: Text(
-                'Link',
+                l10n.link,
                 style: GoogleFonts.inter(fontWeight: FontWeight.w600),
               ),
             ),
@@ -937,15 +947,12 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
   }
 
   void _showAddPendingLinkDialog(WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final assets = ref.read(assetsProvider);
     if (assets.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'No assets to link. Save this asset first, then add links on its detail page.',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.noAssetsToLinkSaveFirst)));
       return;
     }
     String? selectedAssetId;
@@ -959,7 +966,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
             borderRadius: BorderRadius.circular(14),
           ),
           title: Text(
-            'Link to Asset',
+            l10n.linkToAsset,
             style: GoogleFonts.inter(fontWeight: FontWeight.w600),
           ),
           content: Column(
@@ -967,7 +974,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Target Asset'),
+                decoration: InputDecoration(labelText: l10n.targetAsset),
                 initialValue: selectedAssetId,
                 dropdownColor: kSurfaceColor,
                 style: const TextStyle(fontSize: 14, color: Colors.white),
@@ -980,12 +987,17 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Relation Type'),
+                decoration: InputDecoration(labelText: l10n.relationType),
                 initialValue: selectedRelationType,
                 dropdownColor: kSurfaceColor,
                 style: const TextStyle(fontSize: 14, color: Colors.white),
-                items: _relationTypes
-                    .map((rt) => DropdownMenuItem(value: rt, child: Text(rt)))
+                items: relationTypeValues
+                    .map(
+                      (rt) => DropdownMenuItem(
+                        value: rt,
+                        child: Text(relationTypeLabel(l10n, rt)),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) => setDlgState(() => selectedRelationType = v),
               ),
@@ -994,7 +1006,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: selectedAssetId != null && selectedRelationType != null
@@ -1014,7 +1026,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                 disabledBackgroundColor: kBorderColor,
               ),
               child: Text(
-                'Add',
+                l10n.add,
                 style: GoogleFonts.inter(fontWeight: FontWeight.w600),
               ),
             ),
@@ -1039,7 +1051,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
         onChanged: (val) => setState(() => _selectValues[schema.key] = val),
         validator: (val) {
           if (schema.isRequired && (val == null || val.isEmpty)) {
-            return 'Required';
+            return AppLocalizations.of(context)!.required;
           }
           return null;
         },
@@ -1059,7 +1071,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
       ),
       validator: (val) {
         if (schema.isRequired && (val == null || val.isEmpty)) {
-          return 'Required';
+          return AppLocalizations.of(context)!.required;
         }
         return null;
       },

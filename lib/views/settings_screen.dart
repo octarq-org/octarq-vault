@@ -8,12 +8,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_provider.dart';
 import '../providers/assets_provider.dart';
+import '../providers/locale_preference_provider.dart';
 import '../providers/sync_settings_provider.dart';
 import '../models/asset.dart';
 import '../models/sync_settings.dart';
 import '../main.dart';
 import '../providers/service_providers.dart';
 import '../providers/relations_provider.dart';
+import '../l10n/app_localizations.dart';
 import '../services/enc_file_io.dart';
 import '../services/e2ee_sync_service.dart';
 
@@ -103,6 +105,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   void _showAutoLockPicker() {
     final current = ref.read(autoLockMinutesProvider);
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) {
@@ -113,13 +116,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
-            title: const Text('Auto-Lock Timeout'),
+            title: Text(l10n.autoLockTimeout),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [1, 2, 5, 10, 15, 30].map((m) {
                 final isSelected = selected == m;
                 return ListTile(
-                  title: Text('$m minute${m == 1 ? '' : 's'}'),
+                  title: Text(m == 1 ? l10n.oneMinute : l10n.minutesPlural(m)),
                   leading: Icon(
                     isSelected
                         ? Icons.radio_button_checked
@@ -133,7 +136,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
+                child: Text(l10n.cancel),
               ),
               FilledButton(
                 onPressed: () async {
@@ -148,7 +151,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   backgroundColor: kPrimaryGreen,
                   foregroundColor: Colors.black,
                 ),
-                child: const Text('Save'),
+                child: Text(l10n.save),
               ),
             ],
           ),
@@ -174,17 +177,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await Clipboard.setData(ClipboardData(text: jsonString));
       if (mounted) {
         scaffoldMsgr.showSnackBar(
-          const SnackBar(content: Text('Exported JSON copied to clipboard!')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.exportedJsonCopiedToClipboard,
+            ),
+          ),
         );
       }
     } catch (_) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         scaffoldMsgr.showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              kIsWeb
-                  ? 'Clipboard unavailable (browser may require HTTPS). Try saving to a file instead.'
-                  : 'Could not copy to clipboard. Please try again.',
+              kIsWeb ? l10n.clipboardUnavailableWeb : l10n.clipboardUnavailable,
             ),
           ),
         );
@@ -202,11 +208,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         if (mounted) {
           scaffoldMsgr.showSnackBar(
             SnackBar(
-              content: Text(
-                kIsWeb
-                    ? 'Clipboard is empty or inaccessible (use HTTPS, or paste JSON into a text field first).'
-                    : 'Clipboard is empty.',
-              ),
+              content: Text(AppLocalizations.of(context)!.clipboardEmpty),
             ),
           );
         }
@@ -223,9 +225,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         if (a == null || a is! List) {
           if (mounted) {
             scaffoldMsgr.showSnackBar(
-              const SnackBar(
+              SnackBar(
                 content: Text(
-                  'Invalid JSON: missing or invalid "assets" array.',
+                  AppLocalizations.of(context)!.validationNoAssetsInJson,
                 ),
               ),
             );
@@ -238,10 +240,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       } else {
         if (mounted) {
           scaffoldMsgr.showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Invalid JSON: expected array or object with "assets".',
-              ),
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.invalidJsonOrFormat),
             ),
           );
         }
@@ -253,7 +253,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (validationError != null) {
         if (mounted) {
           scaffoldMsgr.showSnackBar(
-            SnackBar(content: Text('Import invalid: $validationError')),
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context)!.importInvalid(validationError),
+              ),
+            ),
           );
         }
         return;
@@ -281,21 +285,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         scaffoldMsgr.showSnackBar(
           SnackBar(
-            content: Text('Successfully imported ${toAdd.length} assets!'),
+            content: Text(
+              AppLocalizations.of(context)!.importSuccessCount(toAdd.length),
+            ),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         final msg = e is TypeError
-            ? 'Invalid JSON or format.'
+            ? l10n.invalidJsonOrFormat
             : (e.toString().toLowerCase().contains('clipboard') ||
                   e.toString().toLowerCase().contains('permission') ||
                   e.toString().toLowerCase().contains('secure'))
-            ? (kIsWeb
-                  ? 'Clipboard inaccessible. Use HTTPS or paste the JSON into a text field, then try again.'
-                  : 'Could not read clipboard. Please try again.')
-            : 'Import failed: ${e.toString()}';
+            ? l10n.clipboardUnavailable
+            : l10n.importFailed(e.toString());
         scaffoldMsgr.showSnackBar(SnackBar(content: Text(msg)));
       }
     }
@@ -304,30 +309,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _importEncFile(WidgetRef ref) async {
     final bytes = await pickEncFileBytes(ref);
     if (bytes == null || bytes.isEmpty || !mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     final pwd = await showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) {
+        final ctxL10n = AppLocalizations.of(ctx)!;
         final c = TextEditingController();
         return AlertDialog(
-          title: const Text('Unlock backup'),
+          title: Text(ctxL10n.unlockBackup),
           content: TextField(
             controller: c,
             obscureText: true,
-            decoration: const InputDecoration(
-              labelText: 'Master password',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: ctxL10n.masterPassword,
+              border: const OutlineInputBorder(),
             ),
             onSubmitted: (v) => Navigator.pop(ctx, v),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: Text(ctxL10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, c.text),
-              child: const Text('Unlock'),
+              child: Text(ctxL10n.unlock),
             ),
           ],
         );
@@ -341,7 +348,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            ref.read(authProvider.notifier).lastError ?? 'Wrong password',
+            ref.read(authProvider.notifier).lastError ?? l10n.wrongPassword,
           ),
         ),
       );
@@ -357,16 +364,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Imported ${snapshot.assets.length} assets from .enc file',
+              AppLocalizations.of(
+                context,
+              )!.importedEncCount(snapshot.assets.length),
             ),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.errorGeneric(e.toString()),
+            ),
+          ),
+        );
       }
     }
   }
@@ -376,7 +389,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await Clipboard.setData(ClipboardData(text: data.toJsonString()));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sync settings copied to clipboard')),
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.syncSettingsCopiedToClipboard,
+          ),
+        ),
       );
     }
   }
@@ -385,9 +402,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final text = await Clipboard.getData(Clipboard.kTextPlain);
     if (text?.text == null || text!.text!.trim().isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Clipboard empty')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.clipboardEmpty)),
+        );
       }
       return;
     }
@@ -395,14 +412,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final data = SyncSettingsExport.fromJsonString(text.text!);
       await ref.read(syncSettingsProvider.notifier).importSettings(data);
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Sync settings applied')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.syncSettingsApplied),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Invalid sync settings JSON: $e')),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(
+                context,
+              )!.invalidSyncSettingsJson(e.toString()),
+            ),
+          ),
         );
       }
     }
@@ -421,13 +446,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDlgState) => AlertDialog(
           backgroundColor: kSurfaceColor,
-          title: const Text('Sync method'),
+          title: Text(AppLocalizations.of(ctx)!.syncMethod),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: options.map((m) {
               final isSelected = current == m;
               return ListTile(
-                title: Text(_syncMethodLabel(m)),
+                title: Text(_syncMethodLabel(AppLocalizations.of(ctx)!, m)),
                 leading: Icon(
                   isSelected
                       ? Icons.radio_button_checked
@@ -448,16 +473,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  static String _syncMethodLabel(SyncMethod m) {
+  static String _syncMethodLabel(AppLocalizations l10n, SyncMethod m) {
     switch (m) {
       case SyncMethod.none:
-        return 'None';
+        return l10n.syncMethodNone;
       case SyncMethod.webdav:
-        return 'WebDAV';
+        return l10n.syncMethodWebdav;
       case SyncMethod.googleDrive:
-        return 'Google Drive';
+        return l10n.syncMethodGoogleDrive;
       case SyncMethod.localFile:
-        return 'Local file (browser)';
+        return l10n.syncMethodLocalFile;
     }
   }
 
@@ -466,32 +491,126 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Cannot open: $url')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.cannotOpenUrl(url)),
+        ),
+      );
     }
+  }
+
+  static String _localeOverrideLabel(AppLocalizations l10n, String value) {
+    switch (value) {
+      case 'zh':
+        return l10n.localeZh;
+      case 'en':
+        return l10n.localeEn;
+      default:
+        return l10n.localeSystem;
+    }
+  }
+
+  void _showLanguagePicker() {
+    final current = ref.read(localePreferenceProvider);
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final l10n = AppLocalizations.of(ctx)!;
+        String selected = current;
+        return StatefulBuilder(
+          builder: (context, setDlgState) => AlertDialog(
+            backgroundColor: kSurfaceColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            title: Text(l10n.language),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: Icon(
+                    selected == 'system'
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_unchecked,
+                    color: kPrimaryGreen,
+                  ),
+                  title: Text(l10n.localeSystem),
+                  onTap: () => setDlgState(() => selected = 'system'),
+                ),
+                ListTile(
+                  leading: Icon(
+                    selected == 'zh'
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_unchecked,
+                    color: kPrimaryGreen,
+                  ),
+                  title: Text(l10n.localeZh),
+                  onTap: () => setDlgState(() => selected = 'zh'),
+                ),
+                ListTile(
+                  leading: Icon(
+                    selected == 'en'
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_unchecked,
+                    color: kPrimaryGreen,
+                  ),
+                  title: Text(l10n.localeEn),
+                  onTap: () => setDlgState(() => selected = 'en'),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: () {
+                  ref
+                      .read(localePreferenceProvider.notifier)
+                      .setLocaleOverride(selected);
+                  Navigator.pop(ctx);
+                },
+                child: Text(l10n.ok),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final autoLockMinutes = ref.watch(autoLockMinutesProvider);
     final syncMethod = ref.watch(syncSettingsProvider);
+    final localeOverride = ref.watch(localePreferenceProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: ListView(
         children: [
-          const _SettingsSectionHeader('Security'),
+          _SettingsSectionHeader(l10n.language),
+          ListTile(
+            leading: const Icon(Icons.translate),
+            title: Text(l10n.language),
+            subtitle: Text(_localeOverrideLabel(l10n, localeOverride)),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _showLanguagePicker,
+          ),
+          const Divider(),
+          _SettingsSectionHeader(l10n.security),
           ListTile(
             leading: const Icon(Icons.lock_outline),
-            title: const Text('Lock Vault'),
+            title: Text(l10n.lockVault),
             onTap: () => ref.read(authProvider.notifier).lock(),
           ),
           if (!kIsWeb)
             SwitchListTile(
               secondary: const Icon(Icons.fingerprint),
-              title: const Text('Biometric Unlock'),
-              subtitle: const Text('Use Face ID / fingerprint to unlock'),
+              title: Text(l10n.biometricUnlock),
+              subtitle: Text(l10n.biometricUnlockSubtitle),
               value: _biometricEnabled,
               activeTrackColor: kPrimaryGreen.withValues(alpha: 0.5),
               thumbColor: WidgetStatePropertyAll(
@@ -501,92 +620,92 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ListTile(
             leading: const Icon(Icons.timer_outlined),
-            title: const Text('Auto-Lock Timeout'),
-            subtitle: Text('Lock after $autoLockMinutes min in background'),
+            title: Text(l10n.autoLockTimeout),
+            subtitle: Text(l10n.lockAfterMinutes(autoLockMinutes)),
             trailing: const Icon(Icons.chevron_right),
             onTap: _showAutoLockPicker,
           ),
           const Divider(),
-          const _SettingsSectionHeader('Sync'),
+          _SettingsSectionHeader(l10n.sync),
           ListTile(
             leading: const Icon(Icons.sync),
-            title: const Text('Sync method'),
-            subtitle: Text(_syncMethodLabel(syncMethod)),
+            title: Text(l10n.syncMethod),
+            subtitle: Text(_syncMethodLabel(l10n, syncMethod)),
             trailing: const Icon(Icons.chevron_right),
             onTap: _showSyncMethodPicker,
           ),
           ListTile(
             leading: const Icon(Icons.cloud_sync),
-            title: const Text('WebDAV / Drive / Local file'),
-            subtitle: const Text('Configure credentials and link files'),
+            title: Text(l10n.webdavDriveLocalFile),
+            subtitle: Text(l10n.configureCredentialsAndLinkFiles),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.go('/settings/webdav'),
           ),
           ListTile(
             leading: const Icon(Icons.upload_file),
-            title: const Text('Export sync settings'),
-            subtitle: const Text('Copy sync method to clipboard (JSON)'),
+            title: Text(l10n.exportSyncSettings),
+            subtitle: Text(l10n.exportSyncSettingsSubtitle),
             onTap: () => _exportSyncSettings(ref),
           ),
           ListTile(
             leading: const Icon(Icons.download),
-            title: const Text('Import sync settings'),
-            subtitle: const Text('Paste JSON from clipboard'),
+            title: Text(l10n.importSyncSettings),
+            subtitle: Text(l10n.importSyncSettingsSubtitle),
             onTap: () => _importSyncSettings(ref),
           ),
           const Divider(),
-          const _SettingsSectionHeader('Data Management'),
+          _SettingsSectionHeader(l10n.dataManagement),
           ListTile(
             leading: const Icon(Icons.schema),
-            title: const Text('Manage Custom Asset Types'),
-            subtitle: const Text('Create custom asset templates'),
+            title: Text(l10n.manageCustomAssetTypes),
+            subtitle: Text(l10n.manageCustomAssetTypesSubtitle),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.go('/settings/asset-types'),
           ),
           ListTile(
             leading: const Icon(Icons.label_outline),
-            title: const Text('Manage Tags'),
-            subtitle: const Text('View and organize all tags'),
+            title: Text(l10n.manageTags),
+            subtitle: Text(l10n.manageTagsSubtitle),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.go('/settings/tags'),
           ),
           const Divider(),
-          const _SettingsSectionHeader('Import / Export'),
+          _SettingsSectionHeader(l10n.importExport),
           ListTile(
             leading: const Icon(Icons.file_download),
-            title: const Text('Export .enc file'),
-            subtitle: const Text('Encrypted backup (all platforms)'),
+            title: Text(l10n.exportEncFile),
+            subtitle: Text(l10n.exportEncFileSubtitle),
             onTap: () => exportEncToFile(ref),
           ),
           ListTile(
             leading: const Icon(Icons.file_upload),
-            title: const Text('Import .enc file'),
-            subtitle: const Text('Replace vault with backup (enter password)'),
+            title: Text(l10n.importEncFile),
+            subtitle: Text(l10n.importEncFileSubtitle),
             onTap: () => _importEncFile(ref),
           ),
           ListTile(
             leading: const Icon(Icons.download),
-            title: const Text('Export JSON to Clipboard'),
+            title: Text(l10n.exportJsonToClipboard),
             onTap: () => _exportJson(ref),
           ),
           ListTile(
             leading: const Icon(Icons.upload),
-            title: const Text('Import JSON (from clipboard)'),
+            title: Text(l10n.importJsonFromClipboard),
             onTap: () => _importJson(ref),
           ),
           const Divider(),
-          const _SettingsSectionHeader('About'),
+          _SettingsSectionHeader(l10n.about),
           ListTile(
             leading: const Icon(Icons.language),
-            title: const Text('Website'),
-            subtitle: const Text('vault.octarq.org'),
+            title: Text(l10n.website),
+            subtitle: Text(l10n.websiteUrl),
             trailing: const Icon(Icons.open_in_new, size: 18),
             onTap: () => _openUrl(kWebsiteUrl),
           ),
           ListTile(
             leading: const Icon(Icons.menu_book_outlined),
-            title: const Text('Help & Docs'),
-            subtitle: const Text('vault.octarq.org/docs'),
+            title: Text(l10n.helpAndDocs),
+            subtitle: Text(l10n.docsUrl),
             trailing: const Icon(Icons.open_in_new, size: 18),
             onTap: () => _openUrl(kDocsUrl),
           ),

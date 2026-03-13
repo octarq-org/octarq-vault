@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../l10n/app_localizations.dart';
 import '../providers/assets_provider.dart';
 import '../providers/asset_types_provider.dart';
 import '../providers/search_provider.dart';
@@ -103,10 +104,11 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
         filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     }
 
+    final l10n = AppLocalizations.of(context)!;
     final filterTypeName = _expiryFilter == 'expiring-soon'
-        ? 'Expiring in 30 days'
+        ? l10n.expiringIn30Days
         : _expiryFilter == 'expired'
-        ? 'Expired'
+        ? l10n.expired
         : (widget.filterTypeId != null
               ? assetTypes
                     .firstWhere(
@@ -120,6 +122,7 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
       body: Column(
         children: [
           _ListHeader(
+            l10n: l10n,
             sortMode: _sortMode,
             onSortChanged: (v) => setState(() => _sortMode = v),
             expiryFilter: _expiryFilter,
@@ -132,6 +135,7 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
           ),
           if (_isSelectMode)
             _BatchActionBar(
+              l10n: l10n,
               selectedCount: _selectedIds.length,
               onArchive: () async {
                 await ref
@@ -151,7 +155,7 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
             child: filtered.isEmpty
                 ? Center(
                     child: Text(
-                      'No matches found.',
+                      l10n.noMatchesFound,
                       style: GoogleFonts.inter(color: kTextMuted, fontSize: 14),
                     ),
                   )
@@ -199,11 +203,13 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
 
 class _BatchActionBar extends StatelessWidget {
   const _BatchActionBar({
+    required this.l10n,
     required this.selectedCount,
     required this.onArchive,
     required this.onDelete,
     required this.onClear,
   });
+  final AppLocalizations l10n;
   final int selectedCount;
   final VoidCallback onArchive;
   final VoidCallback onDelete;
@@ -217,27 +223,27 @@ class _BatchActionBar extends StatelessWidget {
       child: Row(
         children: [
           Text(
-            '$selectedCount selected',
+            l10n.selectedCount(selectedCount),
             style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
           ),
           const Spacer(),
           TextButton.icon(
             onPressed: onArchive,
             icon: const Icon(Icons.archive_outlined, size: 16),
-            label: const Text('Archive', style: TextStyle(fontSize: 13)),
+            label: Text(l10n.archive, style: const TextStyle(fontSize: 13)),
             style: TextButton.styleFrom(foregroundColor: kPrimaryGreen),
           ),
           const SizedBox(width: 8),
           TextButton.icon(
             onPressed: onDelete,
             icon: const Icon(Icons.delete_outline, size: 16),
-            label: const Text('Delete', style: TextStyle(fontSize: 13)),
+            label: Text(l10n.delete, style: const TextStyle(fontSize: 13)),
             style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
           ),
           const SizedBox(width: 8),
           TextButton(
             onPressed: onClear,
-            child: const Text('Cancel', style: TextStyle(fontSize: 13)),
+            child: Text(l10n.cancel, style: const TextStyle(fontSize: 13)),
           ),
         ],
       ),
@@ -247,6 +253,7 @@ class _BatchActionBar extends StatelessWidget {
 
 class _ListHeader extends StatelessWidget {
   const _ListHeader({
+    required this.l10n,
     required this.sortMode,
     required this.onSortChanged,
     required this.expiryFilter,
@@ -257,6 +264,7 @@ class _ListHeader extends StatelessWidget {
     required this.onToggleArchived,
   });
 
+  final AppLocalizations l10n;
   final String sortMode;
   final ValueChanged<String> onSortChanged;
   final String expiryFilter;
@@ -283,20 +291,21 @@ class _ListHeader extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      typeName ?? 'All Assets',
+                      typeName ?? l10n.allAssets,
                       style: GoogleFonts.inter(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     Text(
-                      '$count items',
+                      l10n.itemsCount(count),
                       style: const TextStyle(color: kTextMuted, fontSize: 13),
                     ),
                   ],
                 ),
               ),
               _ExpiryFilterDropdown(
+                l10n: l10n,
                 value: expiryFilter,
                 onChanged: onExpiryFilterChanged,
               ),
@@ -310,13 +319,17 @@ class _ListHeader extends StatelessWidget {
                   size: 16,
                 ),
                 label: Text(
-                  showArchived ? 'Hide Archived' : 'Show Archived',
+                  showArchived ? l10n.hideArchived : l10n.showArchived,
                   style: const TextStyle(fontSize: 12),
                 ),
                 style: TextButton.styleFrom(foregroundColor: kTextMuted),
               ),
               const SizedBox(width: 8),
-              _SortDropdown(value: sortMode, onChanged: onSortChanged),
+              _SortDropdown(
+                l10n: l10n,
+                value: sortMode,
+                onChanged: onSortChanged,
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -327,18 +340,22 @@ class _ListHeader extends StatelessWidget {
 }
 
 class _ExpiryFilterDropdown extends StatelessWidget {
-  const _ExpiryFilterDropdown({required this.value, required this.onChanged});
+  const _ExpiryFilterDropdown({
+    required this.l10n,
+    required this.value,
+    required this.onChanged,
+  });
+  final AppLocalizations l10n;
   final String value;
   final ValueChanged<String> onChanged;
 
-  static const _labels = {
-    'all': 'All',
-    'expiring-soon': 'Expiring in 30d',
-    'expired': 'Expired',
-  };
-
   @override
   Widget build(BuildContext context) {
+    final labels = {
+      'all': l10n.filterAll,
+      'expiring-soon': l10n.filterExpiring30d,
+      'expired': l10n.filterExpired,
+    };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -357,7 +374,7 @@ class _ExpiryFilterDropdown extends StatelessWidget {
             size: 16,
             color: kTextMuted,
           ),
-          items: _labels.entries
+          items: labels.entries
               .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
               .toList(),
           onChanged: (v) => v != null ? onChanged(v) : null,
@@ -368,18 +385,22 @@ class _ExpiryFilterDropdown extends StatelessWidget {
 }
 
 class _SortDropdown extends StatelessWidget {
-  const _SortDropdown({required this.value, required this.onChanged});
+  const _SortDropdown({
+    required this.l10n,
+    required this.value,
+    required this.onChanged,
+  });
+  final AppLocalizations l10n;
   final String value;
   final ValueChanged<String> onChanged;
 
-  static const _labels = {
-    'added': 'Sort by: Added',
-    'name': 'Sort by: Name',
-    'expiry': 'Sort by: Expiry',
-  };
-
   @override
   Widget build(BuildContext context) {
+    final labels = {
+      'added': l10n.sortByAdded,
+      'name': l10n.sortByName,
+      'expiry': l10n.sortByExpiry,
+    };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -398,7 +419,7 @@ class _SortDropdown extends StatelessWidget {
             size: 16,
             color: kTextMuted,
           ),
-          items: _labels.entries
+          items: labels.entries
               .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
               .toList(),
           onChanged: (v) => v != null ? onChanged(v) : null,
@@ -503,9 +524,12 @@ class _AssetTile extends StatelessWidget {
                             color: kBorderColor,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text(
-                            'Archived',
-                            style: TextStyle(fontSize: 10, color: kTextMuted),
+                          child: Text(
+                            AppLocalizations.of(context)!.archived,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: kTextMuted,
+                            ),
                           ),
                         ),
                       ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../providers/assets_provider.dart';
 import '../views/splash_screen.dart';
@@ -161,7 +162,9 @@ class _EditAssetWrapper extends ConsumerWidget {
     final assets = ref.watch(assetsProvider);
     final asset = assets.where((a) => a.id == assetId).firstOrNull;
     if (asset == null) {
-      return const Scaffold(body: Center(child: Text('Asset not found')));
+      return Scaffold(
+        body: Center(child: Text(AppLocalizations.of(context)!.assetNotFound)),
+      );
     }
     return AssetFormScreen(editingAsset: asset);
   }
