@@ -5,30 +5,89 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../l10n/app_localizations.dart';
 import '../main.dart';
+import '../models/asset_type.dart';
 import '../providers/assets_provider.dart';
 import '../providers/asset_types_provider.dart';
 import '../providers/search_provider.dart';
 import '../utils/icon_helper.dart';
 
-class MainLayoutScreen extends ConsumerWidget {
+class MainLayoutScreen extends ConsumerStatefulWidget {
   const MainLayoutScreen({super.key, required this.child});
   final Widget child;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MainLayoutScreen> createState() => _MainLayoutScreenState();
+}
+
+class _MainLayoutScreenState extends ConsumerState<MainLayoutScreen> {
+  final GlobalKey _searchBoxKey = GlobalKey();
+  final GlobalKey _stackKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: Row(
         children: [
-          // ─── Sidebar ───────────────────────────────────────────────────────
           const _Sidebar(),
-          // ─── Main Content Area ─────────────────────────────────────────────
           Expanded(
-            child: Column(
+            key: _stackKey,
+            child: Stack(
+              clipBehavior: Clip.none,
               children: [
-                // ─── Global Top Bar ─────────────────────────────────────────
-                const _GlobalTopBar(),
-                // ─── Routed Content ─────────────────────────────────────────
-                Expanded(child: child),
+                Column(
+                  children: [
+                    _GlobalTopBar(searchBoxKey: _searchBoxKey),
+                    Expanded(child: widget.child),
+                  ],
+                ),
+                Consumer(
+                  builder: (context, ref, _) {
+                    if (!ref.watch(searchOverlayVisibleProvider)) {
+                      return const SizedBox.shrink();
+                    }
+                    final box =
+                        _searchBoxKey.currentContext?.findRenderObject()
+                            as RenderBox?;
+                    final stackBox =
+                        _stackKey.currentContext?.findRenderObject()
+                            as RenderBox?;
+                    if (box == null ||
+                        stackBox == null ||
+                        !box.hasSize ||
+                        !stackBox.hasSize) {
+                      return const SizedBox.shrink();
+                    }
+                    void close() {
+                      ref
+                          .read(searchOverlayVisibleProvider.notifier)
+                          .setVisible(false);
+                    }
+
+                    final localTopLeft = stackBox.globalToLocal(
+                      box.localToGlobal(Offset.zero),
+                    );
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Positioned.fill(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: close,
+                          ),
+                        ),
+                        Positioned(
+                          top: localTopLeft.dy + box.size.height + 4,
+                          left: localTopLeft.dx,
+                          width: box.size.width,
+                          child: _SearchDropdownOverlay(
+                            onClose: close,
+                            onTapItem: close,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -40,11 +99,70 @@ class MainLayoutScreen extends ConsumerWidget {
 
 // ─── Global Top Bar ──────────────────────────────────────────────────────────
 
-class _GlobalTopBar extends ConsumerWidget {
-  const _GlobalTopBar();
+class _GlobalTopBar extends ConsumerStatefulWidget {
+  const _GlobalTopBar({required this.searchBoxKey});
+  final GlobalKey searchBoxKey;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_GlobalTopBar> createState() => _GlobalTopBarState();
+}
+
+class _GlobalTopBarState extends ConsumerState<_GlobalTopBar> {
+  final FocusNode _searchFocus = FocusNode();
+  bool _unfocusingToShowOverlay = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchFocus.addListener(_onSearchFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _searchFocus.removeListener(_onSearchFocusChange);
+    _searchFocus.dispose();
+    super.dispose();
+  }
+
+  void _onSearchFocusChange() {
+    if (!_searchFocus.hasFocus) {
+      if (_unfocusingToShowOverlay) {
+        _unfocusingToShowOverlay = false;
+        return;
+      }
+      ref.read(searchOverlayVisibleProvider.notifier).setVisible(false);
+    } else {
+      _maybeShowSearchOverlay();
+    }
+  }
+
+  void _maybeShowSearchOverlay() {
+    final query = ref.read(searchQueryProvider).trim();
+    if (query.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _unfocusingToShowOverlay = true;
+      ref.read(searchOverlayVisibleProvider.notifier).setVisible(true);
+      // Unfocus so macOS routes pointer events to the dropdown, not the TextField (root cause of "cannot tap").
+      _searchFocus.unfocus();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(searchOverlayVisibleProvider, (prev, next) {
+      if (next == false && _searchFocus.hasFocus) {
+        _searchFocus.unfocus();
+      }
+    });
+    ref.listen<String>(searchQueryProvider, (_, query) {
+      if (!_searchFocus.hasFocus) return;
+      if (query.trim().isEmpty) {
+        ref.read(searchOverlayVisibleProvider.notifier).setVisible(false);
+      } else {
+        _maybeShowSearchOverlay();
+      }
+    });
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: const BoxDecoration(
@@ -53,8 +171,8 @@ class _GlobalTopBar extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          // Search Field
           Expanded(
+            key: widget.searchBoxKey,
             child: Container(
               height: 40,
               decoration: BoxDecoration(
@@ -63,9 +181,13 @@ class _GlobalTopBar extends ConsumerWidget {
                 border: Border.all(color: kBorderColor),
               ),
               child: TextField(
+                focusNode: _searchFocus,
                 style: const TextStyle(fontSize: 14),
                 onChanged: (val) {
                   ref.read(searchQueryProvider.notifier).updateQuery(val);
+                  if (_searchFocus.hasFocus && val.trim().isNotEmpty) {
+                    _maybeShowSearchOverlay();
+                  }
                 },
                 decoration: InputDecoration(
                   hintText: AppLocalizations.of(context)!.searchHint,
@@ -83,7 +205,6 @@ class _GlobalTopBar extends ConsumerWidget {
           const SizedBox(width: 24),
           _NotificationBell(),
           const SizedBox(width: 16),
-          // Add Asset Button (pass type when on category page)
           FilledButton.icon(
             onPressed: () {
               final location = GoRouterState.of(context).matchedLocation;
@@ -112,6 +233,145 @@ class _GlobalTopBar extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SearchDropdownOverlay extends ConsumerWidget {
+  const _SearchDropdownOverlay({
+    required this.onClose,
+    required this.onTapItem,
+  });
+
+  final VoidCallback onClose;
+  final VoidCallback onTapItem;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final suggestions = ref.watch(searchSuggestionsProvider);
+    final total = ref.watch(searchSuggestionsTotalCountProvider);
+    final categoryIds = ref.watch(searchMatchingCategoryIdsProvider);
+    final assetTypes = ref.watch(assetTypesProvider);
+    final l10n = AppLocalizations.of(context)!;
+
+    return Material(
+      elevation: 8,
+      borderRadius: BorderRadius.circular(12),
+      color: kSurfaceColor,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 320),
+          child: ListView(
+            /// Use primary: false so the list doesn't take focus; improves desktop tap delivery.
+            primary: false,
+            shrinkWrap: true,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            children: [
+              if (suggestions.isEmpty && categoryIds.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                  child: Text(
+                    l10n.noMatchesFound,
+                    style: const TextStyle(fontSize: 13, color: kTextMuted),
+                  ),
+                )
+              else ...[
+                ...categoryIds.take(3).map((id) {
+                  AssetType? type;
+                  try {
+                    type = assetTypes.firstWhere((t) => t.id == id);
+                  } catch (_) {
+                    type = null;
+                  }
+                  if (type == null) return const SizedBox.shrink();
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      context.go('/category/$id');
+                      onTapItem();
+                    },
+                    child: ListTile(
+                      dense: true,
+                      leading: Icon(
+                        getIconData(type.icon),
+                        size: 20,
+                        color: getTypeColor(type.id),
+                      ),
+                      title: Text(
+                        type.name,
+                        style: GoogleFonts.inter(fontSize: 13),
+                      ),
+                      subtitle: Text(
+                        l10n.categories,
+                        style: const TextStyle(fontSize: 11, color: kTextMuted),
+                      ),
+                    ),
+                  );
+                }),
+                if (categoryIds.isNotEmpty && suggestions.isNotEmpty)
+                  const Divider(height: 1),
+                ...suggestions.map((asset) {
+                  final type = assetTypes.firstWhere(
+                    (t) => t.id == asset.typeId,
+                    orElse: () => assetTypes.first,
+                  );
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      context.go('/asset/${asset.id}');
+                      onTapItem();
+                    },
+                    child: ListTile(
+                      dense: true,
+                      leading: Icon(
+                        getIconData(type.icon),
+                        size: 20,
+                        color: getTypeColor(type.id),
+                      ),
+                      title: Text(
+                        asset.name,
+                        style: GoogleFonts.inter(fontSize: 13),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  );
+                }),
+                if (total > suggestions.length) ...[
+                  const Divider(height: 1),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      context.go('/all-assets');
+                      onTapItem();
+                    },
+                    child: ListTile(
+                      dense: true,
+                      leading: const Icon(
+                        Icons.list,
+                        size: 20,
+                        color: kTextMuted,
+                      ),
+                      title: Text(
+                        l10n.searchViewAllResults(total),
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: kPrimaryGreen,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

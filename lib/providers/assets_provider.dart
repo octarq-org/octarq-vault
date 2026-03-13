@@ -388,7 +388,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
   }
 
   Future<void> _triggerSync() async {
-    final syncMethod = ref.read(syncSettingsProvider);
+    final methods = ref.read(syncSettingsProvider);
     final customTypes = ref
         .read(assetTypesProvider)
         .where((t) => !t.isBuiltIn)
@@ -400,29 +400,33 @@ class AssetsNotifier extends Notifier<List<Asset>> {
         customAssetTypes: customTypes,
       );
       await ref.read(webVaultStorageProvider).writeEncrypted(blob);
-      if (syncMethod == SyncMethod.localFile) {
-        final localSync = ref.read(localFileSyncServiceProvider);
-        if (localSync.hasActiveHandle) {
-          await localSync.syncToLocal(state, customAssetTypes: customTypes);
-        }
-      } else if (syncMethod == SyncMethod.googleDrive) {
-        final drive = ref.read(googleDriveServiceProvider);
-        final hasCreds = await drive.hasCredentials();
-        if (hasCreds) {
-          await drive.syncToDrive(state, customAssetTypes: customTypes);
+      for (final syncMethod in methods) {
+        if (syncMethod == SyncMethod.localFile) {
+          final localSync = ref.read(localFileSyncServiceProvider);
+          if (localSync.hasActiveHandle) {
+            await localSync.syncToLocal(state, customAssetTypes: customTypes);
+          }
+        } else if (syncMethod == SyncMethod.googleDrive) {
+          final drive = ref.read(googleDriveServiceProvider);
+          final hasCreds = await drive.hasCredentials();
+          if (hasCreds) {
+            await drive.syncToDrive(state, customAssetTypes: customTypes);
+          }
         }
       }
     } else {
-      if (syncMethod == SyncMethod.webdav) {
-        final webDav = ref.read(webDavServiceProvider);
-        final hasCreds = await webDav.hasCredentials();
-        if (hasCreds) {
-          final syncService = ref.read(e2eeSyncServiceProvider);
-          final blob = syncService.packSnapshotTOCiphertext(
-            state,
-            customAssetTypes: customTypes,
-          );
-          await webDav.backupEncrypted(blob);
+      for (final syncMethod in methods) {
+        if (syncMethod == SyncMethod.webdav) {
+          final webDav = ref.read(webDavServiceProvider);
+          final hasCreds = await webDav.hasCredentials();
+          if (hasCreds) {
+            final syncService = ref.read(e2eeSyncServiceProvider);
+            final blob = syncService.packSnapshotTOCiphertext(
+              state,
+              customAssetTypes: customTypes,
+            );
+            await webDav.backupEncrypted(blob);
+          }
         }
       }
     }

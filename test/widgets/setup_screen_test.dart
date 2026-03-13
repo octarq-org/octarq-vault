@@ -2,8 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:asset_vault/l10n/app_localizations.dart';
 import 'package:asset_vault/providers/auth_provider.dart';
 import 'package:asset_vault/views/setup_screen.dart';
+
+Widget wrapSetupScreen(Widget child) {
+  return MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    locale: const Locale('en'),
+    home: child,
+  );
+}
 
 // A simple test wrapper that provides a mock auth state
 class MockAuthNotifier extends AuthNotifier {
@@ -36,7 +46,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [authProvider.overrideWith(() => MockAuthNotifier())],
-          child: const MaterialApp(home: SetupScreen()),
+          child: wrapSetupScreen(const SetupScreen()),
         ),
       );
 
@@ -50,7 +60,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [authProvider.overrideWith(() => MockAuthNotifier())],
-          child: const MaterialApp(home: SetupScreen()),
+          child: wrapSetupScreen(const SetupScreen()),
         ),
       );
 
@@ -73,7 +83,7 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [authProvider.overrideWith(() => MockAuthNotifier())],
-          child: const MaterialApp(home: SetupScreen()),
+          child: wrapSetupScreen(const SetupScreen()),
         ),
       );
 
@@ -106,7 +116,7 @@ void main() {
               ),
             ),
           ],
-          child: const MaterialApp(home: SetupScreen()),
+          child: wrapSetupScreen(const SetupScreen()),
         ),
       );
 

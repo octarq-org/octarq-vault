@@ -434,41 +434,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _showSyncMethodPicker() {
-    final current = ref.read(syncSettingsProvider);
     final options = [
-      SyncMethod.none,
       SyncMethod.webdav,
-      if (kIsWeb) SyncMethod.googleDrive,
-      if (kIsWeb) SyncMethod.localFile,
+      SyncMethod.googleDrive,
+      SyncMethod.localFile,
     ];
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDlgState) => AlertDialog(
-          backgroundColor: kSurfaceColor,
-          title: Text(AppLocalizations.of(ctx)!.syncMethod),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: options.map((m) {
-              final isSelected = current == m;
-              return ListTile(
-                title: Text(_syncMethodLabel(AppLocalizations.of(ctx)!, m)),
-                leading: Icon(
-                  isSelected
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_unchecked,
-                  color: isSelected ? kPrimaryGreen : kTextMuted,
-                ),
-                onTap: () async {
-                  await ref
-                      .read(syncSettingsProvider.notifier)
-                      .setSyncMethod(m);
-                  if (ctx.mounted) Navigator.pop(ctx);
-                },
-              );
-            }).toList(),
-          ),
-        ),
+      builder: (ctx) => Consumer(
+        builder: (context, ref, _) {
+          final current = ref.watch(syncSettingsProvider);
+          final l10n = AppLocalizations.of(ctx)!;
+          return AlertDialog(
+            backgroundColor: kSurfaceColor,
+            title: Text(l10n.syncMethod),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: options
+                  .map(
+                    (m) => CheckboxListTile(
+                      value: current.contains(m),
+                      onChanged: (_) => ref
+                          .read(syncSettingsProvider.notifier)
+                          .toggleSyncMethod(m),
+                      title: Text(_syncMethodLabel(l10n, m)),
+                      activeColor: kPrimaryGreen,
+                      controlAffinity: ListTileControlAffinity.leading,
+                    ),
+                  )
+                  .toList(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(l10n.ok),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -484,6 +487,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       case SyncMethod.localFile:
         return l10n.syncMethodLocalFile;
     }
+  }
+
+  static String _syncMethodsSubtitle(
+    AppLocalizations l10n,
+    List<SyncMethod> methods,
+  ) {
+    if (methods.isEmpty) return l10n.syncMethodNone;
+    return methods.map((m) => _syncMethodLabel(l10n, m)).join('、');
   }
 
   Future<void> _openUrl(String url) async {
@@ -584,7 +595,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final autoLockMinutes = ref.watch(autoLockMinutesProvider);
-    final syncMethod = ref.watch(syncSettingsProvider);
+    final syncMethods = ref.watch(syncSettingsProvider);
     final localeOverride = ref.watch(localePreferenceProvider);
 
     return Scaffold(
@@ -630,7 +641,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.sync),
             title: Text(l10n.syncMethod),
-            subtitle: Text(_syncMethodLabel(l10n, syncMethod)),
+            subtitle: Text(_syncMethodsSubtitle(l10n, syncMethods)),
             trailing: const Icon(Icons.chevron_right),
             onTap: _showSyncMethodPicker,
           ),

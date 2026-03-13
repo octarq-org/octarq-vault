@@ -28,5 +28,19 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<!-- Google Sign-In: must match GIDClientID (reversed client id as URL scheme) -->
+	<key>GIDClientID</key>
+	<string>157306094891-6ger9q6an5ufar5lqj7pmobpemjsaftO.apps.googleusercontent.com</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.157306094891-6ger9q6an5ufar5lqj7pmobpemjsaftO</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

@@ -34,6 +34,13 @@
   "syncMethodLocalFile": "Local file (browser)",
   "webdavDriveLocalFile": "WebDAV / Drive / Local file",
   "configureCredentialsAndLinkFiles": "Configure credentials and link files",
+  "configureSyncMethodNone": "Select a sync method above first",
+  "configureSyncMethod": "Configure {method}",
+  "@configureSyncMethod": {
+    "placeholders": {
+      "method": {"type": "String"}
+    }
+  },
   "exportSyncSettings": "Export sync settings",
   "exportSyncSettingsSubtitle": "Copy sync method to clipboard (JSON)",
   "importSyncSettings": "Import sync settings",
@@ -93,6 +100,12 @@
   "estMonthlyCost": "Est. Monthly Cost",
   "actionRequired": "ACTION REQUIRED",
   "viewAll": "View all →",
+  "searchViewAllResults": "View all {count} results",
+  "@searchViewAllResults": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "recentlyAdded": "RECENTLY ADDED",
   "expiringSoon": "Expiring soon",
   "noAssetsYet": "No assets yet",

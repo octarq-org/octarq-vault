@@ -85,6 +85,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get configureCredentialsAndLinkFiles => '配置凭据与关联文件';
 
   @override
+  String get configureSyncMethodNone => '请先在上方选择同步方式';
+
+  @override
+  String configureSyncMethod(String method) {
+    return '配置 $method';
+  }
+
+  @override
   String get exportSyncSettings => '导出同步设置';
 
   @override
@@ -244,6 +252,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get viewAll => '查看全部 →';
+
+  @override
+  String searchViewAllResults(int count) {
+    return '查看全部 $count 条结果';
+  }
 
   @override
   String get recentlyAdded => '最近添加';

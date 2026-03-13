@@ -24,6 +24,13 @@
   "syncMethodLocalFile": "本地文件（浏览器）",
   "webdavDriveLocalFile": "WebDAV / 云端硬盘 / 本地文件",
   "configureCredentialsAndLinkFiles": "配置凭据与关联文件",
+  "configureSyncMethodNone": "请先在上方选择同步方式",
+  "configureSyncMethod": "配置 {method}",
+  "@configureSyncMethod": {
+    "placeholders": {
+      "method": {"type": "String"}
+    }
+  },
   "exportSyncSettings": "导出同步设置",
   "exportSyncSettingsSubtitle": "将同步方式复制到剪贴板 (JSON)",
   "importSyncSettings": "导入同步设置",
@@ -77,6 +84,12 @@
   "estMonthlyCost": "预估月费用",
   "actionRequired": "需要处理",
   "viewAll": "查看全部 →",
+  "searchViewAllResults": "查看全部 {count} 条结果",
+  "@searchViewAllResults": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "recentlyAdded": "最近添加",
   "expiringSoon": "即将到期",
   "noAssetsYet": "暂无资产",

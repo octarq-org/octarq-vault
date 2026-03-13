@@ -242,6 +242,18 @@ abstract class AppLocalizations {
   /// **'Configure credentials and link files'**
   String get configureCredentialsAndLinkFiles;
 
+  /// No description provided for @configureSyncMethodNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a sync method above first'**
+  String get configureSyncMethodNone;
+
+  /// No description provided for @configureSyncMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure {method}'**
+  String configureSyncMethod(String method);
+
   /// No description provided for @exportSyncSettings.
   ///
   /// In en, this message translates to:
@@ -559,6 +571,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View all →'**
   String get viewAll;
+
+  /// No description provided for @searchViewAllResults.
+  ///
+  /// In en, this message translates to:
+  /// **'View all {count} results'**
+  String searchViewAllResults(int count);
 
   /// No description provided for @recentlyAdded.
   ///

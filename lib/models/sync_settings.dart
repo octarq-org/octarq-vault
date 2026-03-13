@@ -19,23 +19,37 @@ extension SyncMethodX on SyncMethod {
       orElse: () => SyncMethod.none,
     );
   }
+
+  static List<SyncMethod> listFromStrings(List<dynamic>? list) {
+    if (list == null || list.isEmpty) return [];
+    return list
+        .map((e) => fromString(e is String ? e : e?.toString()))
+        .where((m) => m != SyncMethod.none)
+        .toSet()
+        .toList();
+  }
 }
 
 /// Sync settings stored in SharedPreferences (export/import as JSON, no secrets).
 class SyncSettingsExport {
-  final String syncMethod;
+  final List<String> syncMethods;
   final String? webdavUrl; // no password/username in export
 
-  const SyncSettingsExport({required this.syncMethod, this.webdavUrl});
+  const SyncSettingsExport({required this.syncMethods, this.webdavUrl});
 
   Map<String, dynamic> toJson() => {
-    'syncMethod': syncMethod,
+    'syncMethods': syncMethods,
     'webdavUrl': webdavUrl,
   };
 
   factory SyncSettingsExport.fromJson(Map<String, dynamic> json) {
+    final methods = json['syncMethods'];
     return SyncSettingsExport(
-      syncMethod: json['syncMethod'] as String? ?? 'none',
+      syncMethods: methods is List
+          ? List<String>.from(methods.map((e) => e.toString()))
+          : (json['syncMethod'] != null
+                ? [json['syncMethod'] as String]
+                : <String>[]),
       webdavUrl: json['webdavUrl'] as String?,
     );
   }

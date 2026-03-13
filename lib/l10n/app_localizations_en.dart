@@ -86,6 +86,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Configure credentials and link files';
 
   @override
+  String get configureSyncMethodNone => 'Select a sync method above first';
+
+  @override
+  String configureSyncMethod(String method) {
+    return 'Configure $method';
+  }
+
+  @override
   String get exportSyncSettings => 'Export sync settings';
 
   @override
@@ -248,6 +256,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewAll => 'View all →';
+
+  @override
+  String searchViewAllResults(int count) {
+    return 'View all $count results';
+  }
 
   @override
   String get recentlyAdded => 'RECENTLY ADDED';

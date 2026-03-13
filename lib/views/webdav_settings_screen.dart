@@ -9,6 +9,7 @@ import '../services/webdav_service.dart';
 import '../services/e2ee_sync_service.dart';
 import '../services/local_file_sync_service.dart';
 import '../services/google_drive_service.dart';
+import '../services/enc_file_io.dart';
 import '../providers/assets_provider.dart';
 import '../providers/asset_types_provider.dart';
 import '../widgets/google_sign_in_button.dart';
@@ -37,7 +38,7 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
   void initState() {
     super.initState();
     _checkStatus();
-    if (kIsWeb) _initWebSignIn();
+    _initWebSignIn();
   }
 
   Future<void> _initWebSignIn() async {
@@ -208,40 +209,47 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) {
-      return _buildWebSyncUI(context);
-    }
-    return _buildWebDavUI(context);
+    return _buildUnifiedSyncUI(context);
   }
 
-  Widget _buildWebDavUI(BuildContext context) {
+  Widget _buildUnifiedSyncUI(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.webdavBackup)),
+      appBar: AppBar(title: Text(l10n.e2eeWebSync)),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
               padding: const EdgeInsets.all(16.0),
-              child: _isConnected
-                  ? Column(
+              child: ListView(
+                children: [
+                  // ─── WebDAV ─────────────────────────────────────────────
+                  Text(
+                    l10n.webdavBackup,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (_isConnected)
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(
                           Icons.cloud_done,
-                          size: 80,
+                          size: 64,
                           color: Colors.green,
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
                         Text(
                           l10n.webdavConnected,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                            fontSize: 24,
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 24),
                         ElevatedButton.icon(
                           onPressed: _backup,
                           icon: const Icon(Icons.cloud_upload),
@@ -250,7 +258,7 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
                             padding: const EdgeInsets.all(16),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 8),
                         OutlinedButton.icon(
                           onPressed: _restore,
                           icon: const Icon(Icons.cloud_download),
@@ -259,7 +267,6 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
                             padding: const EdgeInsets.all(16),
                           ),
                         ),
-                        const Spacer(),
                         TextButton(
                           onPressed: _disconnect,
                           style: TextButton.styleFrom(
@@ -269,7 +276,8 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
                         ),
                       ],
                     )
-                  : Form(
+                  else
+                    Form(
                       key: _formKey,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -310,7 +318,7 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
                                 ? l10n.required
                                 : null,
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 24),
                           ElevatedButton(
                             onPressed: _connect,
                             style: ElevatedButton.styleFrom(
@@ -321,20 +329,8 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
                         ],
                       ),
                     ),
-            ),
-    );
-  }
-
-  Widget _buildWebSyncUI(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.e2eeWebSync)),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ListView(
-                children: [
+                  const Divider(height: 48),
+                  // ─── 本地磁盘同步 ───────────────────────────────────────
                   Text(
                     l10n.localDiskSyncE2ee,
                     style: const TextStyle(
@@ -376,6 +372,7 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
                     ],
                   ),
                   const Divider(height: 48),
+                  // ─── Google 云端硬盘 ─────────────────────────────────────
                   Text(
                     l10n.googleDriveSyncE2ee,
                     style: const TextStyle(
@@ -470,20 +467,40 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
   Future<void> _handleLocalImportFallback() async {
     setState(() => _isLoading = true);
     try {
-      final localSync = ref.read(localFileSyncServiceProvider);
-      final snapshot = await localSync.importFromUpload();
-      if (snapshot != null) {
-        await ref.read(assetsProvider.notifier).replaceFromSnapshot(snapshot);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.of(
-                  context,
-                )!.importSuccessCount(snapshot.assets.length),
+      if (kIsWeb) {
+        final localSync = ref.read(localFileSyncServiceProvider);
+        final snapshot = await localSync.importFromUpload();
+        if (snapshot != null) {
+          await ref.read(assetsProvider.notifier).replaceFromSnapshot(snapshot);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  AppLocalizations.of(
+                    context,
+                  )!.importSuccessCount(snapshot.assets.length),
+                ),
               ),
-            ),
-          );
+            );
+          }
+        }
+      } else {
+        final bytes = await pickEncFileBytes(ref);
+        if (bytes != null && bytes.isNotEmpty && mounted) {
+          final syncService = ref.read(e2eeSyncServiceProvider);
+          final snapshot = syncService.unpackCiphertextToSnapshot(bytes);
+          await ref.read(assetsProvider.notifier).replaceFromSnapshot(snapshot);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  AppLocalizations.of(
+                    context,
+                  )!.importSuccessCount(snapshot.assets.length),
+                ),
+              ),
+            );
+          }
         }
       }
     } catch (e) {
@@ -501,9 +518,20 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
     }
   }
 
-  void _handleLocalExportFallback() {
-    final localSync = ref.read(localFileSyncServiceProvider);
-    localSync.exportToDownload(ref.read(assetsProvider));
+  Future<void> _handleLocalExportFallback() async {
+    if (kIsWeb) {
+      final localSync = ref.read(localFileSyncServiceProvider);
+      localSync.exportToDownload(ref.read(assetsProvider));
+    } else {
+      await exportEncToFile(ref);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.exportEncFileSubtitle),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _handleGoogleDriveSignInAndSync() async {
