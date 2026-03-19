@@ -42,20 +42,42 @@ class OctarqVaultApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
 
+    final modKey = defaultTargetPlatform == TargetPlatform.macOS
+        ? LogicalKeyboardKey.meta
+        : LogicalKeyboardKey.control;
+
     return Shortcuts(
       shortcuts: <LogicalKeySet, Intent>{
-        LogicalKeySet(
-          defaultTargetPlatform == TargetPlatform.macOS
-              ? LogicalKeyboardKey.meta
-              : LogicalKeyboardKey.control,
-          LogicalKeyboardKey.keyN,
-        ): const AddAssetIntent(),
+        LogicalKeySet(modKey, LogicalKeyboardKey.keyN): const AddAssetIntent(),
+        LogicalKeySet(modKey, LogicalKeyboardKey.comma):
+            const OpenSettingsIntent(),
+        LogicalKeySet(modKey, LogicalKeyboardKey.keyF):
+            const FocusSearchIntent(),
+        LogicalKeySet(modKey, LogicalKeyboardKey.keyL): const LockVaultIntent(),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
           AddAssetIntent: CallbackAction<AddAssetIntent>(
             onInvoke: (intent) {
               router.go('/add-asset');
+              return null;
+            },
+          ),
+          OpenSettingsIntent: CallbackAction<OpenSettingsIntent>(
+            onInvoke: (intent) {
+              router.go('/settings');
+              return null;
+            },
+          ),
+          FocusSearchIntent: CallbackAction<FocusSearchIntent>(
+            onInvoke: (intent) {
+              router.go('/all-assets');
+              return null;
+            },
+          ),
+          LockVaultIntent: CallbackAction<LockVaultIntent>(
+            onInvoke: (intent) {
+              router.go('/lock');
               return null;
             },
           ),
@@ -174,4 +196,16 @@ ThemeData _buildDarkTheme() {
 class AddAssetIntent extends Intent {
   const AddAssetIntent();
   static const String id = 'AddAssetIntent';
+}
+
+class OpenSettingsIntent extends Intent {
+  const OpenSettingsIntent();
+}
+
+class FocusSearchIntent extends Intent {
+  const FocusSearchIntent();
+}
+
+class LockVaultIntent extends Intent {
+  const LockVaultIntent();
 }

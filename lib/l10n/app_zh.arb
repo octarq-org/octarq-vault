@@ -255,5 +255,26 @@
   "notificationAssetExpiringTitle": "资产即将到期",
   "notificationAssetExpiringBody": "{name} 将在 {days} 天后到期。",
   "notificationChannelName": "资产到期",
-  "notificationChannelDescription": "即将到期资产的通知"
+  "notificationChannelDescription": "即将到期资产的通知",
+  "webSecurityTitle": "Web 安全提示",
+  "webSecurityBody": "在 Web 端，加密密钥存储于浏览器的 localStorage 和 IndexedDB，而非 iOS Keychain / Android Keystore 等硬件安全区。如需更高安全性，请使用手机或桌面原生应用。",
+  "webSecurityLearnMore": "了解更多",
+  "webdavCorsWarning": "CORS 提示：大多数 WebDAV 服务器会阻止浏览器的跨域请求。请使用已开启 CORS 的服务器（如配置正确的 Nextcloud），或通过桌面/移动应用使用 WebDAV 同步。",
+  "driveSmartMergeSuccess": "已合并：本地 {local} 个 + 远端 {remote} 个资产（LWW）",
+  "@driveSmartMergeSuccess": {
+    "placeholders": {
+      "local": {"type": "int"},
+      "remote": {"type": "int"}
+    }
+  },
+  "icloudBackup": "iCloud 备份",
+  "icloudBackupSubtitle": "将加密保险库同步到 iCloud Drive（仅 iOS）",
+  "icloudBackupSuccess": "iCloud 备份成功！",
+  "icloudRestoreSuccess": "已从 iCloud 恢复 {count} 个资产",
+  "@icloudRestoreSuccess": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "icloudNotAvailable": "此设备上 iCloud 不可用。"
 }

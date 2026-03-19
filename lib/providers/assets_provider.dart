@@ -14,6 +14,7 @@ import 'service_providers.dart';
 import '../models/sync_settings.dart';
 import 'sync_settings_provider.dart';
 import 'asset_types_provider.dart';
+import 'relations_provider.dart';
 
 class AssetsNotifier extends Notifier<List<Asset>> {
   @override
@@ -27,13 +28,54 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       try {
         final storage = ref.read(webVaultStorageProvider);
         final blob = await storage.readEncrypted();
-        if (blob == null || blob.isEmpty) return;
         final syncService = ref.read(e2eeSyncServiceProvider);
-        final snapshot = syncService.unpackCiphertextToSnapshot(blob);
-        state = snapshot.assets;
+
+        VaultSnapshot? localSnapshot;
+        if (blob != null && blob.isNotEmpty) {
+          try {
+            localSnapshot = syncService.unpackCiphertextToSnapshot(blob);
+          } catch (_) {}
+        }
+
+        // Attempt cold-start pull from Google Drive and LWW-merge with local.
+        final methods = ref.read(syncSettingsProvider);
+        if (methods.contains(SyncMethod.googleDrive)) {
+          try {
+            final drive = ref.read(googleDriveServiceProvider);
+            final hasCreds = await drive.hasCredentials();
+            if (hasCreds) {
+              final remoteBlob = await drive.readRawBytesFromDrive();
+              if (remoteBlob != null && remoteBlob.isNotEmpty) {
+                final remoteSnapshot = syncService.unpackCiphertextToSnapshot(
+                  remoteBlob,
+                );
+                if (localSnapshot == null) {
+                  localSnapshot = remoteSnapshot;
+                } else {
+                  localSnapshot = VaultSnapshot.mergeSnapshots(
+                    local: localSnapshot,
+                    remote: remoteSnapshot,
+                  );
+                  // Persist merged blob back to IndexedDB
+                  final mergedBlob = syncService.packSnapshotTOCiphertext(
+                    localSnapshot.assets,
+                    customAssetTypes: localSnapshot.customAssetTypes,
+                    relations: localSnapshot.relations,
+                  );
+                  await storage.writeEncrypted(mergedBlob);
+                }
+              }
+            }
+          } catch (e) {
+            if (kDebugMode) print('loadAssets(web) Drive pull: $e');
+          }
+        }
+
+        if (localSnapshot == null) return;
+        state = localSnapshot.assets;
         await ref
             .read(assetTypesProvider.notifier)
-            .setCustomTypesFromSnapshot(snapshot.customAssetTypes);
+            .setCustomTypesFromSnapshot(localSnapshot.customAssetTypes);
       } catch (e) {
         if (kDebugMode) {
           print('loadAssets(web): $e');
@@ -351,12 +393,23 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       await db.delete('assets');
       await dbService.deleteAllTags();
       await dbService.deleteAllAssetTypes();
+      await dbService.deleteAllRelations();
       for (final a in snapshot.assets) {
         await _insertOneAssetRaw(db, a);
+      }
+      // Restore relations
+      for (final r in snapshot.relations) {
+        if (r['id'] != null &&
+            r['from_asset_id'] != null &&
+            r['to_asset_id'] != null &&
+            r['relation_type'] != null) {
+          await dbService.insertRelation(r);
+        }
       }
       await ref
           .read(assetTypesProvider.notifier)
           .setCustomTypesFromSnapshot(snapshot.customAssetTypes);
+      ref.invalidate(assetRelationsProvider);
     }
     await _triggerSync();
   }
@@ -393,11 +446,21 @@ class AssetsNotifier extends Notifier<List<Asset>> {
         .read(assetTypesProvider)
         .where((t) => !t.isBuiltIn)
         .toList();
+
+    // Fetch current relations for native platforms.
+    List<Map<String, dynamic>> relations = [];
+    if (!kIsWeb) {
+      try {
+        relations = await ref.read(databaseServiceProvider).getAllRelations();
+      } catch (_) {}
+    }
+
     if (kIsWeb) {
       final syncService = ref.read(e2eeSyncServiceProvider);
       final blob = syncService.packSnapshotTOCiphertext(
         state,
         customAssetTypes: customTypes,
+        relations: relations,
       );
       await ref.read(webVaultStorageProvider).writeEncrypted(blob);
       for (final syncMethod in methods) {
@@ -407,10 +470,14 @@ class AssetsNotifier extends Notifier<List<Asset>> {
             await localSync.syncToLocal(state, customAssetTypes: customTypes);
           }
         } else if (syncMethod == SyncMethod.googleDrive) {
-          final drive = ref.read(googleDriveServiceProvider);
-          final hasCreds = await drive.hasCredentials();
+          final driveService = ref.read(googleDriveServiceProvider);
+          final hasCreds = await driveService.hasCredentials();
           if (hasCreds) {
-            await drive.syncToDrive(state, customAssetTypes: customTypes);
+            await driveService.syncToDrive(
+              state,
+              customAssetTypes: customTypes,
+              relations: relations,
+            );
           }
         }
       }
@@ -424,8 +491,20 @@ class AssetsNotifier extends Notifier<List<Asset>> {
             final blob = syncService.packSnapshotTOCiphertext(
               state,
               customAssetTypes: customTypes,
+              relations: relations,
             );
             await webDav.backupEncrypted(blob);
+          }
+        } else if (syncMethod == SyncMethod.icloud) {
+          final icloud = ref.read(iCloudSyncServiceProvider);
+          if (icloud.isSupported) {
+            final syncService = ref.read(e2eeSyncServiceProvider);
+            final blob = syncService.packSnapshotTOCiphertext(
+              state,
+              customAssetTypes: customTypes,
+              relations: relations,
+            );
+            await icloud.backup(blob);
           }
         }
       }

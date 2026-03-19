@@ -87,9 +87,5 @@ flutter build web
 ```
 Output: `build/web/` — deploy to any static host (Vercel, NGINX, etc.)
 
-## Roadmap
-
-See **[docs/linear.md](docs/linear.md)** (relations in sync payload, Drive pull/merge on Web, desktop UX, tests, etc.).
-
 ## License
 MIT License. All rights reserved.

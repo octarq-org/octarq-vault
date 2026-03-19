@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:googleapis_auth/googleapis_auth.dart' as gauth;
+import 'package:http/http.dart' as http;
 
 import 'e2ee_sync_service.dart';
 import '../models/asset.dart';
@@ -10,8 +12,6 @@ import '../models/asset_type.dart';
 final googleDriveServiceProvider = Provider<GoogleDriveService>((ref) {
   return GoogleDriveService(ref.read(e2eeSyncServiceProvider));
 });
-
-// (Custom GoogleAuthClient removed in favor of official extension)
 
 class GoogleDriveService {
   static const String _backupFileName = 'asset_vault.enc';
@@ -79,14 +79,43 @@ class GoogleDriveService {
   }
 
   Future<drive.DriveApi?> _getDriveApi() async {
-    final account = await currentUser;
-    if (account == null) return null;
+    await _ensureInitialized();
+    try {
+      // Ensure user is authenticated and has granted Drive scope.
+      GoogleSignInAccount? account;
+      try {
+        account = await GoogleSignIn.instance.attemptLightweightAuthentication(
+          reportAllExceptions: false,
+        );
+      } catch (_) {}
+      account ??= await GoogleSignIn.instance.authenticate(scopeHint: _scopes);
 
-    // final authz = await account.authorizationClient.authorizeScopes(_scopes);
-    // final authClient = authz.authClient(scopes: _scopes);
+      // Authorize Drive-specific scopes and obtain an access token.
+      final tokenData = await account.authorizationClient.authorizeScopes(
+        _scopes,
+      );
+      final accessToken = tokenData.accessToken;
+      if (accessToken.isEmpty) {
+        throw Exception('Empty access token returned from Google Sign-In.');
+      }
 
-    // return drive.DriveApi(authClient);
-    return null;
+      // Build a non-refreshing auth client (valid ~1 h). For long-running
+      // sessions the user may need to re-authenticate.
+      final credentials = gauth.AccessCredentials(
+        gauth.AccessToken(
+          'Bearer',
+          accessToken,
+          DateTime.now().toUtc().add(const Duration(hours: 1)),
+        ),
+        null, // no refresh token available via google_sign_in
+        _scopes,
+      );
+      final authClient = gauth.authenticatedClient(http.Client(), credentials);
+      return drive.DriveApi(authClient);
+    } catch (e) {
+      if (kDebugMode) print('Drive API auth error: $e');
+      return null;
+    }
   }
 
   /// Locate the backup file in appDataFolder
@@ -107,6 +136,7 @@ class GoogleDriveService {
   Future<void> syncToDrive(
     List<Asset> assets, {
     List<AssetType> customAssetTypes = const [],
+    List<Map<String, dynamic>> relations = const [],
   }) async {
     final api = await _getDriveApi();
     if (api == null) throw Exception('Not signed in to Google Drive');
@@ -114,6 +144,7 @@ class GoogleDriveService {
     final encryptedBlob = _syncService.packSnapshotTOCiphertext(
       assets,
       customAssetTypes: customAssetTypes,
+      relations: relations,
     );
 
     final media = drive.Media(

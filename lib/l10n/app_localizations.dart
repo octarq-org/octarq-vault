@@ -1567,6 +1567,46 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notifications for expiring assets'**
   String get notificationChannelDescription;
+
+  /// In en, this message translates to:
+  /// **'Web Security Notice'**
+  String get webSecurityTitle;
+
+  /// In en, this message translates to:
+  /// **'On the web, encryption keys are stored in the browser's localStorage...'**
+  String get webSecurityBody;
+
+  /// In en, this message translates to:
+  /// **'Learn more'**
+  String get webSecurityLearnMore;
+
+  /// In en, this message translates to:
+  /// **'CORS notice: Most WebDAV servers block direct browser requests...'**
+  String get webdavCorsWarning;
+
+  /// In en, this message translates to:
+  /// **'Merged {local} local + {remote} remote assets (LWW)'**
+  String driveSmartMergeSuccess(int local, int remote);
+
+  /// In en, this message translates to:
+  /// **'iCloud Backup'**
+  String get icloudBackup;
+
+  /// In en, this message translates to:
+  /// **'Sync encrypted vault to iCloud Drive (iOS only)'**
+  String get icloudBackupSubtitle;
+
+  /// In en, this message translates to:
+  /// **'iCloud backup successful!'**
+  String get icloudBackupSuccess;
+
+  /// In en, this message translates to:
+  /// **'Restored {count} assets from iCloud'**
+  String icloudRestoreSuccess(int count);
+
+  /// In en, this message translates to:
+  /// **'iCloud is not available on this device.'**
+  String get icloudNotAvailable;
 }
 
 class _AppLocalizationsDelegate

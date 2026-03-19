@@ -12,6 +12,7 @@ import '../services/google_drive_service.dart';
 import '../services/enc_file_io.dart';
 import '../providers/assets_provider.dart';
 import '../providers/asset_types_provider.dart';
+import '../providers/service_providers.dart';
 import '../widgets/google_sign_in_button.dart';
 
 class WebDavSettingsScreen extends ConsumerStatefulWidget {
@@ -231,6 +232,36 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
+                  if (kIsWeb)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1C1A00),
+                        border: Border.all(color: const Color(0xFF5C5000)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.warning_amber_rounded,
+                            color: Color(0xFFFFD600),
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              l10n.webdavCorsWarning,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   if (_isConnected)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -410,10 +441,121 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
                       label: Text(l10n.pullFromGoogleDrive),
                     ),
                   ],
+                  // ─── iCloud (iOS only) ────────────────────────────────────
+                  if (!kIsWeb &&
+                      defaultTargetPlatform == TargetPlatform.iOS) ...[
+                    const Divider(height: 48),
+                    Text(
+                      l10n.icloudBackup,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.icloudBackupSubtitle,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: _handleICloudBackup,
+                      icon: const Icon(Icons.backup),
+                      label: Text(l10n.icloudBackup),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: _handleICloudRestore,
+                      icon: const Icon(Icons.restore),
+                      label: Text(l10n.restoreFromWebdav),
+                    ),
+                  ],
                 ],
               ),
             ),
     );
+  }
+
+  Future<void> _handleICloudBackup() async {
+    setState(() => _isLoading = true);
+    try {
+      final assets = ref.read(assetsProvider);
+      final syncService = ref.read(e2eeSyncServiceProvider);
+      final customTypes = ref
+          .read(assetTypesProvider)
+          .where((t) => !t.isBuiltIn)
+          .toList();
+      final blob = syncService.packSnapshotTOCiphertext(
+        assets,
+        customAssetTypes: customTypes,
+      );
+      await ref.read(iCloudSyncServiceProvider).backup(blob);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.icloudBackupSuccess),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.backupFailed(e.toString()),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleICloudRestore() async {
+    setState(() => _isLoading = true);
+    try {
+      final icloud = ref.read(iCloudSyncServiceProvider);
+      final blob = await icloud.restore();
+      if (blob == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.icloudNotAvailable),
+            ),
+          );
+        }
+        return;
+      }
+      final syncService = ref.read(e2eeSyncServiceProvider);
+      final snapshot = syncService.unpackCiphertextToSnapshot(blob);
+      await ref
+          .read(assetsProvider.notifier)
+          .replaceFromSnapshot(snapshot, encryptedBlob: blob);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(
+                context,
+              )!.icloudRestoreSuccess(snapshot.assets.length),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.restoreFailed(e.toString()),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _handleLocalSync({required bool createNew}) async {
@@ -569,21 +711,8 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
     try {
       final driveSync = ref.read(googleDriveServiceProvider);
       await driveSync.signIn();
-      final snapshot = await driveSync.readFromDrive();
-      if (snapshot != null) {
-        await ref.read(assetsProvider.notifier).replaceFromSnapshot(snapshot);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                AppLocalizations.of(
-                  context,
-                )!.restoredAssetsFromDrive(snapshot.assets.length),
-              ),
-            ),
-          );
-        }
-      } else {
+      final remoteBlob = await driveSync.readRawBytesFromDrive();
+      if (remoteBlob == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -591,6 +720,42 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
             ),
           );
         }
+        return;
+      }
+
+      // LWW merge: remote wins for same-id assets with newer updatedAt.
+      final syncService = ref.read(e2eeSyncServiceProvider);
+      final remoteSnapshot = syncService.unpackCiphertextToSnapshot(remoteBlob);
+      final localAssets = ref.read(assetsProvider);
+      final localCustomTypes = ref
+          .read(assetTypesProvider)
+          .where((t) => !t.isBuiltIn)
+          .toList();
+
+      final localSnapshot = VaultSnapshot(
+        version: 2,
+        assets: localAssets,
+        customAssetTypes: localCustomTypes,
+      );
+      final merged = VaultSnapshot.mergeSnapshots(
+        local: localSnapshot,
+        remote: remoteSnapshot,
+      );
+
+      await ref.read(assetsProvider.notifier).replaceFromSnapshot(merged);
+
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              l10n.driveSmartMergeSuccess(
+                localAssets.length,
+                remoteSnapshot.assets.length,
+              ),
+            ),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {

@@ -90,9 +90,5 @@ flutter build web
 ```
 *构建产物输出于: `build/web/`，该目录下的文件可直接部署至任何静态服务器（如 Vercel, NGINX 等）*
 
-## 🔮 Roadmap
-
-详见 **[docs/linear.md](docs/linear.md)**（relations 进同步包、Web 端 Drive 拉取合并、桌面体验、测试等）。
-
 ## 📄 协议许可
 MIT License. All rights reserved.
