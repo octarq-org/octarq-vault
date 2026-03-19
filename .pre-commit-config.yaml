@@ -50,7 +50,7 @@ repos:
 
       - id: build-runner
         name: build_runner
-        entry: dart run build_runner build --delete-conflicting-outputs
+        entry: flutter pub run build_runner build --delete-conflicting-outputs
         language: system
         pass_filenames: false
 

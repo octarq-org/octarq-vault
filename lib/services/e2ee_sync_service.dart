@@ -15,19 +15,24 @@ final e2eeSyncServiceProvider = Provider<E2EESyncService>((ref) {
 class VaultSnapshot {
   final int version;
   final List<Asset> assets;
-  // Placeholder for future relations and custom asset types
   final List<AssetType> customAssetTypes;
+
+  /// Asset-to-asset relations: each map has keys id, from_asset_id,
+  /// to_asset_id, relation_type.
+  final List<Map<String, dynamic>> relations;
 
   VaultSnapshot({
     required this.version,
     required this.assets,
     this.customAssetTypes = const [],
+    this.relations = const [],
   });
 
   Map<String, dynamic> toJson() => {
     'version': version,
     'assets': assets.map((a) => a.toJson()).toList(),
     'customAssetTypes': customAssetTypes.map((t) => t.toJson()).toList(),
+    'relations': relations,
   };
 
   factory VaultSnapshot.fromJson(Map<String, dynamic> json) {
@@ -43,6 +48,53 @@ class VaultSnapshot {
               ?.map((e) => AssetType.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
+      relations:
+          (json['relations'] as List<dynamic>?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          [],
+    );
+  }
+
+  /// Last-Write-Wins merge: merge [remote] into [local].
+  ///
+  /// Assets: the version with the larger `updatedAt` wins per id.
+  /// Relations: union by id (if same id, keep remote as source of truth).
+  /// Custom asset types: union by id (remote wins on conflict).
+  static VaultSnapshot mergeSnapshots({
+    required VaultSnapshot local,
+    required VaultSnapshot remote,
+  }) {
+    // --- Assets: LWW by updatedAt ---
+    final Map<String, Asset> merged = {for (final a in local.assets) a.id: a};
+    for (final remoteAsset in remote.assets) {
+      final localAsset = merged[remoteAsset.id];
+      if (localAsset == null || remoteAsset.updatedAt >= localAsset.updatedAt) {
+        merged[remoteAsset.id] = remoteAsset;
+      }
+    }
+
+    // --- Relations: union by id ---
+    final Map<String, Map<String, dynamic>> mergedRelations = {
+      for (final r in local.relations) r['id'] as String: r,
+    };
+    for (final r in remote.relations) {
+      mergedRelations[r['id'] as String] = r;
+    }
+
+    // --- Custom asset types: union by id, remote wins ---
+    final Map<String, AssetType> mergedTypes = {
+      for (final t in local.customAssetTypes) t.id: t,
+    };
+    for (final t in remote.customAssetTypes) {
+      mergedTypes[t.id] = t;
+    }
+
+    return VaultSnapshot(
+      version: 2,
+      assets: merged.values.toList(),
+      customAssetTypes: mergedTypes.values.toList(),
+      relations: mergedRelations.values.toList(),
     );
   }
 }
@@ -92,11 +144,13 @@ class E2EESyncService {
   Uint8List packSnapshotTOCiphertext(
     List<Asset> assets, {
     List<AssetType> customAssetTypes = const [],
+    List<Map<String, dynamic>> relations = const [],
   }) {
     final snapshot = VaultSnapshot(
       version: 2,
       assets: assets,
       customAssetTypes: customAssetTypes,
+      relations: relations,
     );
     final snapshotJson = jsonEncode(snapshot.toJson());
     final plainBytes = utf8.encode(snapshotJson);

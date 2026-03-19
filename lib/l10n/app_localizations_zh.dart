@@ -807,4 +807,40 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notificationChannelDescription => '即将到期资产的通知';
+
+  @override
+  String get webSecurityTitle => 'Web 安全提示';
+
+  @override
+  String get webSecurityBody =>
+      '在 Web 端，加密密钥存储于浏览器的 localStorage 和 IndexedDB，而非 iOS Keychain / Android Keystore 等硬件安全区。如需更高安全性，请使用手机或桌面原生应用。';
+
+  @override
+  String get webSecurityLearnMore => '了解更多';
+
+  @override
+  String get webdavCorsWarning =>
+      'CORS 提示：大多数 WebDAV 服务器会阻止浏览器的跨域请求。请使用已开启 CORS 的服务器（如配置正确的 Nextcloud），或通过桌面/移动应用使用 WebDAV 同步。';
+
+  @override
+  String driveSmartMergeSuccess(int local, int remote) {
+    return '已合并：本地 $local 个 + 远端 $remote 个资产（LWW）';
+  }
+
+  @override
+  String get icloudBackup => 'iCloud 备份';
+
+  @override
+  String get icloudBackupSubtitle => '将加密保险库同步到 iCloud Drive（仅 iOS）';
+
+  @override
+  String get icloudBackupSuccess => 'iCloud 备份成功！';
+
+  @override
+  String icloudRestoreSuccess(int count) {
+    return '已从 iCloud 恢复 $count 个资产';
+  }
+
+  @override
+  String get icloudNotAvailable => '此设备上 iCloud 不可用。';
 }

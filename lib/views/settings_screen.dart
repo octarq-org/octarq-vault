@@ -438,6 +438,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       SyncMethod.webdav,
       SyncMethod.googleDrive,
       SyncMethod.localFile,
+      SyncMethod.icloud,
     ];
     showDialog(
       context: context,
@@ -486,6 +487,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return l10n.syncMethodGoogleDrive;
       case SyncMethod.localFile:
         return l10n.syncMethodLocalFile;
+      case SyncMethod.icloud:
+        return l10n.icloudBackup;
     }
   }
 
@@ -602,6 +605,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: ListView(
         children: [
+          if (kIsWeb) _WebSecurityBanner(l10n: l10n),
           _SettingsSectionHeader(l10n.language),
           ListTile(
             leading: const Icon(Icons.translate),
@@ -742,6 +746,88 @@ class _SettingsSectionHeader extends StatelessWidget {
           color: kTextMuted,
           letterSpacing: 0.8,
         ),
+      ),
+    );
+  }
+}
+
+/// Displays a security notice about the limitations of the web storage model.
+class _WebSecurityBanner extends StatefulWidget {
+  final AppLocalizations l10n;
+  const _WebSecurityBanner({required this.l10n});
+
+  @override
+  State<_WebSecurityBanner> createState() => _WebSecurityBannerState();
+}
+
+class _WebSecurityBannerState extends State<_WebSecurityBanner> {
+  bool _dismissed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_dismissed) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2B2200),
+        border: Border.all(color: const Color(0xFF7B6000)),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.security_outlined,
+            color: Color(0xFFFFC107),
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.l10n.webSecurityTitle,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFFFC107),
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  widget.l10n.webSecurityBody,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                const SizedBox(height: 6),
+                GestureDetector(
+                  onTap: () async {
+                    final uri = Uri.parse(kDocsUrl);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
+                    }
+                  },
+                  child: Text(
+                    widget.l10n.webSecurityLearnMore,
+                    style: const TextStyle(
+                      color: kPrimaryGreen,
+                      fontSize: 12,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: () => setState(() => _dismissed = true),
+            child: const Icon(Icons.close, size: 16, color: kTextMuted),
+          ),
+        ],
       ),
     );
   }

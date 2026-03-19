@@ -827,4 +827,41 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get notificationChannelDescription =>
       'Notifications for expiring assets';
+
+  @override
+  String get webSecurityTitle => 'Web Security Notice';
+
+  @override
+  String get webSecurityBody =>
+      'On the web, encryption keys are stored in the browser\'s localStorage and IndexedDB — not in a hardware-backed secure enclave like iOS Keychain or Android Keystore. For higher security, use the native app on your phone or desktop.';
+
+  @override
+  String get webSecurityLearnMore => 'Learn more';
+
+  @override
+  String get webdavCorsWarning =>
+      'CORS notice: Most WebDAV servers block direct browser requests. Use a server with CORS headers enabled (e.g., Nextcloud with correct settings), or use a desktop/mobile app for WebDAV sync.';
+
+  @override
+  String driveSmartMergeSuccess(int local, int remote) {
+    return 'Merged $local local + $remote remote assets (LWW)';
+  }
+
+  @override
+  String get icloudBackup => 'iCloud Backup';
+
+  @override
+  String get icloudBackupSubtitle =>
+      'Sync encrypted vault to iCloud Drive (iOS only)';
+
+  @override
+  String get icloudBackupSuccess => 'iCloud backup successful!';
+
+  @override
+  String icloudRestoreSuccess(int count) {
+    return 'Restored $count assets from iCloud';
+  }
+
+  @override
+  String get icloudNotAvailable => 'iCloud is not available on this device.';
 }

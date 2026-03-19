@@ -407,5 +407,26 @@
     }
   },
   "notificationChannelName": "Asset Expirations",
-  "notificationChannelDescription": "Notifications for expiring assets"
+  "notificationChannelDescription": "Notifications for expiring assets",
+  "webSecurityTitle": "Web Security Notice",
+  "webSecurityBody": "On the web, encryption keys are stored in the browser's localStorage and IndexedDB — not in a hardware-backed secure enclave like iOS Keychain or Android Keystore. For higher security, use the native app on your phone or desktop.",
+  "webSecurityLearnMore": "Learn more",
+  "webdavCorsWarning": "CORS notice: Most WebDAV servers block direct browser requests. Use a server with CORS headers enabled (e.g., Nextcloud with correct settings), or use a desktop/mobile app for WebDAV sync.",
+  "driveSmartMergeSuccess": "Merged {local} local + {remote} remote assets (LWW)",
+  "@driveSmartMergeSuccess": {
+    "placeholders": {
+      "local": {"type": "int"},
+      "remote": {"type": "int"}
+    }
+  },
+  "icloudBackup": "iCloud Backup",
+  "icloudBackupSubtitle": "Sync encrypted vault to iCloud Drive (iOS only)",
+  "icloudBackupSuccess": "iCloud backup successful!",
+  "icloudRestoreSuccess": "Restored {count} assets from iCloud",
+  "@icloudRestoreSuccess": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "icloudNotAvailable": "iCloud is not available on this device."
 }

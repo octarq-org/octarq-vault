@@ -8,6 +8,9 @@ enum SyncMethod {
 
   /// Web only: File System Access API linked file.
   localFile,
+
+  /// iOS only: iCloud Documents backup (passive iCloud Backup sync).
+  icloud,
 }
 
 extension SyncMethodX on SyncMethod {
