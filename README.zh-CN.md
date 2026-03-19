@@ -12,7 +12,8 @@ OctarqVault 是一款为技术从业者（开发者、站长、加密货币用�
 2. **多重加密安全架构**：基于主密码和盐（Salt）利用 `Argon2id` 导出 AES-256 主密钥。结合手机底层安全区（Keychain / Keystore）+ 本地生物识别（Face ID / Touch ID）保护。数据库级密文存储基于 `SQLCipher`，关键字段运用 `AES-256-GCM` 额外套壳。
 3. **离线与本地优先**：所有数据存放于设备本地独立运行。
 4. **智能追踪提示**：本地调度系统级别定时/过期推送预警。
-5. **数据无缝导出**：支持导出整个加密数据库 JSON 结构至剪贴板，用于跨设备快速手动接力。
+5. **导出与同步**：剪贴板导出；**E2EE `.enc` 快照** — 移动端/桌面 **WebDAV**；Web 端 **Google Drive** + **本地文件**（Chromium 文件句柄或下载降级）。
+6. **国际化**：中 / 英界面。
 
 ## 🛠️ 技术栈
 *   **框架**: Flutter (`v3.11+`)
@@ -69,12 +70,9 @@ OctarqVault 是一款为技术从业者（开发者、站长、加密货币用�
    ```
 
 ### 持续集成 (CI/CD)
-本项目已集成 Github Actions 自动化的 CI 审计及编译链路（详见 `.github/workflows/ci.yml`）。
-包含每次 PR/Push 时的:
-- `flutter analyze` 语法校验
-- `flutter test` 单元测试通过性
-- Android APK 生产包构建
-- iOS (No Codesign) 验证构建
+每次 PR/Push（`.github/workflows/ci.yml`）：代码格式、`flutter analyze`、`flutter test`、**`flutter build web`**（冒烟构建）。
+
+**发版**：打 tag 触发 Release，可选 Cloudflare Pages 部署，见 [docs/web-deploy.md](docs/web-deploy.md)。
 
 ### 构建发行版本 (Build Release)
 
@@ -92,10 +90,9 @@ flutter build web
 ```
 *构建产物输出于: `build/web/`，该目录下的文件可直接部署至任何静态服务器（如 Vercel, NGINX 等）*
 
-## 🔮 Roadmap 计划
-- [ ] Asset Form 的深色主题调优与更动态化的 Tags 添加逻辑
-- [ ] iCloud / WebDAV 等自选通道的数据备份
-- [ ] 桌面端（macOS / Windows）的键鼠适配增强优化
+## 🔮 Roadmap
+
+详见 **[docs/linear.md](docs/linear.md)**（relations 进同步包、Web 端 Drive 拉取合并、桌面体验、测试等）。
 
 ## 📄 协议许可
 MIT License. All rights reserved.

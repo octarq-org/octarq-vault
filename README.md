@@ -14,7 +14,8 @@ OctarqVault is a digital asset manager built for technical practitioners (develo
 2. **Layered encryption**: Master key derived from master password + salt via Argon2id; AES-256. Protected by device secure enclave (Keychain / Keystore) and local biometrics (Face ID / Touch ID). DB-level cipher storage with SQLCipher; critical fields wrapped with AES-256-GCM.
 3. **Offline & local-first**: All data stays on device and runs independently.
 4. **Smart reminders**: Local scheduler for system-level scheduled and expiry notifications.
-5. **Export**: Full encrypted DB exported as JSON to clipboard for quick manual handoff across devices.
+5. **Export & sync**: Clipboard export; **E2EE `.enc` snapshot** — WebDAV (mobile/desktop), **Google Drive** + **local file** (Web, Chromium File System API or download fallback).
+6. **i18n**: English / 中文.
 
 ## Tech stack
 * **Framework**: Flutter (v3.11+)
@@ -68,11 +69,9 @@ OctarqVault is a digital asset manager built for technical practitioners (develo
    ```
 
 ### CI/CD
-Github Actions runs on every PR/push (see `.github/workflows/ci.yml`):
-- `flutter analyze`
-- `flutter test`
-- Android APK release build
-- iOS (no codesign) build check
+Github Actions on every PR/push (`.github/workflows/ci.yml`): `dart format`, `flutter analyze`, `flutter test`, **`flutter build web`** (smoke).
+
+**Releases**: tag → optional Cloudflare Pages deploy + artifacts; see `docs/web-deploy.md`.
 
 ### Release builds
 
@@ -89,9 +88,8 @@ flutter build web
 Output: `build/web/` — deploy to any static host (Vercel, NGINX, etc.)
 
 ## Roadmap
-- [ ] Dark theme and richer Tags for Asset Form
-- [ ] Optional backup via iCloud / WebDAV
-- [ ] Better keyboard & mouse support on desktop (macOS / Windows)
+
+See **[docs/linear.md](docs/linear.md)** (relations in sync payload, Drive pull/merge on Web, desktop UX, tests, etc.).
 
 ## License
 MIT License. All rights reserved.
