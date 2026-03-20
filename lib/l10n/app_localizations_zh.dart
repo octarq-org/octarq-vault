@@ -768,7 +768,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get restoreFromLocalFile => '从本地文件恢复';
 
   @override
-  String get passwordTooShort => '密码过短（至少 8 个字符）';
+  String get passwordTooShort => '密码过短（至少 12 个字符）';
 
   @override
   String get passwordsDoNotMatch => '两次密码不一致';

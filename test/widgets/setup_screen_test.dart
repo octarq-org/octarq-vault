@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:asset_vault/l10n/app_localizations.dart';
-import 'package:asset_vault/providers/auth_provider.dart';
-import 'package:asset_vault/views/setup_screen.dart';
+import 'package:octarq_vault/l10n/app_localizations.dart';
+import 'package:octarq_vault/providers/auth_provider.dart';
+import 'package:octarq_vault/views/setup_screen.dart';
 
 Widget wrapSetupScreen(Widget child) {
   return MaterialApp(
@@ -64,19 +64,19 @@ void main() {
         ),
       );
 
-      // Enter a short password
+      // Enter a short password (less than 12)
       await tester.enterText(
         find.widgetWithText(TextField, 'Master Password'),
-        'short',
+        'short-pass',
       );
       await tester.enterText(
         find.widgetWithText(TextField, 'Confirm Password'),
-        'short',
+        'short-pass',
       );
       await tester.tap(find.text('Create Vault'));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
-      expect(find.text('Password too short (8 chars min)'), findsOneWidget);
+      expect(find.text('Password too short (12 chars min)'), findsOneWidget);
     });
 
     testWidgets('shows error for mismatched passwords', (tester) async {
@@ -89,14 +89,14 @@ void main() {
 
       await tester.enterText(
         find.widgetWithText(TextField, 'Master Password'),
-        'password123',
+        'password12345',
       );
       await tester.enterText(
         find.widgetWithText(TextField, 'Confirm Password'),
-        'different12',
+        'different1234',
       );
       await tester.tap(find.text('Create Vault'));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.text('Passwords do not match'), findsOneWidget);
     });

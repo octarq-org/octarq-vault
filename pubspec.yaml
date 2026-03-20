@@ -1,4 +1,4 @@
-name: asset_vault
+name: octarq_vault
 description: "OctarqVault — 个人数字资产管理，加密本地优先，到期提醒与关联建模。"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.

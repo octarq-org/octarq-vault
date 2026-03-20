@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:asset_vault/models/sync_settings.dart';
+import 'package:octarq_vault/models/sync_settings.dart';
 
 void main() {
   group('SyncMethodX.fromString', () {

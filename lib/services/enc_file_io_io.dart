@@ -26,7 +26,7 @@ Future<Uint8List?> pickEncFileBytes(WidgetRef ref) async {
 Future<void> exportEncToFile(WidgetRef ref) async {
   final path = await FilePicker.platform.saveFile(
     dialogTitle: 'Export encrypted backup',
-    fileName: 'asset_vault_backup.enc',
+    fileName: 'octarq_vault_backup.enc',
     type: FileType.any,
   );
   if (path == null || path.isEmpty) return;

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:asset_vault/services/encryption_service.dart';
+import 'package:octarq_vault/services/encryption_service.dart';
 
 void main() {
   late EncryptionService service;

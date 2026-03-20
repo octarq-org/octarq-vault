@@ -47,7 +47,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         }
       });
     } catch (e) {
-      if (kDebugMode) print('Init web sign in failed: $e');
+      if (kDebugMode) debugPrint('Init web sign in failed: $e');
       if (mounted) {
         setState(
           () => _googleSignInReady = true,
@@ -69,7 +69,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     final confirm = _confirmController.text;
 
     final l10n = AppLocalizations.of(context)!;
-    if (pwd.length < 8) {
+    if (pwd.length < 12) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.passwordTooShort)));

@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:asset_vault/models/asset_type.dart';
-import 'package:asset_vault/providers/asset_types_provider.dart';
-import 'package:asset_vault/providers/locale_preference_provider.dart';
-import 'package:asset_vault/providers/service_providers.dart';
-import 'package:asset_vault/services/database_service.dart';
-import 'package:asset_vault/utils/default_asset_types.dart';
+import 'package:octarq_vault/models/asset_type.dart';
+import 'package:octarq_vault/providers/asset_types_provider.dart';
+import 'package:octarq_vault/providers/locale_preference_provider.dart';
+import 'package:octarq_vault/providers/service_providers.dart';
+import 'package:octarq_vault/services/database_service.dart';
+import 'package:octarq_vault/utils/default_asset_types.dart';
 
 class _ZhLocalePreferenceNotifier extends LocalePreferenceNotifier {
   @override

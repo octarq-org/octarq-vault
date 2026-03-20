@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:asset_vault/utils/tombstone_registry.dart';
+import 'package:octarq_vault/utils/tombstone_registry.dart';
 
 void main() {
   group('TombstoneRegistry', () {

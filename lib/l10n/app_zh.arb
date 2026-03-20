@@ -244,7 +244,7 @@
   "orRestoreExistingVault": "或恢复已有保险库",
   "restoreFromGoogleDrive": "从 Google 云端硬盘恢复",
   "restoreFromLocalFile": "从本地文件恢复",
-  "passwordTooShort": "密码过短（至少 8 个字符）",
+  "passwordTooShort": "密码过短（至少 12 个字符）",
   "passwordsDoNotMatch": "两次密码不一致",
   "createVaultFailed": "创建保险库失败：{error}",
   "unknownError": "未知错误",

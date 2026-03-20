@@ -802,7 +802,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get restoreFromLocalFile => 'Restaurar desde archivo local';
 
   @override
-  String get passwordTooShort => 'Contraseña muy corta (mínimo 8 caracteres)';
+  String get passwordTooShort => 'Contraseña muy corta (mínimo 12 caracteres)';
 
   @override
   String get passwordsDoNotMatch => 'Las contraseñas no coinciden';

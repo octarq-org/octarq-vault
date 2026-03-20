@@ -41,6 +41,19 @@ class VaultSnapshot {
     this.tombstones = const [],
   });
 
+  /// Returns the maximum updatedAt among all assets and tombstones in this snapshot.
+  int get updatedAt {
+    int maxTs = 0;
+    for (final a in assets) {
+      if (a.updatedAt > maxTs) maxTs = a.updatedAt;
+    }
+    for (final t in tombstones) {
+      final ts = t['deletedAt'] as int? ?? 0;
+      if (ts > maxTs) maxTs = ts;
+    }
+    return maxTs;
+  }
+
   Map<String, dynamic> toJson() => {
     'version': version,
     'assets': assets.map((a) => a.toJson()).toList(),
@@ -258,7 +271,7 @@ class E2EESyncService {
       return VaultSnapshot.fromJson(jsonMap as Map<String, dynamic>);
     } catch (e) {
       if (kDebugMode) {
-        print('unpackCiphertextToSnapshot Failed: $e');
+        debugPrint('unpackCiphertextToSnapshot Failed: $e');
       }
       rethrow;
     }

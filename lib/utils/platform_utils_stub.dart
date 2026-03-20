@@ -12,3 +12,6 @@ Future<void> deleteDatabase(String path) => Future.value();
 
 void forceDeleteFile(String path) =>
     throw UnsupportedError('forceDeleteFile is not supported on Web');
+
+/// No-op on Web — DB file lives in IndexedDB.
+Future<void> migrateDbFileIfNeeded() => Future.value();

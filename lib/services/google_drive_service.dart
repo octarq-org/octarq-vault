@@ -14,7 +14,7 @@ final googleDriveServiceProvider = Provider<GoogleDriveService>((ref) {
 });
 
 class GoogleDriveService {
-  static const String _backupFileName = 'asset_vault.enc';
+  static const String _backupFileName = 'octarq_vault.enc';
 
   final E2EESyncService _syncService;
 
@@ -40,7 +40,7 @@ class GoogleDriveService {
       );
     } on UnimplementedError {
       if (kDebugMode) {
-        print(
+        debugPrint(
           'attemptLightweightAuthentication is unimplemented. Falling back to authenticate.',
         );
       }
@@ -65,11 +65,11 @@ class GoogleDriveService {
       try {
         return await GoogleSignIn.instance.authenticate(scopeHint: _scopes);
       } on UnimplementedError {
-        if (kDebugMode) print('authenticate unimplemented error.');
+        if (kDebugMode) debugPrint('authenticate unimplemented error.');
         rethrow;
       }
     } catch (e) {
-      if (kDebugMode) print('Google Sign-In failed: $e');
+      if (kDebugMode) debugPrint('Google Sign-In failed: $e');
       rethrow;
     }
   }
@@ -168,7 +168,9 @@ class GoogleDriveService {
     }
 
     if (kDebugMode) {
-      print('Successfully pushed E2EE snapshot to Google Drive appDataFolder.');
+      debugPrint(
+        'Successfully pushed E2EE snapshot to Google Drive appDataFolder.',
+      );
     }
   }
 
@@ -200,7 +202,7 @@ class GoogleDriveService {
         } catch (_) {
           // If even that fails, we ignore or log.
           if (kDebugMode) {
-            print('Unrecognized chunk type: ${chunk.runtimeType}');
+            debugPrint('Unrecognized chunk type: ${chunk.runtimeType}');
           }
         }
       }

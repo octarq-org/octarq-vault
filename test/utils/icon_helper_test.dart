@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:asset_vault/utils/icon_helper.dart';
+import 'package:octarq_vault/utils/icon_helper.dart';
 import 'package:flutter/material.dart';
 
 void main() {

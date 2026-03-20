@@ -787,7 +787,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get restoreFromLocalFile => 'Restore from Local File';
 
   @override
-  String get passwordTooShort => 'Password too short (8 chars min)';
+  String get passwordTooShort => 'Password too short (12 chars min)';
 
   @override
   String get passwordsDoNotMatch => 'Passwords do not match';

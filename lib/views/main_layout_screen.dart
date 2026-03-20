@@ -8,8 +8,10 @@ import '../main.dart';
 import '../models/asset_type.dart';
 import '../providers/assets_provider.dart';
 import '../providers/asset_types_provider.dart';
+import '../providers/auth_provider.dart';
 import '../providers/search_provider.dart';
 import '../utils/icon_helper.dart';
+import '../providers/auto_lock_provider.dart';
 
 class MainLayoutScreen extends ConsumerStatefulWidget {
   const MainLayoutScreen({super.key, required this.child});
@@ -19,9 +21,40 @@ class MainLayoutScreen extends ConsumerStatefulWidget {
   ConsumerState<MainLayoutScreen> createState() => _MainLayoutScreenState();
 }
 
-class _MainLayoutScreenState extends ConsumerState<MainLayoutScreen> {
+class _MainLayoutScreenState extends ConsumerState<MainLayoutScreen>
+    with WidgetsBindingObserver {
   final GlobalKey _searchBoxKey = GlobalKey();
   final GlobalKey _stackKey = GlobalKey();
+
+  /// Timestamp recorded when the app enters the background (paused state).
+  DateTime? _pausedAt;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _pausedAt = DateTime.now();
+    } else if (state == AppLifecycleState.resumed && _pausedAt != null) {
+      final elapsed = DateTime.now().difference(_pausedAt!);
+      final limitMinutes = ref.read(autoLockMinutesProvider);
+      if (elapsed.inMinutes >= limitMinutes) {
+        _pausedAt = null;
+        ref.read(authProvider.notifier).lock();
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

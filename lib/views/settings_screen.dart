@@ -18,6 +18,7 @@ import '../providers/relations_provider.dart';
 import '../l10n/app_localizations.dart';
 import '../services/enc_file_io.dart';
 import '../services/e2ee_sync_service.dart';
+import '../providers/auto_lock_provider.dart';
 
 /// Returns error message if invalid; null if OK. Does not modify any data.
 String? _validateImportJson(
@@ -69,19 +70,6 @@ String _formatSyncTime(DateTime dt) {
   String pad(int n) => n.toString().padLeft(2, '0');
   return '${dt.year}-${pad(dt.month)}-${pad(dt.day)} ${pad(dt.hour)}:${pad(dt.minute)}';
 }
-
-class AutoLockNotifier extends Notifier<int> {
-  @override
-  int build() => 5;
-
-  void setMinutes(int minutes) {
-    state = minutes;
-  }
-}
-
-final autoLockMinutesProvider = NotifierProvider<AutoLockNotifier, int>(
-  () => AutoLockNotifier(),
-);
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -150,11 +138,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               FilledButton(
                 onPressed: () async {
-                  ref
+                  await ref
                       .read(autoLockMinutesProvider.notifier)
                       .setMinutes(selected);
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setInt('auto_lock_minutes', selected);
                   if (ctx.mounted) Navigator.pop(ctx);
                 },
                 style: FilledButton.styleFrom(
