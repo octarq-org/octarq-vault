@@ -258,7 +258,7 @@ class E2EESyncService {
       return VaultSnapshot.fromJson(jsonMap as Map<String, dynamic>);
     } catch (e) {
       if (kDebugMode) {
-        print('unpackCiphertextToSnapshot Failed: $e');
+        debugPrint('unpackCiphertextToSnapshot Failed: $e');
       }
       rethrow;
     }

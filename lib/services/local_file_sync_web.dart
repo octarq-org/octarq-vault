@@ -85,7 +85,7 @@ class LocalFileSyncService {
         );
       }
       if (kDebugMode) {
-        print('User cancelled or File System API failed: $e');
+        debugPrint('User cancelled or File System API failed: $e');
       }
       rethrow;
     }
@@ -111,11 +111,11 @@ class LocalFileSyncService {
       await writableStream.close().toDart;
 
       if (kDebugMode) {
-        print("Successfully synced E2EE snapshot to local file.");
+        debugPrint("Successfully synced E2EE snapshot to local file.");
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error syncing to local file: $e');
+        debugPrint('Error syncing to local file: $e');
       }
       rethrow;
     }
@@ -134,7 +134,7 @@ class LocalFileSyncService {
       return uint8List;
     } catch (e) {
       if (kDebugMode) {
-        print('Error reading from local file: $e');
+        debugPrint('Error reading from local file: $e');
       }
       rethrow;
     }

@@ -47,7 +47,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         }
       });
     } catch (e) {
-      if (kDebugMode) print('Init web sign in failed: $e');
+      if (kDebugMode) debugPrint('Init web sign in failed: $e');
       if (mounted) {
         setState(
           () => _googleSignInReady = true,

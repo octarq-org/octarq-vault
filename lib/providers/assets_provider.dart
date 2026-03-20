@@ -83,7 +83,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
               }
             }
           } catch (e) {
-            if (kDebugMode) print('loadAssets(web) Drive pull: $e');
+            if (kDebugMode) debugPrint('loadAssets(web) Drive pull: $e');
           }
         }
 
@@ -95,7 +95,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
             .setCustomTypesFromSnapshot(localSnapshot.customAssetTypes);
       } catch (e) {
         if (kDebugMode) {
-          print('loadAssets(web): $e');
+          debugPrint('loadAssets(web): $e');
         }
       }
       return;
@@ -176,7 +176,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       state = assets;
     } catch (e) {
       if (kDebugMode) {
-        print('loadAssets: $e');
+        debugPrint('loadAssets: $e');
       }
     }
   }

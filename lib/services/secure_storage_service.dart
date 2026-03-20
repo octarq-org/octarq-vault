@@ -135,7 +135,14 @@ class SecureStorageService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_verifyAlias);
     }
-    return await _storage.read(key: _verifyAlias);
+    try {
+      return await _storage.read(key: _verifyAlias);
+    } on PlatformException catch (e) {
+      throw Exception(
+        'Keychain unavailable: ${e.message}. '
+        'On macOS, code-signing is required for secure Keychain access.',
+      );
+    }
   }
 
   Future<Uint8List?> getMasterKeyWithBiometrics(String reason) async {
