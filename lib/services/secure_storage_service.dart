@@ -45,13 +45,18 @@ class SecureStorageService {
         }
       } else {
         final hasNew = await _storage.containsKey(key: _masterKeyAlias);
-        final hasLegacy =
-            await _storage.containsKey(key: _legacyMasterKeyAlias);
+        final hasLegacy = await _storage.containsKey(
+          key: _legacyMasterKeyAlias,
+        );
         if (!hasNew && hasLegacy) {
           final key = await _storage.read(key: _legacyMasterKeyAlias);
           final salt = await _storage.read(key: _legacySaltAlias);
-          if (key != null) await _storage.write(key: _masterKeyAlias, value: key);
-          if (salt != null) await _storage.write(key: _saltAlias, value: salt);
+          if (key != null) {
+            await _storage.write(key: _masterKeyAlias, value: key);
+          }
+          if (salt != null) {
+            await _storage.write(key: _saltAlias, value: salt);
+          }
           await _storage.delete(key: _legacyMasterKeyAlias);
           await _storage.delete(key: _legacySaltAlias);
         }

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/platform_utils.dart';
@@ -317,19 +316,6 @@ class AuthNotifier extends Notifier<AuthState> {
     state = AuthState.locked;
   }
 
-  Future<void> _wipeDbAndStorage() async {
-    await ref.read(secureStorageServiceProvider).clearAll();
-    if (!kIsWeb) {
-      try {
-        final dbPath = await getVaultDatabasePath();
-        if (await fileExists(dbPath)) {
-          await deleteDatabase(dbPath);
-          if (await fileExists(dbPath)) forceDeleteFile(dbPath);
-        }
-      } catch (_) {}
-    }
-  }
-
   static bool _isCorruptDbError(Object e) {
     final msg = e.toString().toLowerCase();
     return msg.contains('file is not a database') ||
@@ -340,14 +326,16 @@ class AuthNotifier extends Notifier<AuthState> {
         msg.contains('during open');
   }
 
-  /// On DB open failure (corrupt/wrong key), close db then wipe and go to setup.
+  /// On DB open failure (corrupt/wrong key), inform the user.
+  /// Do NOT automatically wipe the database, as SQLCipher often returns
+  /// "file is not a database" for an incorrect password.
   Future<bool> _handleDbOpenFailure(Object e) async {
     if (!_isCorruptDbError(e)) return false;
-    _lastError = 'Vault file was corrupted or invalid. Creating a new vault.';
+    _lastError =
+        'Could not open vault. Incorrect password or corrupted file. If you have a backup, you can restore it from the setup screen.';
     await ref.read(databaseServiceProvider).close();
-    await _wipeDbAndStorage();
-    state = AuthState.unsetup;
-    return true; // caller should treat as "handled", not retry
+    // We stay in locked state so the user can try again.
+    return true; // caller treats as handled error
   }
 }
 

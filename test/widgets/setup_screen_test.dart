@@ -64,17 +64,17 @@ void main() {
         ),
       );
 
-      // Enter a short password
+      // Enter a short password (less than 12)
       await tester.enterText(
         find.widgetWithText(TextField, 'Master Password'),
-        'short',
+        'short-pass',
       );
       await tester.enterText(
         find.widgetWithText(TextField, 'Confirm Password'),
-        'short',
+        'short-pass',
       );
       await tester.tap(find.text('Create Vault'));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.text('Password too short (12 chars min)'), findsOneWidget);
     });
@@ -96,7 +96,7 @@ void main() {
         'different1234',
       );
       await tester.tap(find.text('Create Vault'));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.text('Passwords do not match'), findsOneWidget);
     });

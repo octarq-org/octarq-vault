@@ -34,6 +34,7 @@ class MockEncryptionService extends EncryptionService {
 class MockSecureStorageService extends SecureStorageService {
   String? _storedKeyBase64;
   String? _storedSalt;
+  String? _verifyBlobBase64;
   Uint8List? biometricKey;
   bool storeCalled = false;
   bool clearAllCalled = false;
@@ -49,6 +50,14 @@ class MockSecureStorageService extends SecureStorageService {
   }
 
   @override
+  Future<void> storeVerifyBlob(String base64Blob) async {
+    _verifyBlobBase64 = base64Blob;
+  }
+
+  @override
+  Future<String?> getVerifyBlob() async => _verifyBlobBase64;
+
+  @override
   Future<String?> getSalt() async => _storedSalt;
 
   @override
@@ -60,6 +69,7 @@ class MockSecureStorageService extends SecureStorageService {
     clearAllCalled = true;
     _storedKeyBase64 = null;
     _storedSalt = null;
+    _verifyBlobBase64 = null;
     biometricKey = null;
   }
 }
@@ -269,12 +279,9 @@ void main() {
 
       expect(result, isFalse);
       expect(container.read(authProvider), equals(AuthState.unsetup));
-      expect(
-        notifier.lastError,
-        contains('Vault file was corrupted or invalid'),
-      );
+      expect(notifier.lastError, contains('Could not open vault'));
       expect(mockDb.closeCalled, isTrue);
-      expect(mockStorage.clearAllCalled, isTrue);
+      expect(mockStorage.clearAllCalled, isFalse);
     });
   });
 

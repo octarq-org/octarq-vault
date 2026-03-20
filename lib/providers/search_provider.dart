@@ -42,10 +42,13 @@ final searchSuggestionsProvider = Provider<List<Asset>>((ref) {
     if (a.isArchived) return false;
     final matchName = a.name.toLowerCase().contains(query);
     final matchTag = a.tags.any((t) => t.name.toLowerCase().contains(query));
-    // Search field labels (key) only — valueEnc is AES-256-GCM ciphertext
-    // and must never be matched against plaintext queries.
+    // Search field labels (key) and non-sensitive values.
+    // valueEnc contains plaintext for non-sensitive fields.
     final matchField = a.fields.any(
-      (f) => !f.isSensitive && f.key.toLowerCase().contains(query),
+      (f) =>
+          !f.isSensitive &&
+          (f.key.toLowerCase().contains(query) ||
+              f.valueEnc.toLowerCase().contains(query)),
     );
     return matchName || matchTag || matchField;
   }).toList();
@@ -62,9 +65,12 @@ final searchSuggestionsTotalCountProvider = Provider<int>((ref) {
     if (a.isArchived) return false;
     final matchName = a.name.toLowerCase().contains(query);
     final matchTag = a.tags.any((t) => t.name.toLowerCase().contains(query));
-    // Search field labels (key) only — valueEnc is AES-256-GCM ciphertext.
+    // Search field labels (key) and non-sensitive values.
     final matchField = a.fields.any(
-      (f) => !f.isSensitive && f.key.toLowerCase().contains(query),
+      (f) =>
+          !f.isSensitive &&
+          (f.key.toLowerCase().contains(query) ||
+              f.valueEnc.toLowerCase().contains(query)),
     );
     return matchName || matchTag || matchField;
   }).length;
