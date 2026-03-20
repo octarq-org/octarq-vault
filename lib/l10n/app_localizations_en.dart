@@ -30,6 +30,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get localeEn => 'English';
 
   @override
+  String get localeEs => 'Español';
+
+  @override
   String get security => 'Security';
 
   @override

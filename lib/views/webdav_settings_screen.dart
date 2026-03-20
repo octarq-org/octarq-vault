@@ -10,6 +10,7 @@ import '../services/e2ee_sync_service.dart';
 import '../services/local_file_sync_service.dart';
 import '../services/google_drive_service.dart';
 import '../services/enc_file_io.dart';
+import '../models/asset.dart';
 import '../providers/assets_provider.dart';
 import '../providers/asset_types_provider.dart';
 import '../providers/service_providers.dart';
@@ -706,6 +707,48 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
     }
   }
 
+  /// Shows a dialog to resolve a sync conflict. Returns the asset the user chose
+  /// to keep, or null to skip (keep current winner from LWW).
+  Future<Asset?> _showConflictDialog(AssetConflict conflict) async {
+    if (!mounted) return null;
+    return showDialog<Asset>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Text('Sync Conflict: "${conflict.local.name}"'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Both devices edited this asset at the same time. Choose which version to keep:',
+                style: TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              _ConflictVersionCard(label: 'This device', asset: conflict.local),
+              const SizedBox(height: 8),
+              _ConflictVersionCard(
+                label: 'Remote device',
+                asset: conflict.remote,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, conflict.local),
+            child: const Text('Keep This Device'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, conflict.remote),
+            child: const Text('Keep Remote'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _handleGoogleDrivePull() async {
     setState(() => _isLoading = true);
     try {
@@ -737,10 +780,30 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
         assets: localAssets,
         customAssetTypes: localCustomTypes,
       );
-      final merged = VaultSnapshot.mergeSnapshots(
+      final mergeResult = VaultSnapshot.mergeSnapshots(
         local: localSnapshot,
         remote: remoteSnapshot,
       );
+      var merged = mergeResult.snapshot;
+
+      // Resolve conflicts (same id, same updatedAt, different content)
+      if (mergeResult.conflicts.isNotEmpty && mounted) {
+        for (final conflict in mergeResult.conflicts) {
+          final winner = await _showConflictDialog(conflict);
+          if (winner != null) {
+            final assets = merged.assets.toList();
+            final idx = assets.indexWhere((a) => a.id == winner.id);
+            if (idx >= 0) assets[idx] = winner;
+            merged = VaultSnapshot(
+              version: merged.version,
+              assets: assets,
+              customAssetTypes: merged.customAssetTypes,
+              relations: merged.relations,
+              tombstones: merged.tombstones,
+            );
+          }
+        }
+      }
 
       await ref.read(assetsProvider.notifier).replaceFromSnapshot(merged);
 
@@ -770,5 +833,43 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+}
+
+/// A card summarising one version of an asset for conflict resolution.
+class _ConflictVersionCard extends StatelessWidget {
+  final String label;
+  final Asset asset;
+
+  const _ConflictVersionCard({required this.label, required this.asset});
+
+  @override
+  Widget build(BuildContext context) {
+    final updated = DateTime.fromMillisecondsSinceEpoch(asset.updatedAt);
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.white24),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Updated: ${updated.toLocal()}',
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          Text(
+            '${asset.fields.length} field(s)',
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
   }
 }

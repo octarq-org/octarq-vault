@@ -137,6 +137,7 @@ class GoogleDriveService {
     List<Asset> assets, {
     List<AssetType> customAssetTypes = const [],
     List<Map<String, dynamic>> relations = const [],
+    List<Map<String, dynamic>> tombstones = const [],
   }) async {
     final api = await _getDriveApi();
     if (api == null) throw Exception('Not signed in to Google Drive');
@@ -145,6 +146,7 @@ class GoogleDriveService {
       assets,
       customAssetTypes: customAssetTypes,
       relations: relations,
+      tombstones: tombstones,
     );
 
     final media = drive.Media(

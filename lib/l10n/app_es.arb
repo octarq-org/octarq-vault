@@ -1,0 +1,432 @@
+{
+  "@@locale": "es",
+  "appTitle": "OctarqVault",
+  "settings": "Ajustes",
+  "settingsTitle": "Ajustes",
+  "language": "Idioma",
+  "localeSystem": "Sistema",
+  "localeZh": "中文",
+  "localeEn": "English",
+  "localeEs": "Español",
+  "security": "Seguridad",
+  "lockVault": "Bloquear bóveda",
+  "biometricUnlock": "Desbloqueo biométrico",
+  "biometricUnlockSubtitle": "Usar Face ID / huella para desbloquear",
+  "autoLockTimeout": "Tiempo de bloqueo automático",
+  "lockAfterMinutes": "Bloquear tras {minutes} min en segundo plano",
+  "@lockAfterMinutes": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "oneMinute": "1 minuto",
+  "minutesPlural": "{count} minutos",
+  "@minutesPlural": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "expiration": "Vencimiento",
+  "sync": "Sincronización",
+  "syncMethod": "Método de sincronización",
+  "syncMethodNone": "Ninguno",
+  "syncMethodWebdav": "WebDAV",
+  "syncMethodGoogleDrive": "Google Drive",
+  "syncMethodLocalFile": "Archivo local (navegador)",
+  "webdavDriveLocalFile": "WebDAV / Drive / Archivo local",
+  "configureCredentialsAndLinkFiles": "Configurar credenciales y vincular archivos",
+  "configureSyncMethodNone": "Seleccione primero un método de sincronización",
+  "configureSyncMethod": "Configurar {method}",
+  "@configureSyncMethod": {
+    "placeholders": {
+      "method": {"type": "String"}
+    }
+  },
+  "exportSyncSettings": "Exportar configuración de sincronización",
+  "exportSyncSettingsSubtitle": "Copiar método de sincronización al portapapeles (JSON)",
+  "importSyncSettings": "Importar configuración de sincronización",
+  "importSyncSettingsSubtitle": "Pegar JSON desde el portapapeles",
+  "dataManagement": "Gestión de datos",
+  "manageCustomAssetTypes": "Gestionar tipos de activos personalizados",
+  "manageCustomAssetTypesSubtitle": "Crear plantillas de activos personalizadas",
+  "manageTags": "Gestionar etiquetas",
+  "manageTagsSubtitle": "Ver y organizar todas las etiquetas",
+  "importExport": "Importar / Exportar",
+  "exportEncFile": "Exportar archivo .enc",
+  "exportEncFileSubtitle": "Copia de seguridad cifrada (todas las plataformas)",
+  "importEncFile": "Importar archivo .enc",
+  "importEncFileSubtitle": "Reemplazar bóveda con copia de seguridad (ingresar contraseña)",
+  "exportJsonToClipboard": "Exportar JSON al portapapeles",
+  "importJsonFromClipboard": "Importar JSON (desde portapapeles)",
+  "about": "Acerca de",
+  "website": "Sitio web",
+  "websiteUrl": "vault.octarq.org",
+  "helpAndDocs": "Ayuda y documentación",
+  "docsUrl": "vault.octarq.org/docs",
+  "cancel": "Cancelar",
+  "ok": "Aceptar",
+  "save": "Guardar",
+  "delete": "Eliminar",
+  "remove": "Quitar",
+  "add": "Agregar",
+  "create": "Crear",
+  "unlock": "Desbloquear",
+  "connect": "Conectar",
+  "link": "Vincular",
+  "copy": "Copiar",
+  "archive": "Archivar",
+  "unarchive": "Desarchivar",
+  "masterPassword": "Contraseña maestra",
+  "pleaseEnterMasterPassword": "Por favor ingresa tu contraseña maestra",
+  "incorrectPassword": "Contraseña incorrecta",
+  "vaultLocked": "Bóveda bloqueada",
+  "enterMasterPasswordToUnlock": "Ingresa tu contraseña maestra para desbloquear.",
+  "useBiometrics": "Usar biometría",
+  "searchHint": "Buscar activos, etiquetas o campos...",
+  "newAsset": "Nuevo activo",
+  "dashboard": "Panel",
+  "allAssets": "Todos los activos",
+  "categories": "CATEGORÍAS",
+  "notifications": "Notificaciones",
+  "noUpcomingExpirations": "Sin vencimientos próximos",
+  "expiresOnDays": "Vence {date} ({days} días)",
+  "@expiresOnDays": {
+    "placeholders": {
+      "date": {"type": "String"},
+      "days": {"type": "int"}
+    }
+  },
+  "totalAssets": "Total de activos",
+  "expiringWithin30Days": "Vence en < 30 días",
+  "estMonthlyCost": "Costo mensual estimado",
+  "actionRequired": "ACCIÓN REQUERIDA",
+  "viewAll": "Ver todo →",
+  "searchViewAllResults": "Ver los {count} resultados",
+  "@searchViewAllResults": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "recentlyAdded": "AGREGADOS RECIENTEMENTE",
+  "expiringSoon": "Por vencer",
+  "noAssetsYet": "Sin activos aún",
+  "addFirstAssetHint": "Agrega tu primer activo digital para comenzar.",
+  "addAsset": "Agregar activo",
+  "asset": "Activo",
+  "assetNotFound": "Activo no encontrado",
+  "assetType": "Tipo de activo",
+  "assetName": "Nombre del activo",
+  "details": "Detalles",
+  "fields": "Campos",
+  "type": "Tipo",
+  "expirationDate": "Fecha de vencimiento",
+  "added": "Agregado",
+  "editAsset": "Editar activo",
+  "duplicateAsset": "Duplicar activo",
+  "deleteAsset": "Eliminar activo",
+  "deleteAssetConfirmation": "¿Estás seguro de que deseas eliminar permanentemente este activo?",
+  "hideSecrets": "Ocultar secretos",
+  "revealSecrets": "Mostrar secretos",
+  "errorDecrypting": "Error al descifrar",
+  "fieldCopied": "{label} copiado",
+  "@fieldCopied": {
+    "placeholders": {
+      "label": {"type": "String"}
+    }
+  },
+  "noLinkedAssets": "Sin activos vinculados.",
+  "removeLinkConfirm": "¿Eliminar vínculo?",
+  "errorLoadingRelations": "Error al cargar relaciones: {error}",
+  "@errorLoadingRelations": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "linkAsset": "Vincular activo",
+  "targetAsset": "Activo destino",
+  "relationType": "Tipo de relación",
+  "relationHostedOn": "Alojado en",
+  "relationDependsOn": "Depende de",
+  "relationUses": "Usa",
+  "relationManagedBy": "Gestionado por",
+  "relationRelatedTo": "Relacionado con",
+  "relationLinkedAccount": "Cuenta vinculada",
+  "addReminder": "Agregar recordatorio",
+  "triggerType": "Tipo de activación",
+  "beforeExpiration": "Antes del vencimiento",
+  "recurring": "Recurrente",
+  "daysBefore": "Días antes",
+  "daysCount": "{count} días",
+  "@daysCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "pleaseSelectType": "Por favor selecciona un tipo",
+  "required": "Obligatorio",
+  "addTagHint": "Agregar etiqueta...",
+  "noneTapToSet": "Ninguno — toca para establecer",
+  "clearDate": "Borrar fecha",
+  "reminders": "Recordatorios",
+  "addReminderTooltip": "Agregar recordatorio",
+  "defaultReminderBeforeExpiry": "Predeterminado: 7 días antes del vencimiento",
+  "setExpirationToEnableReminders": "Establece el vencimiento para habilitar recordatorios",
+  "linkedAssets": "Activos vinculados",
+  "addLink": "Agregar vínculo",
+  "noLinksAddAfterSave": "Sin vínculos. Agrega vínculos después de guardar.",
+  "noOtherAssetsToLink": "No hay otros activos para vincular.",
+  "linkToAsset": "Vincular a activo",
+  "noAssetsToLinkSaveFirst": "Sin activos para vincular. Guarda este activo primero, luego agrega vínculos en su página de detalles.",
+  "basicInfo": "Información básica",
+  "tags": "Etiquetas",
+  "saveAssetFailed": "Error al guardar activo: {error}",
+  "@saveAssetFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "errorGeneric": "Error: {error}",
+  "@errorGeneric": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "manageAssetTypes": "Gestionar tipos de activos",
+  "deleteCustomType": "Eliminar tipo personalizado",
+  "deleteCustomTypeConfirmation": "¿Estás seguro? Los activos existentes de este tipo podrían perder sus asignaciones de plantilla.",
+  "newAssetType": "Nuevo tipo de activo",
+  "assetTypeNameHint": "Nombre del tipo de activo (p. ej., Billetera cripto)",
+  "icon": "Ícono",
+  "fieldsConfiguration": "Configuración de campos",
+  "addField": "Agregar campo",
+  "fieldLabelHint": "Etiqueta del campo (p. ej., Clave privada)",
+  "dataType": "Tipo de dato",
+  "aesEncrypted": "Cifrado AES-256-GCM",
+  "aesEncryptedSubtitle": "Campos como contraseñas, claves",
+  "requiredInput": "Entrada obligatoria",
+  "newTag": "Nueva etiqueta",
+  "tagName": "Nombre de etiqueta",
+  "color": "Color",
+  "deleteTag": "Eliminar etiqueta",
+  "deleteTagConfirmation": "¿Quitar \"{name}\" de todos los activos?",
+  "@deleteTagConfirmation": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "addTag": "Agregar etiqueta",
+  "noTagsYet": "Sin etiquetas aún",
+  "tagsCreatedWhenAdded": "Las etiquetas se crean cuando las agregas a los activos.",
+  "assetCount": "{count} activos",
+  "@assetCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "expiringIn30Days": "Vence en 30 días",
+  "expired": "Vencido",
+  "noMatchesFound": "No se encontraron coincidencias.",
+  "selectedCount": "{count} seleccionados",
+  "@selectedCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "itemsCount": "{count} elementos",
+  "@itemsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "hideArchived": "Ocultar archivados",
+  "showArchived": "Mostrar archivados",
+  "filterAll": "Todos",
+  "filterExpiring30d": "Vence en 30d",
+  "filterExpired": "Vencidos",
+  "sortByAdded": "Ordenar por: Agregado",
+  "sortByName": "Ordenar por: Nombre",
+  "sortByExpiry": "Ordenar por: Vencimiento",
+  "archived": "Archivado",
+  "exportedJsonCopiedToClipboard": "¡JSON exportado al portapapeles!",
+  "clipboardUnavailableWeb": "Portapapeles no disponible (el navegador puede requerir HTTPS). Intenta guardar en un archivo.",
+  "clipboardUnavailable": "No se pudo copiar al portapapeles. Por favor intenta de nuevo.",
+  "syncSettingsCopiedToClipboard": "Configuración de sincronización copiada al portapapeles",
+  "syncSettingsApplied": "Configuración de sincronización aplicada",
+  "unlockBackup": "Desbloquear copia de seguridad",
+  "wrongPassword": "Contraseña incorrecta",
+  "importedEncCount": "Se importaron {count} activos desde el archivo .enc",
+  "@importedEncCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "clipboardEmpty": "El portapapeles está vacío.",
+  "invalidSyncSettingsJson": "JSON de configuración de sincronización inválido: {error}",
+  "@invalidSyncSettingsJson": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "cannotOpenUrl": "No se puede abrir: {url}",
+  "@cannotOpenUrl": {
+    "placeholders": {
+      "url": {"type": "String"}
+    }
+  },
+  "validationNoAssetsInJson": "No hay activos en el JSON.",
+  "importSuccessCount": "¡Se importaron {count} activos correctamente!",
+  "@importSuccessCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "importInvalid": "Importación inválida: {error}",
+  "@importInvalid": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "importFailed": "Error en importación: {error}",
+  "@importFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "invalidJsonOrFormat": "JSON o formato inválido.",
+  "webdavBackup": "Copia de seguridad WebDAV",
+  "webdavConnected": "WebDAV conectado",
+  "webdavConnectedSuccess": "¡Conexión a WebDAV exitosa!",
+  "webdavConnectionFailed": "Error de conexión: {error}",
+  "@webdavConnectionFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "e2eeBackupSuccess": "¡Copia de seguridad E2EE exitosa!",
+  "backupFailed": "Error en copia de seguridad: {error}",
+  "@backupFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "restoredAssetsE2ee": "Se restauraron {count} activos (E2EE)",
+  "@restoredAssetsE2ee": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "restoreFailed": "Error en restauración: {error}",
+  "@restoreFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "backupToWebdav": "Respaldar en WebDAV",
+  "restoreFromWebdav": "Restaurar desde WebDAV",
+  "disconnectClearCredentials": "Desconectar y borrar credenciales",
+  "webdavConfigureDescription": "Configura tu servidor WebDAV (p. ej., Nextcloud, ownCloud, Nutstore) para respaldar de forma segura tu base de datos cifrada.",
+  "serverUrl": "URL del servidor",
+  "serverUrlHint": "https://example.com/remote.php/webdav/",
+  "username": "Usuario",
+  "passwordOrAppToken": "Contraseña / Token de aplicación",
+  "e2eeWebSync": "Sincronización web E2EE",
+  "localDiskSyncE2ee": "Sincronización en disco local (cifrado E2EE)",
+  "localDiskSyncDescription": "Mantén un archivo de bóveda cifrado localmente. Este archivo se actualizará silenciosamente en tu escritorio tras cada cambio.",
+  "createNewEncryptedVaultFile": "Crear nuevo archivo de bóveda cifrado",
+  "linkExistingVaultFile": "Vincular archivo de bóveda existente",
+  "importFallback": "Importación alternativa",
+  "exportFallback": "Exportación alternativa",
+  "googleDriveSyncE2ee": "Sincronización con Google Drive (cifrado E2EE)",
+  "googleDriveSyncDescription": "Sincroniza automáticamente a una carpeta appDataFolder oculta en tu Google Drive. Completamente de conocimiento cero.",
+  "authorizeSyncGoogleDrive": "Autorizar y sincronizar con Google Drive",
+  "pullFromGoogleDrive": "Obtener desde Google Drive (sobrescribir local)",
+  "restoredAssetsFromFile": "Se restauraron {count} activos desde el archivo",
+  "@restoredAssetsFromFile": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "browserNoFilePickUseFallback": "Tu navegador no permite seleccionar archivos directamente. Por favor usa los botones de importación/exportación alternativos de abajo.",
+  "pushedToGoogleDriveSuccess": "Enviado de forma segura a Google Drive",
+  "driveError": "Error de Drive: {error}",
+  "@driveError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "restoredAssetsFromDrive": "Se restauraron {count} activos desde Drive",
+  "@restoredAssetsFromDrive": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "noBackupFoundOnDrive": "No se encontró copia de seguridad en Drive.",
+  "importError": "Error de importación: {error}",
+  "@importError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "welcomeToOctarqVault": "Bienvenido a OctarqVault",
+  "setMasterPassword": "Establece tu contraseña maestra",
+  "setupPasswordDescription": "Esta contraseña cifra todos tus datos localmente. Si la olvidas, los datos no podrán recuperarse.",
+  "confirmPassword": "Confirmar contraseña",
+  "createVault": "Crear bóveda",
+  "orRestoreExistingVault": "O restaura una bóveda existente",
+  "restoreFromGoogleDrive": "Restaurar desde Google Drive",
+  "restoreFromLocalFile": "Restaurar desde archivo local",
+  "passwordTooShort": "Contraseña muy corta (mínimo 8 caracteres)",
+  "passwordsDoNotMatch": "Las contraseñas no coinciden",
+  "createVaultFailed": "Error al crear bóveda: {error}",
+  "@createVaultFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "unknownError": "Error desconocido",
+  "vaultFound": "Bóveda encontrada",
+  "vaultRestoredSuccess": "¡Bóveda restaurada correctamente!",
+  "unlockFailed": "Error al desbloquear: {error}",
+  "@unlockFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "fallbackError": "Error alternativo: {error}",
+  "@fallbackError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "notificationAssetExpiringTitle": "Activo por vencer",
+  "notificationAssetExpiringBody": "{name} vence en {days} días.",
+  "@notificationAssetExpiringBody": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "days": {"type": "int"}
+    }
+  },
+  "notificationChannelName": "Vencimientos de activos",
+  "notificationChannelDescription": "Notificaciones de activos por vencer",
+  "webSecurityTitle": "Aviso de seguridad web",
+  "webSecurityBody": "En la web, las claves de cifrado se almacenan en el localStorage e IndexedDB del navegador, no en un enclave seguro respaldado por hardware como iOS Keychain o Android Keystore. Para mayor seguridad, usa la aplicación nativa en tu teléfono o escritorio.",
+  "webSecurityLearnMore": "Saber más",
+  "webdavCorsWarning": "Aviso CORS: La mayoría de los servidores WebDAV bloquean las solicitudes directas del navegador. Usa un servidor con encabezados CORS habilitados (p. ej., Nextcloud con la configuración correcta), o usa la aplicación de escritorio/móvil para la sincronización WebDAV.",
+  "driveSmartMergeSuccess": "Fusionados {local} locales + {remote} remotos (LWW)",
+  "@driveSmartMergeSuccess": {
+    "placeholders": {
+      "local": {"type": "int"},
+      "remote": {"type": "int"}
+    }
+  },
+  "icloudBackup": "Copia de seguridad iCloud",
+  "icloudBackupSubtitle": "Sincronizar bóveda cifrada con iCloud Drive (solo iOS)",
+  "icloudBackupSuccess": "¡Copia de seguridad en iCloud exitosa!",
+  "icloudRestoreSuccess": "Se restauraron {count} activos desde iCloud",
+  "@icloudRestoreSuccess": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "icloudNotAvailable": "iCloud no está disponible en este dispositivo."
+}

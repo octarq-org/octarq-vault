@@ -60,6 +60,16 @@ String? _validateImportJson(
   return null;
 }
 
+String _formatSyncTime(DateTime dt) {
+  final now = DateTime.now();
+  final diff = now.difference(dt);
+  if (diff.inSeconds < 60) return 'Just now';
+  if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+  if (diff.inHours < 24) return '${diff.inHours}h ago';
+  String pad(int n) => n.toString().padLeft(2, '0');
+  return '${dt.year}-${pad(dt.month)}-${pad(dt.day)} ${pad(dt.hour)}:${pad(dt.minute)}';
+}
+
 class AutoLockNotifier extends Notifier<int> {
   @override
   int build() => 5;
@@ -519,6 +529,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return l10n.localeZh;
       case 'en':
         return l10n.localeEn;
+      case 'es':
+        return l10n.localeEs;
       default:
         return l10n.localeSystem;
     }
@@ -571,6 +583,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   title: Text(l10n.localeEn),
                   onTap: () => setDlgState(() => selected = 'en'),
                 ),
+                ListTile(
+                  leading: Icon(
+                    selected == 'es'
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_unchecked,
+                    color: kPrimaryGreen,
+                  ),
+                  title: Text(l10n.localeEs),
+                  onTap: () => setDlgState(() => selected = 'es'),
+                ),
               ],
             ),
             actions: [
@@ -600,6 +622,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final autoLockMinutes = ref.watch(autoLockMinutesProvider);
     final syncMethods = ref.watch(syncSettingsProvider);
     final localeOverride = ref.watch(localePreferenceProvider);
+    final lastSyncAt = ref.watch(lastSyncAtProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),
@@ -655,6 +678,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             subtitle: Text(l10n.configureCredentialsAndLinkFiles),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.go('/settings/webdav'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.access_time),
+            title: const Text('Last Sync'),
+            subtitle: Text(
+              lastSyncAt.when(
+                data: (dt) => dt != null ? _formatSyncTime(dt) : 'Never',
+                loading: () => '…',
+                error: (error, stackTrace) => 'Unknown',
+              ),
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.upload_file),

@@ -20,6 +20,7 @@ class LocalFileSyncService {
   Future<void> syncToLocal(
     List<Asset> assets, {
     List<AssetType> customAssetTypes = const [],
+    List<Map<String, dynamic>> tombstones = const [],
   }) async {}
 
   Future<Uint8List?> readRawBytesFromLocal() async {
@@ -33,6 +34,7 @@ class LocalFileSyncService {
   void exportToDownload(
     List<Asset> assets, {
     List<AssetType> customAssetTypes = const [],
+    List<Map<String, dynamic>> tombstones = const [],
   }) {}
 
   Future<Uint8List?> importRawBytesFromUpload() async {

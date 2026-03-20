@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:asset_vault/providers/auth_provider.dart';
 import 'package:asset_vault/providers/service_providers.dart';
 import 'package:asset_vault/services/database_service.dart';
+import 'package:asset_vault/services/e2ee_sync_service.dart';
 import 'package:asset_vault/services/encryption_service.dart';
 import 'package:asset_vault/services/secure_storage_service.dart';
 
@@ -33,7 +34,9 @@ class MockEncryptionService extends EncryptionService {
 class MockSecureStorageService extends SecureStorageService {
   String? _storedKeyBase64;
   String? _storedSalt;
+  Uint8List? biometricKey;
   bool storeCalled = false;
+  bool clearAllCalled = false;
 
   @override
   Future<bool> hasStoredKey() async => _storedKeyBase64 != null;
@@ -49,12 +52,15 @@ class MockSecureStorageService extends SecureStorageService {
   Future<String?> getSalt() async => _storedSalt;
 
   @override
-  Future<Uint8List?> getMasterKeyWithBiometrics(String reason) async => null;
+  Future<Uint8List?> getMasterKeyWithBiometrics(String reason) async =>
+      biometricKey;
 
   @override
   Future<void> clearAll() async {
+    clearAllCalled = true;
     _storedKeyBase64 = null;
     _storedSalt = null;
+    biometricKey = null;
   }
 }
 
@@ -62,12 +68,13 @@ class MockDatabaseService extends DatabaseService {
   bool initCalled = false;
   bool closeCalled = false;
   bool shouldThrowOnInit = false;
+  Object initError = Exception('SQLCipher not available');
 
   @override
   Future<void> init(Uint8List masterKeyBytes) async {
     initCalled = true;
     if (shouldThrowOnInit) {
-      throw Exception('SQLCipher not available');
+      throw initError;
     }
     // Don't actually open a database
   }
@@ -78,6 +85,40 @@ class MockDatabaseService extends DatabaseService {
   }
 }
 
+class MockE2EESyncService extends E2EESyncService {
+  MockE2EESyncService() : super(EncryptionService());
+
+  VaultSnapshot? snapshotToReturn;
+  Object? unpackError;
+
+  @override
+  VaultSnapshot unpackCiphertextToSnapshot(Uint8List encryptedPayload) {
+    if (unpackError != null) throw unpackError!;
+    return snapshotToReturn ??
+        VaultSnapshot(version: 2, assets: const [], customAssetTypes: const []);
+  }
+}
+
+Future<void> _waitForAuthInit(ProviderContainer container) async {
+  for (int i = 0; i < 50; i++) {
+    await Future<void>.delayed(Duration.zero);
+    if (container.read(authProvider) != AuthState.initializing) break;
+  }
+}
+
+Uint8List _externalPayloadWithSalt(String saltBase64) {
+  final salt = saltBase64.codeUnits;
+  return Uint8List.fromList([
+    ...'AVV2'.codeUnits,
+    (salt.length >> 8) & 0xFF,
+    salt.length & 0xFF,
+    ...salt,
+    1,
+    2,
+    3,
+  ]);
+}
+
 // --- Tests ---
 
 void main() {
@@ -86,18 +127,21 @@ void main() {
   late MockEncryptionService mockEncryption;
   late MockSecureStorageService mockStorage;
   late MockDatabaseService mockDb;
+  late MockE2EESyncService mockSync;
   late ProviderContainer container;
 
   setUp(() {
     mockEncryption = MockEncryptionService();
     mockStorage = MockSecureStorageService();
     mockDb = MockDatabaseService();
+    mockSync = MockE2EESyncService();
 
     container = ProviderContainer(
       overrides: [
         encryptionServiceProvider.overrideWithValue(mockEncryption),
         secureStorageServiceProvider.overrideWithValue(mockStorage),
         databaseServiceProvider.overrideWithValue(mockDb),
+        e2eeSyncServiceProvider.overrideWithValue(mockSync),
       ],
     );
   });
@@ -133,6 +177,7 @@ void main() {
           encryptionServiceProvider.overrideWithValue(mockEncryption),
           secureStorageServiceProvider.overrideWithValue(mockStorage),
           databaseServiceProvider.overrideWithValue(mockDb),
+          e2eeSyncServiceProvider.overrideWithValue(mockSync),
         ],
       );
       container2.read(authProvider); // trigger build
@@ -146,7 +191,7 @@ void main() {
 
   group('setupMasterPassword', () {
     test('happy path: derives key, stores, inits db, unlocks', () async {
-      await Future.delayed(const Duration(milliseconds: 100)); // wait for init
+      await _waitForAuthInit(container);
 
       final notifier = container.read(authProvider.notifier);
       final result = await notifier.setupMasterPassword('test-password-123');
@@ -161,7 +206,7 @@ void main() {
     });
 
     test('failure on key derivation: returns false with error', () async {
-      await Future.delayed(const Duration(milliseconds: 100));
+      await _waitForAuthInit(container);
       mockEncryption.shouldThrowOnDerive = true;
 
       final notifier = container.read(authProvider.notifier);
@@ -173,7 +218,7 @@ void main() {
     });
 
     test('failure on db init still fails gracefully', () async {
-      await Future.delayed(const Duration(milliseconds: 100));
+      await _waitForAuthInit(container);
       mockDb.shouldThrowOnInit = true;
 
       final notifier = container.read(authProvider.notifier);
@@ -188,7 +233,7 @@ void main() {
 
   group('unlockWithPassword', () {
     test('happy path: retrieves salt, derives key, unlocks', () async {
-      await Future.delayed(const Duration(milliseconds: 100));
+      await _waitForAuthInit(container);
 
       // First setup a vault
       final notifier = container.read(authProvider.notifier);
@@ -204,7 +249,7 @@ void main() {
     });
 
     test('fails when no salt stored', () async {
-      await Future.delayed(const Duration(milliseconds: 100));
+      await _waitForAuthInit(container);
 
       final notifier = container.read(authProvider.notifier);
       final result = await notifier.unlockWithPassword('some-password');
@@ -212,11 +257,97 @@ void main() {
       expect(result, isFalse);
       expect(notifier.lastError, contains('No salt found'));
     });
+
+    test('treats corrupt database open as handled reset path', () async {
+      await _waitForAuthInit(container);
+      await mockStorage.storeMasterKey(Uint8List(32), 'stored-salt');
+      mockDb.shouldThrowOnInit = true;
+      mockDb.initError = Exception('DatabaseException(file is not a database)');
+
+      final notifier = container.read(authProvider.notifier);
+      final result = await notifier.unlockWithPassword('some-password');
+
+      expect(result, isFalse);
+      expect(container.read(authProvider), equals(AuthState.unsetup));
+      expect(
+        notifier.lastError,
+        contains('Vault file was corrupted or invalid'),
+      );
+      expect(mockDb.closeCalled, isTrue);
+      expect(mockStorage.clearAllCalled, isTrue);
+    });
+  });
+
+  group('unlockWithExternalPayload', () {
+    test('fails fast when payload is not a valid vault backup', () async {
+      await _waitForAuthInit(container);
+
+      final notifier = container.read(authProvider.notifier);
+      final result = await notifier.unlockWithExternalPayload(
+        'password',
+        Uint8List.fromList([1, 2, 3, 4]),
+      );
+
+      expect(result, isFalse);
+      expect(notifier.lastError, contains('Not a valid vault backup'));
+      expect(container.read(authProvider), isNot(AuthState.unlocked));
+    });
+
+    test(
+      'wipes derived key when payload decryption verification fails',
+      () async {
+        await _waitForAuthInit(container);
+        mockSync.unpackError = Exception('bad payload');
+
+        final notifier = container.read(authProvider.notifier);
+        final result = await notifier.unlockWithExternalPayload(
+          'password',
+          _externalPayloadWithSalt('c2FsdA=='),
+        );
+
+        expect(result, isFalse);
+        expect(
+          notifier.lastError,
+          equals('Incorrect password or corrupted file.'),
+        );
+        expect(() => mockEncryption.masterKey, throwsException);
+        expect(mockStorage.storeCalled, isFalse);
+      },
+    );
+  });
+
+  group('unlockWithBiometrics', () {
+    test('unlocks when biometric storage returns a key', () async {
+      await _waitForAuthInit(container);
+      mockStorage.biometricKey = Uint8List.fromList(
+        List<int>.generate(32, (i) => i),
+      );
+      await mockStorage.storeMasterKey(Uint8List(32), 'stored-salt');
+
+      final notifier = container.read(authProvider.notifier);
+      final result = await notifier.unlockWithBiometrics();
+
+      expect(result, isTrue);
+      expect(container.read(authProvider), equals(AuthState.unlocked));
+      expect(mockEncryption.masterKey, hasLength(32));
+      expect(mockEncryption.currentSaltBase64, equals('stored-salt'));
+    });
+
+    test('returns false when biometric storage yields no key', () async {
+      await _waitForAuthInit(container);
+
+      final notifier = container.read(authProvider.notifier);
+      final result = await notifier.unlockWithBiometrics();
+
+      expect(result, isFalse);
+      expect(container.read(authProvider), isNot(AuthState.unlocked));
+      expect(notifier.lastError, isNull);
+    });
   });
 
   group('lock', () {
     test('wipes key, closes db, transitions to locked', () async {
-      await Future.delayed(const Duration(milliseconds: 100));
+      await _waitForAuthInit(container);
 
       final notifier = container.read(authProvider.notifier);
       await notifier.setupMasterPassword('password');

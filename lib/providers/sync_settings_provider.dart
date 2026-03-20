@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/sync_settings.dart';
 
 const _keySyncMethods = 'sync_methods';
+const _keyLastSyncAt = 'last_sync_at';
 
 class SyncSettingsNotifier extends Notifier<List<SyncMethod>> {
   @override
@@ -75,3 +76,29 @@ final syncSettingsProvider =
     NotifierProvider<SyncSettingsNotifier, List<SyncMethod>>(() {
       return SyncSettingsNotifier();
     });
+
+// ---------------------------------------------------------------------------
+// lastSyncAt — persisted timestamp of the last successful sync
+// ---------------------------------------------------------------------------
+
+class LastSyncAtNotifier extends AsyncNotifier<DateTime?> {
+  @override
+  Future<DateTime?> build() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ms = prefs.getInt(_keyLastSyncAt);
+    return ms != null ? DateTime.fromMillisecondsSinceEpoch(ms) : null;
+  }
+
+  Future<void> recordSync() async {
+    final now = DateTime.now();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyLastSyncAt, now.millisecondsSinceEpoch);
+    state = AsyncValue.data(now);
+  }
+}
+
+final lastSyncAtProvider = AsyncNotifierProvider<LastSyncAtNotifier, DateTime?>(
+  () {
+    return LastSyncAtNotifier();
+  },
+);

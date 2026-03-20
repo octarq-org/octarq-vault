@@ -30,6 +30,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get localeEn => 'English';
 
   @override
+  String get localeEs => 'Español';
+
+  @override
   String get security => '安全';
 
   @override

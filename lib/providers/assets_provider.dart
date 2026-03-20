@@ -17,6 +17,10 @@ import 'asset_types_provider.dart';
 import 'relations_provider.dart';
 
 class AssetsNotifier extends Notifier<List<Asset>> {
+  /// In-memory tombstone map: assetId → deletedAt (ms epoch).
+  /// Persisted through snapshots via the tombstones field in VaultSnapshot.
+  final Map<String, int> _tombstones = {};
+
   @override
   List<Asset> build() {
     Future.microtask(() => loadAssets());
@@ -52,10 +56,11 @@ class AssetsNotifier extends Notifier<List<Asset>> {
                 if (localSnapshot == null) {
                   localSnapshot = remoteSnapshot;
                 } else {
-                  localSnapshot = VaultSnapshot.mergeSnapshots(
+                  final result = VaultSnapshot.mergeSnapshots(
                     local: localSnapshot,
                     remote: remoteSnapshot,
                   );
+                  localSnapshot = result.snapshot;
                   // Persist merged blob back to IndexedDB
                   final mergedBlob = syncService.packSnapshotTOCiphertext(
                     localSnapshot.assets,
@@ -73,6 +78,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
 
         if (localSnapshot == null) return;
         state = localSnapshot.assets;
+        _loadTombstones(localSnapshot.tombstones);
         await ref
             .read(assetTypesProvider.notifier)
             .setCustomTypesFromSnapshot(localSnapshot.customAssetTypes);
@@ -311,7 +317,17 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       await db.delete('assets', where: 'id = ?', whereArgs: [id]);
     }
     state = state.where((a) => a.id != id).toList();
+    // Record tombstone so deletions propagate across devices via LWW merge
+    _addTombstone(id);
     await _triggerSync();
+  }
+
+  void _addTombstone(String id) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final existing = _tombstones[id];
+    if (existing == null || now > existing) {
+      _tombstones[id] = now;
+    }
   }
 
   Future<void> archiveAsset(String id) async {
@@ -374,12 +390,23 @@ class AssetsNotifier extends Notifier<List<Asset>> {
     }
   }
 
+  void _loadTombstones(List<Map<String, dynamic>> tombstones) {
+    for (final t in tombstones) {
+      final id = t['id'] as String?;
+      final deletedAt = t['deletedAt'] as int?;
+      if (id != null && deletedAt != null) {
+        _tombstones[id] = deletedAt;
+      }
+    }
+  }
+
   /// Replace vault with snapshot (e.g. after import .enc). On Web writes blob to IndexedDB.
   Future<void> replaceFromSnapshot(
     VaultSnapshot snapshot, {
     Uint8List? encryptedBlob,
   }) async {
     state = snapshot.assets;
+    _loadTombstones(snapshot.tombstones);
     if (kIsWeb) {
       await ref
           .read(assetTypesProvider.notifier)
@@ -440,6 +467,10 @@ class AssetsNotifier extends Notifier<List<Asset>> {
     });
   }
 
+  List<Map<String, dynamic>> get _tombstoneList => _tombstones.entries
+      .map((e) => {'id': e.key, 'deletedAt': e.value})
+      .toList();
+
   Future<void> _triggerSync() async {
     final methods = ref.read(syncSettingsProvider);
     final customTypes = ref
@@ -455,19 +486,28 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       } catch (_) {}
     }
 
+    final tombstones = _tombstoneList;
+    bool synced = false;
+
     if (kIsWeb) {
       final syncService = ref.read(e2eeSyncServiceProvider);
       final blob = syncService.packSnapshotTOCiphertext(
         state,
         customAssetTypes: customTypes,
         relations: relations,
+        tombstones: tombstones,
       );
       await ref.read(webVaultStorageProvider).writeEncrypted(blob);
+      synced = true;
       for (final syncMethod in methods) {
         if (syncMethod == SyncMethod.localFile) {
           final localSync = ref.read(localFileSyncServiceProvider);
           if (localSync.hasActiveHandle) {
-            await localSync.syncToLocal(state, customAssetTypes: customTypes);
+            await localSync.syncToLocal(
+              state,
+              customAssetTypes: customTypes,
+              tombstones: tombstones,
+            );
           }
         } else if (syncMethod == SyncMethod.googleDrive) {
           final driveService = ref.read(googleDriveServiceProvider);
@@ -477,6 +517,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
               state,
               customAssetTypes: customTypes,
               relations: relations,
+              tombstones: tombstones,
             );
           }
         }
@@ -492,8 +533,10 @@ class AssetsNotifier extends Notifier<List<Asset>> {
               state,
               customAssetTypes: customTypes,
               relations: relations,
+              tombstones: tombstones,
             );
             await webDav.backupEncrypted(blob);
+            synced = true;
           }
         } else if (syncMethod == SyncMethod.icloud) {
           final icloud = ref.read(iCloudSyncServiceProvider);
@@ -503,11 +546,17 @@ class AssetsNotifier extends Notifier<List<Asset>> {
               state,
               customAssetTypes: customTypes,
               relations: relations,
+              tombstones: tombstones,
             );
             await icloud.backup(blob);
+            synced = true;
           }
         }
       }
+    }
+
+    if (synced) {
+      await ref.read(lastSyncAtProvider.notifier).recordSync();
     }
   }
 }

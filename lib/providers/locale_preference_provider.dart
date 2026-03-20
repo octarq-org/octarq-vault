@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-const _keyLocaleOverride = 'locale_override'; // 'system' | 'zh' | 'en'
+const _keyLocaleOverride = 'locale_override'; // 'system' | 'en' | 'es' | 'zh'
 
 class LocalePreferenceNotifier extends Notifier<String> {
   @override
@@ -19,7 +19,9 @@ class LocalePreferenceNotifier extends Notifier<String> {
   }
 
   Future<void> setLocaleOverride(String value) async {
-    if (value != 'system' && value != 'zh' && value != 'en') return;
+    if (value != 'system' && value != 'zh' && value != 'en' && value != 'es') {
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyLocaleOverride, value);
     state = value;

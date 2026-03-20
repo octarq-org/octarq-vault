@@ -78,6 +78,17 @@ void main() {
       final snapshot = VaultSnapshot.fromJson(json);
       expect(snapshot.relations, isEmpty);
     });
+
+    test('fromJson defaults missing tombstones to empty list', () {
+      final snapshot = VaultSnapshot.fromJson({
+        'version': 2,
+        'assets': [],
+        'customAssetTypes': [],
+        'relations': [],
+      });
+
+      expect(snapshot.tombstones, isEmpty);
+    });
   });
 
   group('E2EE pack / unpack roundtrip', () {
@@ -149,6 +160,37 @@ void main() {
       expect(salt, isNotEmpty);
     });
 
+    test(
+      'extractSaltFromPayload returns null for invalid or truncated header',
+      () {
+        expect(
+          E2EESyncService.extractSaltFromPayload(Uint8List.fromList([1, 2, 3])),
+          isNull,
+        );
+
+        final invalidHeader = Uint8List.fromList([
+          ...'NOPE'.codeUnits,
+          0,
+          4,
+          ...'salt'.codeUnits,
+        ]);
+        expect(E2EESyncService.extractSaltFromPayload(invalidHeader), isNull);
+
+        final truncated = Uint8List.fromList([
+          ...'AVV2'.codeUnits,
+          0,
+          10,
+          ...'salt'.codeUnits,
+        ]);
+        expect(E2EESyncService.extractSaltFromPayload(truncated), isNull);
+      },
+    );
+
+    test('stripHeader leaves legacy payload unchanged', () {
+      final payload = Uint8List.fromList([9, 8, 7, 6, 5]);
+      expect(E2EESyncService.stripHeader(payload), equals(payload));
+    });
+
     test('tampered ciphertext throws on unpack', () {
       final blob = service.packSnapshotTOCiphertext([
         _makeAsset(id: 'a', name: 'Test'),
@@ -174,7 +216,10 @@ void main() {
         assets: [_makeAsset(id: 'a1', name: 'New Name', updatedAt: 2000)],
       );
 
-      final merged = VaultSnapshot.mergeSnapshots(local: local, remote: remote);
+      final merged = VaultSnapshot.mergeSnapshots(
+        local: local,
+        remote: remote,
+      ).snapshot;
 
       expect(merged.assets.length, 1);
       expect(merged.assets.first.name, 'New Name');
@@ -190,7 +235,10 @@ void main() {
         assets: [_makeAsset(id: 'a1', name: 'Remote Stale', updatedAt: 3000)],
       );
 
-      final merged = VaultSnapshot.mergeSnapshots(local: local, remote: remote);
+      final merged = VaultSnapshot.mergeSnapshots(
+        local: local,
+        remote: remote,
+      ).snapshot;
 
       expect(merged.assets.first.name, 'Local Fresh');
     });
@@ -205,7 +253,10 @@ void main() {
         assets: [_makeAsset(id: 'remote-only', name: 'Remote Only')],
       );
 
-      final merged = VaultSnapshot.mergeSnapshots(local: local, remote: remote);
+      final merged = VaultSnapshot.mergeSnapshots(
+        local: local,
+        remote: remote,
+      ).snapshot;
 
       expect(merged.assets.length, 2);
       final ids = merged.assets.map((a) => a.id).toSet();
@@ -251,7 +302,10 @@ void main() {
         ],
       );
 
-      final merged = VaultSnapshot.mergeSnapshots(local: local, remote: remote);
+      final merged = VaultSnapshot.mergeSnapshots(
+        local: local,
+        remote: remote,
+      ).snapshot;
 
       expect(
         merged.relations.length,
@@ -297,11 +351,130 @@ void main() {
         customAssetTypes: [remoteType, uniqueType],
       );
 
-      final merged = VaultSnapshot.mergeSnapshots(local: local, remote: remote);
+      final merged = VaultSnapshot.mergeSnapshots(
+        local: local,
+        remote: remote,
+      ).snapshot;
 
       expect(merged.customAssetTypes.length, 2);
       final ct1 = merged.customAssetTypes.firstWhere((t) => t.id == 'ct1');
       expect(ct1.name, 'Remote Version');
     });
+
+    test(
+      'same timestamp but different asset content yields conflict and keeps local',
+      () {
+        final local = VaultSnapshot(
+          version: 2,
+          assets: [_makeAsset(id: 'a1', name: 'Local Name', updatedAt: 2000)],
+        );
+        final remote = VaultSnapshot(
+          version: 2,
+          assets: [_makeAsset(id: 'a1', name: 'Remote Name', updatedAt: 2000)],
+        );
+
+        final result = VaultSnapshot.mergeSnapshots(
+          local: local,
+          remote: remote,
+        );
+
+        expect(result.conflicts, hasLength(1));
+        expect(result.conflicts.single.local.name, 'Local Name');
+        expect(result.conflicts.single.remote.name, 'Remote Name');
+        expect(result.snapshot.assets.single.name, 'Local Name');
+      },
+    );
+
+    test('newer tombstone removes asset and relations that reference it', () {
+      final local = VaultSnapshot(
+        version: 2,
+        assets: [_makeAsset(id: 'a1', name: 'Keep?', updatedAt: 1000)],
+        relations: [
+          {
+            'id': 'r1',
+            'from_asset_id': 'a1',
+            'to_asset_id': 'a2',
+            'relation_type': 'depends_on',
+          },
+          {
+            'id': 'r2',
+            'from_asset_id': 'a3',
+            'to_asset_id': 'a4',
+            'relation_type': 'related_to',
+          },
+        ],
+      );
+      final remote = VaultSnapshot(
+        version: 2,
+        assets: const [],
+        tombstones: [
+          {'id': 'a1', 'deletedAt': 2000},
+        ],
+      );
+
+      final merged = VaultSnapshot.mergeSnapshots(
+        local: local,
+        remote: remote,
+      ).snapshot;
+
+      expect(merged.assets.where((asset) => asset.id == 'a1'), isEmpty);
+      expect(merged.relations.map((r) => r['id']), equals(['r2']));
+      expect(merged.tombstones, hasLength(1));
+      expect(merged.tombstones.single['id'], equals('a1'));
+      expect(merged.tombstones.single['deletedAt'], equals(2000));
+    });
+
+    test('tombstone with equal timestamp does not delete asset', () {
+      final local = VaultSnapshot(
+        version: 2,
+        assets: [_makeAsset(id: 'a1', name: 'Same Time', updatedAt: 1500)],
+      );
+      final remote = VaultSnapshot(
+        version: 2,
+        assets: const [],
+        tombstones: [
+          {'id': 'a1', 'deletedAt': 1500},
+        ],
+      );
+
+      final merged = VaultSnapshot.mergeSnapshots(
+        local: local,
+        remote: remote,
+      ).snapshot;
+
+      expect(merged.assets.single.id, 'a1');
+    });
+
+    test(
+      'newest tombstone wins when both snapshots contain same tombstone id',
+      () {
+        final local = VaultSnapshot(
+          version: 2,
+          assets: const [],
+          tombstones: [
+            {'id': 'a1', 'deletedAt': 1000},
+          ],
+        );
+        final remote = VaultSnapshot(
+          version: 2,
+          assets: const [],
+          tombstones: [
+            {'id': 'a1', 'deletedAt': 3000},
+          ],
+        );
+
+        final merged = VaultSnapshot.mergeSnapshots(
+          local: local,
+          remote: remote,
+        ).snapshot;
+
+        expect(
+          merged.tombstones,
+          equals([
+            {'id': 'a1', 'deletedAt': 3000},
+          ]),
+        );
+      },
+    );
   });
 }

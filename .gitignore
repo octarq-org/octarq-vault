@@ -17,6 +17,10 @@
 
 # The .vscode folder contains settings for Visual Studio Code
 .vscode/
+.claude/
+.claude-flow/
+.cursor/
+.swarm/
 
 # Flutter/Dart related
 **/doc/api/
@@ -73,3 +77,16 @@
 .env*
 secrets.json
 *.avault
+
+# Codex local configuration
+.codex/
+.agents/
+
+# Claude Flow runtime data
+.claude-flow/data/
+.claude-flow/logs/
+
+# Environment variables
+.env
+.env.local
+.env.*.local

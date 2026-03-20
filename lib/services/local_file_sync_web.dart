@@ -95,6 +95,7 @@ class LocalFileSyncService {
   Future<void> syncToLocal(
     List<Asset> assets, {
     List<AssetType> customAssetTypes = const [],
+    List<Map<String, dynamic>> tombstones = const [],
   }) async {
     if (!kIsWeb || _currentFileHandle == null) return;
 
@@ -102,6 +103,7 @@ class LocalFileSyncService {
       final encryptedBlob = _syncService.packSnapshotTOCiphertext(
         assets,
         customAssetTypes: customAssetTypes,
+        tombstones: tombstones,
       );
 
       final writableStream = await _currentFileHandle!.createWritable().toDart;
@@ -149,12 +151,14 @@ class LocalFileSyncService {
   void exportToDownload(
     List<Asset> assets, {
     List<AssetType> customAssetTypes = const [],
+    List<Map<String, dynamic>> tombstones = const [],
   }) {
     if (!kIsWeb) return;
 
     final encryptedBlob = _syncService.packSnapshotTOCiphertext(
       assets,
       customAssetTypes: customAssetTypes,
+      tombstones: tombstones,
     );
 
     final parts = [encryptedBlob.toJS].toJS;

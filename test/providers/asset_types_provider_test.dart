@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:asset_vault/models/asset_type.dart';
 import 'package:asset_vault/providers/asset_types_provider.dart';
 import 'package:asset_vault/providers/locale_preference_provider.dart';
+import 'package:asset_vault/providers/service_providers.dart';
+import 'package:asset_vault/services/database_service.dart';
 import 'package:asset_vault/utils/default_asset_types.dart';
 
 class _ZhLocalePreferenceNotifier extends LocalePreferenceNotifier {
@@ -13,16 +15,46 @@ class _ZhLocalePreferenceNotifier extends LocalePreferenceNotifier {
   String build() => 'zh';
 }
 
+class _MockAssetTypesDatabaseService extends DatabaseService {
+  final List<Map<String, dynamic>> assetTypes = [];
+  bool deleteAllCalled = false;
+
+  @override
+  Future<List<Map<String, dynamic>>> getCustomAssetTypes() async {
+    return assetTypes.map((item) => Map<String, dynamic>.from(item)).toList();
+  }
+
+  @override
+  Future<void> insertAssetType(Map<String, dynamic> typeData) async {
+    assetTypes.removeWhere((item) => item['id'] == typeData['id']);
+    assetTypes.add(Map<String, dynamic>.from(typeData));
+  }
+
+  @override
+  Future<void> deleteAssetType(String id) async {
+    assetTypes.removeWhere((item) => item['id'] == id);
+  }
+
+  @override
+  Future<void> deleteAllAssetTypes() async {
+    deleteAllCalled = true;
+    assetTypes.clear();
+  }
+}
+
 void main() {
   group('AssetTypesNotifier', () {
     late ProviderContainer container;
+    late _MockAssetTypesDatabaseService mockDb;
 
     setUp(() {
+      mockDb = _MockAssetTypesDatabaseService();
       container = ProviderContainer(
         overrides: [
           localePreferenceProvider.overrideWith(
             _ZhLocalePreferenceNotifier.new,
           ),
+          databaseServiceProvider.overrideWithValue(mockDb),
         ],
       );
     });
@@ -110,6 +142,154 @@ void main() {
       final cvv = bankCard.fieldSchema.firstWhere((f) => f.key == 'cvv');
       expect(cvv.isEncrypted, isTrue);
     });
+
+    test(
+      'loadCustomTypes appends persisted custom types after defaults',
+      () async {
+        mockDb.assetTypes.add({
+          'id': 'custom_server',
+          'name': '自定义服务器',
+          'icon': 'dns',
+          'field_schema': jsonEncode([
+            {
+              'key': 'endpoint',
+              'label': 'Endpoint',
+              'type': 'text',
+              'isEncrypted': false,
+              'isRequired': true,
+              'options': <String>[],
+            },
+          ]),
+          'is_built_in': 0,
+        });
+
+        final notifier = container.read(assetTypesProvider.notifier);
+        await notifier.loadCustomTypes();
+
+        final types = container.read(assetTypesProvider);
+        final customType = types.firstWhere(
+          (type) => type.id == 'custom_server',
+        );
+        expect(customType.name, equals('自定义服务器'));
+        expect(customType.isBuiltIn, isFalse);
+        expect(customType.fieldSchema.single.key, equals('endpoint'));
+        expect(
+          types.length,
+          equals(getDefaultAssetTypes(const Locale('zh')).length + 1),
+        );
+      },
+    );
+
+    test('addCustomType persists and reloads custom type', () async {
+      final notifier = container.read(assetTypesProvider.notifier);
+      const customType = AssetType(
+        id: 'custom_api',
+        name: '自定义 API',
+        icon: 'api',
+        isBuiltIn: false,
+        fieldSchema: [
+          AssetTypeFieldSchema(
+            key: 'token',
+            label: 'Token',
+            type: 'password',
+            isEncrypted: true,
+          ),
+        ],
+      );
+
+      await notifier.addCustomType(customType);
+
+      final stored = mockDb.assetTypes.singleWhere(
+        (type) => type['id'] == 'custom_api',
+      );
+      expect(stored['name'], equals('自定义 API'));
+
+      final types = container.read(assetTypesProvider);
+      expect(types.any((type) => type.id == 'custom_api'), isTrue);
+    });
+
+    test(
+      'deleteCustomType removes persisted custom type and reloads defaults only',
+      () async {
+        mockDb.assetTypes.add({
+          'id': 'custom_delete_me',
+          'name': '删除我',
+          'icon': 'delete',
+          'field_schema': jsonEncode(<Map<String, dynamic>>[]),
+          'is_built_in': 0,
+        });
+
+        final notifier = container.read(assetTypesProvider.notifier);
+        await notifier.loadCustomTypes();
+        expect(
+          container
+              .read(assetTypesProvider)
+              .any((type) => type.id == 'custom_delete_me'),
+          isTrue,
+        );
+
+        await notifier.deleteCustomType('custom_delete_me');
+
+        expect(mockDb.assetTypes, isEmpty);
+        expect(
+          container
+              .read(assetTypesProvider)
+              .any((type) => type.id == 'custom_delete_me'),
+          isFalse,
+        );
+      },
+    );
+
+    test(
+      'setCustomTypesFromSnapshot replaces previously persisted custom types',
+      () async {
+        mockDb.assetTypes.addAll([
+          {
+            'id': 'legacy_1',
+            'name': 'Legacy 1',
+            'icon': 'old',
+            'field_schema': jsonEncode(<Map<String, dynamic>>[]),
+            'is_built_in': 0,
+          },
+          {
+            'id': 'legacy_2',
+            'name': 'Legacy 2',
+            'icon': 'old',
+            'field_schema': jsonEncode(<Map<String, dynamic>>[]),
+            'is_built_in': 0,
+          },
+        ]);
+
+        final notifier = container.read(assetTypesProvider.notifier);
+        await notifier.setCustomTypesFromSnapshot(const [
+          AssetType(
+            id: 'snapshot_type',
+            name: 'Snapshot Type',
+            icon: 'snap',
+            isBuiltIn: false,
+            fieldSchema: [
+              AssetTypeFieldSchema(key: 'url', label: 'URL', type: 'text'),
+            ],
+          ),
+        ]);
+
+        expect(mockDb.deleteAllCalled, isTrue);
+        expect(mockDb.assetTypes, hasLength(1));
+        expect(mockDb.assetTypes.single['id'], equals('snapshot_type'));
+        expect(
+          container
+              .read(assetTypesProvider)
+              .any((type) => type.id == 'snapshot_type'),
+          isTrue,
+        );
+        expect(
+          container
+              .read(assetTypesProvider)
+              .any((type) => type.id == 'legacy_1'),
+          isFalse,
+        );
+      },
+    );
   });
 
   group('AssetTypeFieldSchema', () {

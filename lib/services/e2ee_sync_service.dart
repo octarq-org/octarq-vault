@@ -11,6 +11,14 @@ final e2eeSyncServiceProvider = Provider<E2EESyncService>((ref) {
   return E2EESyncService(ref.read(encryptionServiceProvider));
 });
 
+/// A pair of conflicting asset versions (same id, same updatedAt, different
+/// content) detected during LWW merge. The caller can present a UI to resolve.
+class AssetConflict {
+  final Asset local;
+  final Asset remote;
+  const AssetConflict({required this.local, required this.remote});
+}
+
 /// Describes the plaintext payload snapshot structure
 class VaultSnapshot {
   final int version;
@@ -21,11 +29,16 @@ class VaultSnapshot {
   /// to_asset_id, relation_type.
   final List<Map<String, dynamic>> relations;
 
+  /// Tombstones: soft-deleted asset IDs and their deletion timestamp (ms since
+  /// epoch). Format: [{id: String, deletedAt: int}]
+  final List<Map<String, dynamic>> tombstones;
+
   VaultSnapshot({
     required this.version,
     required this.assets,
     this.customAssetTypes = const [],
     this.relations = const [],
+    this.tombstones = const [],
   });
 
   Map<String, dynamic> toJson() => {
@@ -33,6 +46,7 @@ class VaultSnapshot {
     'assets': assets.map((a) => a.toJson()).toList(),
     'customAssetTypes': customAssetTypes.map((t) => t.toJson()).toList(),
     'relations': relations,
+    'tombstones': tombstones,
   };
 
   factory VaultSnapshot.fromJson(Map<String, dynamic> json) {
@@ -53,26 +67,70 @@ class VaultSnapshot {
               ?.map((e) => Map<String, dynamic>.from(e as Map))
               .toList() ??
           [],
+      tombstones:
+          (json['tombstones'] as List<dynamic>?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          [],
     );
   }
 
   /// Last-Write-Wins merge: merge [remote] into [local].
   ///
   /// Assets: the version with the larger `updatedAt` wins per id.
+  ///   - Tombstone-aware: if a tombstone for an asset exists with
+  ///     `deletedAt > asset.updatedAt`, the asset is omitted (deletion wins).
+  ///   - Conflict detection: when local.updatedAt == remote.updatedAt but
+  ///     content differs, the pair is returned in [conflicts].
   /// Relations: union by id (if same id, keep remote as source of truth).
   /// Custom asset types: union by id (remote wins on conflict).
-  static VaultSnapshot mergeSnapshots({
+  /// Tombstones: union by id, newest deletedAt wins.
+  static ({VaultSnapshot snapshot, List<AssetConflict> conflicts})
+  mergeSnapshots({
     required VaultSnapshot local,
     required VaultSnapshot remote,
   }) {
-    // --- Assets: LWW by updatedAt ---
-    final Map<String, Asset> merged = {for (final a in local.assets) a.id: a};
-    for (final remoteAsset in remote.assets) {
-      final localAsset = merged[remoteAsset.id];
-      if (localAsset == null || remoteAsset.updatedAt >= localAsset.updatedAt) {
-        merged[remoteAsset.id] = remoteAsset;
+    // --- Tombstones: union, keep newest deletedAt per id ---
+    final Map<String, int> tombstoneMap = {
+      for (final t in local.tombstones)
+        t['id'] as String: t['deletedAt'] as int,
+    };
+    for (final t in remote.tombstones) {
+      final id = t['id'] as String;
+      final deletedAt = t['deletedAt'] as int;
+      if (!tombstoneMap.containsKey(id) || deletedAt > tombstoneMap[id]!) {
+        tombstoneMap[id] = deletedAt;
       }
     }
+
+    // --- Assets: LWW by updatedAt, tombstone-aware ---
+    final Map<String, Asset> merged = {for (final a in local.assets) a.id: a};
+    final conflicts = <AssetConflict>[];
+
+    for (final remoteAsset in remote.assets) {
+      final localAsset = merged[remoteAsset.id];
+      if (localAsset == null) {
+        merged[remoteAsset.id] = remoteAsset;
+      } else if (remoteAsset.updatedAt > localAsset.updatedAt) {
+        merged[remoteAsset.id] = remoteAsset;
+      } else if (remoteAsset.updatedAt == localAsset.updatedAt) {
+        // Detect conflict: same timestamp but different serialized content
+        if (remoteAsset.toJson().toString() != localAsset.toJson().toString()) {
+          conflicts.add(AssetConflict(local: localAsset, remote: remoteAsset));
+        }
+        // Keep local on tie — user will be prompted to resolve conflicts
+      }
+      // else localAsset is newer — keep it (nothing to do)
+    }
+
+    // Apply tombstones: remove any asset whose tombstone deletedAt is newer
+    // than the asset's own updatedAt.
+    tombstoneMap.forEach((id, deletedAt) {
+      final asset = merged[id];
+      if (asset != null && deletedAt > asset.updatedAt) {
+        merged.remove(id);
+      }
+    });
 
     // --- Relations: union by id ---
     final Map<String, Map<String, dynamic>> mergedRelations = {
@@ -81,6 +139,12 @@ class VaultSnapshot {
     for (final r in remote.relations) {
       mergedRelations[r['id'] as String] = r;
     }
+    // Remove relations that reference tombstoned assets
+    mergedRelations.removeWhere(
+      (_, r) =>
+          tombstoneMap.containsKey(r['from_asset_id']) ||
+          tombstoneMap.containsKey(r['to_asset_id']),
+    );
 
     // --- Custom asset types: union by id, remote wins ---
     final Map<String, AssetType> mergedTypes = {
@@ -90,11 +154,19 @@ class VaultSnapshot {
       mergedTypes[t.id] = t;
     }
 
-    return VaultSnapshot(
-      version: 2,
-      assets: merged.values.toList(),
-      customAssetTypes: mergedTypes.values.toList(),
-      relations: mergedRelations.values.toList(),
+    final mergedTombstones = tombstoneMap.entries
+        .map((e) => {'id': e.key, 'deletedAt': e.value})
+        .toList();
+
+    return (
+      snapshot: VaultSnapshot(
+        version: 2,
+        assets: merged.values.toList(),
+        customAssetTypes: mergedTypes.values.toList(),
+        relations: mergedRelations.values.toList(),
+        tombstones: mergedTombstones,
+      ),
+      conflicts: conflicts,
     );
   }
 }
@@ -145,12 +217,14 @@ class E2EESyncService {
     List<Asset> assets, {
     List<AssetType> customAssetTypes = const [],
     List<Map<String, dynamic>> relations = const [],
+    List<Map<String, dynamic>> tombstones = const [],
   }) {
     final snapshot = VaultSnapshot(
       version: 2,
       assets: assets,
       customAssetTypes: customAssetTypes,
       relations: relations,
+      tombstones: tombstones,
     );
     final snapshotJson = jsonEncode(snapshot.toJson());
     final plainBytes = utf8.encode(snapshotJson);
