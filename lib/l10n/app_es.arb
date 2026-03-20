@@ -375,7 +375,7 @@
   "orRestoreExistingVault": "O restaura una bóveda existente",
   "restoreFromGoogleDrive": "Restaurar desde Google Drive",
   "restoreFromLocalFile": "Restaurar desde archivo local",
-  "passwordTooShort": "Contraseña muy corta (mínimo 8 caracteres)",
+  "passwordTooShort": "Contraseña muy corta (mínimo 12 caracteres)",
   "passwordsDoNotMatch": "Las contraseñas no coinciden",
   "createVaultFailed": "Error al crear bóveda: {error}",
   "@createVaultFailed": {

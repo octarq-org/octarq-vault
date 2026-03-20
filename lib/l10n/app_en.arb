@@ -375,7 +375,7 @@
   "orRestoreExistingVault": "Or restore an existing vault",
   "restoreFromGoogleDrive": "Restore from Google Drive",
   "restoreFromLocalFile": "Restore from Local File",
-  "passwordTooShort": "Password too short (8 chars min)",
+  "passwordTooShort": "Password too short (12 chars min)",
   "passwordsDoNotMatch": "Passwords do not match",
   "createVaultFailed": "Failed to create vault: {error}",
   "@createVaultFailed": {

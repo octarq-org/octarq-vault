@@ -14,11 +14,15 @@ class SecureStorageService {
   static const String _masterKeyAlias = 'asset_vault_master_key';
   static const String _saltAlias = 'asset_vault_salt';
 
-  /// On macOS desktop, Keychain is unreliable without code signing.
-  /// Use SharedPreferences as the primary storage on macOS.
-  bool get _useFallback {
-    return kIsWeb || isMacOS;
-  }
+  /// On the web platform there is no hardware-backed secure store, so the
+  /// master key is kept in SharedPreferences (browser localStorage).  Users
+  /// are warned about this limitation via the in-app Web Security Notice.
+  /// On all native platforms (including macOS) we always attempt the
+  /// platform Keychain / Keystore first and only fall back to SharedPreferences
+  /// when a PlatformException is thrown (e.g. macOS without code signing in
+  /// debug mode).  In that case a SecurityException is re-thrown so the caller
+  /// can inform the user rather than silently accepting insecure storage.
+  bool get _useFallback => kIsWeb;
 
   Future<bool> hasStoredKey() async {
     if (_useFallback) {
@@ -27,9 +31,12 @@ class SecureStorageService {
     }
     try {
       if (await _storage.containsKey(key: _masterKeyAlias)) return true;
-    } on PlatformException catch (_) {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.containsKey(_masterKeyAlias);
+    } on PlatformException catch (e) {
+      throw Exception(
+        'Keychain unavailable: ${e.message}. '
+        'On macOS, code-signing is required for secure Keychain access. '
+        'Please build a signed release or use a signed debug profile.',
+      );
     }
     return false;
   }
@@ -45,10 +52,11 @@ class SecureStorageService {
     try {
       await _storage.write(key: _masterKeyAlias, value: keyBase64);
       await _storage.write(key: _saltAlias, value: saltBase64);
-    } on PlatformException catch (_) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_masterKeyAlias, keyBase64);
-      await prefs.setString(_saltAlias, saltBase64);
+    } on PlatformException catch (e) {
+      throw Exception(
+        'Keychain unavailable: ${e.message}. '
+        'On macOS, code-signing is required for secure Keychain access.',
+      );
     }
   }
 
@@ -59,9 +67,11 @@ class SecureStorageService {
     }
     try {
       return await _storage.read(key: _saltAlias);
-    } on PlatformException catch (_) {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(_saltAlias);
+    } on PlatformException catch (e) {
+      throw Exception(
+        'Keychain unavailable: ${e.message}. '
+        'On macOS, code-signing is required for secure Keychain access.',
+      );
     }
   }
 
@@ -88,12 +98,7 @@ class SecureStorageService {
           final prefs = await SharedPreferences.getInstance();
           keyBase64 = prefs.getString(_masterKeyAlias);
         } else {
-          try {
-            keyBase64 = await _storage.read(key: _masterKeyAlias);
-          } on PlatformException catch (_) {
-            final prefs = await SharedPreferences.getInstance();
-            keyBase64 = prefs.getString(_masterKeyAlias);
-          }
+          keyBase64 = await _storage.read(key: _masterKeyAlias);
         }
         if (keyBase64 != null) {
           return base64.decode(keyBase64);
@@ -110,12 +115,6 @@ class SecureStorageService {
       await prefs.remove(_saltAlias);
       return;
     }
-    try {
-      await _storage.deleteAll();
-    } on PlatformException catch (_) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_masterKeyAlias);
-      await prefs.remove(_saltAlias);
-    }
+    await _storage.deleteAll();
   }
 }

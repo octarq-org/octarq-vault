@@ -62,6 +62,16 @@ class AssetsNotifier extends Notifier<List<Asset>> {
                     remote: remoteSnapshot,
                   );
                   localSnapshot = result.snapshot;
+                  if (result.conflicts.isNotEmpty && kDebugMode) {
+                    // Conflicts (same id, same updatedAt, different content)
+                    // are kept as local during cold-start merge. Users can
+                    // manually resolve via Settings → Pull from Google Drive.
+                    print(
+                      'loadAssets: ${result.conflicts.length} conflict(s) '
+                      'detected during cold-start merge. Local versions kept. '
+                      'Use "Pull from Google Drive" to resolve interactively.',
+                    );
+                  }
                   // Persist merged blob back to IndexedDB
                   final mergedBlob = syncService.packSnapshotTOCiphertext(
                     localSnapshot.assets,
