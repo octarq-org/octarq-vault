@@ -15,11 +15,12 @@ import '../models/sync_settings.dart';
 import 'sync_settings_provider.dart';
 import 'asset_types_provider.dart';
 import 'relations_provider.dart';
+import '../utils/tombstone_registry.dart';
 
 class AssetsNotifier extends Notifier<List<Asset>> {
-  /// In-memory tombstone map: assetId → deletedAt (ms epoch).
+  /// In-memory tombstone registry.
   /// Persisted through snapshots via the tombstones field in VaultSnapshot.
-  final Map<String, int> _tombstones = {};
+  final _tombstones = TombstoneRegistry();
 
   @override
   List<Asset> build() {
@@ -78,7 +79,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
 
         if (localSnapshot == null) return;
         state = localSnapshot.assets;
-        _loadTombstones(localSnapshot.tombstones);
+        _tombstones.loadFromList(localSnapshot.tombstones);
         await ref
             .read(assetTypesProvider.notifier)
             .setCustomTypesFromSnapshot(localSnapshot.customAssetTypes);
@@ -318,16 +319,8 @@ class AssetsNotifier extends Notifier<List<Asset>> {
     }
     state = state.where((a) => a.id != id).toList();
     // Record tombstone so deletions propagate across devices via LWW merge
-    _addTombstone(id);
+    _tombstones.record(id, DateTime.now().millisecondsSinceEpoch);
     await _triggerSync();
-  }
-
-  void _addTombstone(String id) {
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final existing = _tombstones[id];
-    if (existing == null || now > existing) {
-      _tombstones[id] = now;
-    }
   }
 
   Future<void> archiveAsset(String id) async {
@@ -390,23 +383,13 @@ class AssetsNotifier extends Notifier<List<Asset>> {
     }
   }
 
-  void _loadTombstones(List<Map<String, dynamic>> tombstones) {
-    for (final t in tombstones) {
-      final id = t['id'] as String?;
-      final deletedAt = t['deletedAt'] as int?;
-      if (id != null && deletedAt != null) {
-        _tombstones[id] = deletedAt;
-      }
-    }
-  }
-
   /// Replace vault with snapshot (e.g. after import .enc). On Web writes blob to IndexedDB.
   Future<void> replaceFromSnapshot(
     VaultSnapshot snapshot, {
     Uint8List? encryptedBlob,
   }) async {
     state = snapshot.assets;
-    _loadTombstones(snapshot.tombstones);
+    _tombstones.loadFromList(snapshot.tombstones);
     if (kIsWeb) {
       await ref
           .read(assetTypesProvider.notifier)
@@ -467,9 +450,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
     });
   }
 
-  List<Map<String, dynamic>> get _tombstoneList => _tombstones.entries
-      .map((e) => {'id': e.key, 'deletedAt': e.value})
-      .toList();
+  List<Map<String, dynamic>> get _tombstoneList => _tombstones.toList();
 
   Future<void> _triggerSync() async {
     final methods = ref.read(syncSettingsProvider);
