@@ -264,6 +264,15 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
         }
         if (value.isEmpty && !schema.isRequired) continue;
 
+        // Preserve existing field ID if editing
+        String? existingFieldId;
+        if (_isEditing) {
+          final existing = widget.editingAsset!.fields
+              .where((f) => f.key == schema.key)
+              .firstOrNull;
+          existingFieldId = existing?.id;
+        }
+
         String valEnc = '';
         String iv = '';
         if (schema.isEncrypted) {
@@ -276,7 +285,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
 
         fields.add(
           AssetField(
-            id: const Uuid().v4(),
+            id: existingFieldId ?? const Uuid().v4(),
             assetId: assetId,
             key: schema.key,
             valueEnc: valEnc,

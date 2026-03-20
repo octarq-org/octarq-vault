@@ -11,7 +11,7 @@ import '../providers/asset_types_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/search_provider.dart';
 import '../utils/icon_helper.dart';
-import '../views/settings_screen.dart' show autoLockMinutesProvider;
+import '../providers/auto_lock_provider.dart';
 
 class MainLayoutScreen extends ConsumerStatefulWidget {
   const MainLayoutScreen({super.key, required this.child});

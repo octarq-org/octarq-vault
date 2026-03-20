@@ -168,7 +168,9 @@ class GoogleDriveService {
     }
 
     if (kDebugMode) {
-      debugPrint('Successfully pushed E2EE snapshot to Google Drive appDataFolder.');
+      debugPrint(
+        'Successfully pushed E2EE snapshot to Google Drive appDataFolder.',
+      );
     }
   }
 

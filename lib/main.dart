@@ -8,6 +8,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'l10n/app_localizations.dart';
 import 'providers/locale_provider.dart';
 import 'router/app_router.dart';
+import 'providers/auto_lock_provider.dart';
+import 'providers/auth_provider.dart';
 
 // ─── Design Tokens ──────────────────────────────────────────────────────────
 const kPrimaryGreen = Color(0xFF00C896);
@@ -35,11 +37,47 @@ Future<void> main() async {
   runApp(const ProviderScope(child: OctarqVaultApp()));
 }
 
-class OctarqVaultApp extends ConsumerWidget {
+class OctarqVaultApp extends ConsumerStatefulWidget {
   const OctarqVaultApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OctarqVaultApp> createState() => _OctarqVaultAppState();
+}
+
+class _OctarqVaultAppState extends ConsumerState<OctarqVaultApp>
+    with WidgetsBindingObserver {
+  DateTime? _pausedAt;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _pausedAt = DateTime.now();
+    } else if (state == AppLifecycleState.resumed) {
+      if (_pausedAt != null) {
+        final waitMinutes = ref.read(autoLockMinutesProvider);
+        final diff = DateTime.now().difference(_pausedAt!).inMinutes;
+        if (diff >= waitMinutes) {
+          ref.read(authProvider.notifier).lock();
+        }
+        _pausedAt = null;
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
 
     final modKey = defaultTargetPlatform == TargetPlatform.macOS
