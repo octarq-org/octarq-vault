@@ -4,8 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:asset_vault/models/sync_settings.dart';
-import 'package:asset_vault/providers/sync_settings_provider.dart';
+import 'package:octarq_vault/models/sync_settings.dart';
+import 'package:octarq_vault/providers/sync_settings_provider.dart';
 
 Future<void> _flushMicrotasks() async {
   for (int i = 0; i < 10; i++) {

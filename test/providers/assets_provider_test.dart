@@ -2,10 +2,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:asset_vault/models/asset.dart';
-import 'package:asset_vault/models/tag.dart';
-import 'package:asset_vault/providers/assets_provider.dart';
-import 'package:asset_vault/utils/tombstone_registry.dart';
+import 'package:octarq_vault/models/asset.dart';
+import 'package:octarq_vault/models/tag.dart';
+import 'package:octarq_vault/providers/assets_provider.dart';
+import 'package:octarq_vault/utils/tombstone_registry.dart';
 
 // ---------------------------------------------------------------------------
 // Fake notifier

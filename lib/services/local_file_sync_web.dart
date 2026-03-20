@@ -53,7 +53,7 @@ class LocalFileSyncService {
 
   bool get hasActiveHandle => _currentFileHandle != null;
 
-  /// Prompt the user to pick an existing `asset_vault.enc` or save to a new one.
+  /// Prompt the user to pick an existing `octarq_vault.enc` or save to a new one.
   Future<void> linkFileForSync({bool createNew = false}) async {
     if (!kIsWeb) return;
 
@@ -65,7 +65,7 @@ class LocalFileSyncService {
 
     try {
       if (createNew) {
-        final options = {'suggestedName': 'asset_vault.enc'}.jsify();
+        final options = {'suggestedName': 'octarq_vault.enc'}.jsify();
         final handle = await _showSaveFilePicker(options)?.toDart;
         _currentFileHandle = handle;
       } else {
@@ -170,7 +170,7 @@ class LocalFileSyncService {
 
     final anchor = web.HTMLAnchorElement()
       ..href = url
-      ..download = 'asset_vault_backup.enc';
+      ..download = 'octarq_vault_backup.enc';
 
     web.document.body!.appendChild(anchor);
     anchor.click();

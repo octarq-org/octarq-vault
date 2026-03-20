@@ -1,13 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:asset_vault/models/asset.dart';
-import 'package:asset_vault/models/asset_type.dart';
-import 'package:asset_vault/models/field.dart';
-import 'package:asset_vault/models/tag.dart';
-import 'package:asset_vault/providers/asset_types_provider.dart';
-import 'package:asset_vault/providers/assets_provider.dart';
-import 'package:asset_vault/providers/search_provider.dart';
+import 'package:octarq_vault/models/asset.dart';
+import 'package:octarq_vault/models/asset_type.dart';
+import 'package:octarq_vault/models/field.dart';
+import 'package:octarq_vault/models/tag.dart';
+import 'package:octarq_vault/providers/asset_types_provider.dart';
+import 'package:octarq_vault/providers/assets_provider.dart';
+import 'package:octarq_vault/providers/search_provider.dart';
 
 class _FakeAssetsNotifier extends AssetsNotifier {
   _FakeAssetsNotifier(this._assets);
@@ -84,9 +84,9 @@ void main() {
             AssetField(
               id: 'field-1',
               assetId: '3',
-              key: 'note',
-              valueEnc: 'DOMAIN migration window',
-              iv: '',
+              key: 'domain_certificate',
+              valueEnc: 'base64encodedciphertext==',
+              iv: 'base64IV==',
             ),
           ],
         ),
@@ -127,7 +127,7 @@ void main() {
               assetId: 'sensitive',
               key: 'token',
               valueEnc: 'super-secret-token',
-              iv: '',
+              iv: 'base64IV==',
               isSensitive: true,
             ),
           ],

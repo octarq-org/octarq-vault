@@ -66,7 +66,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
                     // Conflicts (same id, same updatedAt, different content)
                     // are kept as local during cold-start merge. Users can
                     // manually resolve via Settings → Pull from Google Drive.
-                    print(
+                    debugPrint(
                       'loadAssets: ${result.conflicts.length} conflict(s) '
                       'detected during cold-start merge. Local versions kept. '
                       'Use "Pull from Google Drive" to resolve interactively.',

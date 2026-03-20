@@ -6,11 +6,18 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
-const String _fileName = 'asset_vault.enc';
+const String _fileName = 'octarq_vault.enc';
+const String _legacyFileName = 'asset_vault.enc';
 
 Future<File> _vaultFile() async {
   final dir = await getApplicationDocumentsDirectory();
-  return File('${dir.path}/$_fileName');
+  // Migrate legacy filename if needed (idempotent).
+  final legacy = File('${dir.path}/$_legacyFileName');
+  final current = File('${dir.path}/$_fileName');
+  if (await legacy.exists() && !await current.exists()) {
+    await legacy.rename(current.path);
+  }
+  return current;
 }
 
 Future<void> backup(Uint8List encryptedBlob) async {

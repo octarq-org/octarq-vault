@@ -3,12 +3,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:asset_vault/providers/auth_provider.dart';
-import 'package:asset_vault/providers/service_providers.dart';
-import 'package:asset_vault/services/database_service.dart';
-import 'package:asset_vault/services/e2ee_sync_service.dart';
-import 'package:asset_vault/services/encryption_service.dart';
-import 'package:asset_vault/services/secure_storage_service.dart';
+import 'package:octarq_vault/providers/auth_provider.dart';
+import 'package:octarq_vault/providers/service_providers.dart';
+import 'package:octarq_vault/services/database_service.dart';
+import 'package:octarq_vault/services/e2ee_sync_service.dart';
+import 'package:octarq_vault/services/encryption_service.dart';
+import 'package:octarq_vault/services/secure_storage_service.dart';
 
 // --- Mock Services ---
 

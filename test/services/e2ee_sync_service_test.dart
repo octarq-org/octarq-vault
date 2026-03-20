@@ -1,9 +1,9 @@
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:asset_vault/services/encryption_service.dart';
-import 'package:asset_vault/services/e2ee_sync_service.dart';
-import 'package:asset_vault/models/asset.dart';
-import 'package:asset_vault/models/asset_type.dart';
+import 'package:octarq_vault/services/encryption_service.dart';
+import 'package:octarq_vault/services/e2ee_sync_service.dart';
+import 'package:octarq_vault/models/asset.dart';
+import 'package:octarq_vault/models/asset_type.dart';
 
 /// Creates a minimal deterministic 32-byte master key.
 EncryptionService _makeService() {

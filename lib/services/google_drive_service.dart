@@ -14,7 +14,7 @@ final googleDriveServiceProvider = Provider<GoogleDriveService>((ref) {
 });
 
 class GoogleDriveService {
-  static const String _backupFileName = 'asset_vault.enc';
+  static const String _backupFileName = 'octarq_vault.enc';
 
   final E2EESyncService _syncService;
 

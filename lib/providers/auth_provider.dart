@@ -1,10 +1,16 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/platform_utils.dart';
 import 'service_providers.dart';
+import 'assets_provider.dart';
 import '../services/e2ee_sync_service.dart';
 
 enum AuthState { initializing, unsetup, locked, unlocked }
+
+/// Fixed plaintext used to create the verification blob.
+const _kVerifyPlaintext = 'OCTARQ_VAULT_VERIFY_V1';
 
 class AuthNotifier extends Notifier<AuthState> {
   String? _lastError;
@@ -19,17 +25,24 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> _init() async {
     try {
       final storage = ref.read(secureStorageServiceProvider);
+
+      // Migrate legacy storage keys (asset_vault_* → octarq_vault_*).
+      await storage.migrateKeysIfNeeded();
+
       bool hasKey = await storage.hasStoredKey();
 
       // Check if we're still alive after the async call
       if (!ref.mounted) return;
 
       if (kDebugMode) {
-        print('AuthNotifier._init: hasStoredKey=$hasKey');
+        debugPrint('AuthNotifier._init: hasStoredKey=$hasKey');
       }
 
       if (!kIsWeb) {
         try {
+          // Migrate legacy DB file (asset_vault_enc.db → octarq_vault.db).
+          await migrateDbFileIfNeeded();
+
           final dbPath = await getVaultDatabasePath();
           final dbExists = await fileExists(dbPath);
 
@@ -37,7 +50,7 @@ class AuthNotifier extends Notifier<AuthState> {
 
           if (hasKey && !dbExists) {
             if (kDebugMode) {
-              print(
+              debugPrint(
                 'AuthNotifier._init: Orphaned key detected (DB missing). Wiping key.',
               );
             }
@@ -48,7 +61,7 @@ class AuthNotifier extends Notifier<AuthState> {
             if (salt == null || salt.isEmpty) {
               // No salt: cannot unlock (e.g. after bundle ID change). Wipe orphan DB → setup.
               if (kDebugMode) {
-                print(
+                debugPrint(
                   'AuthNotifier._init: DB exists but no salt; wiping orphan DB.',
                 );
               }
@@ -56,7 +69,9 @@ class AuthNotifier extends Notifier<AuthState> {
               if (await fileExists(dbPath)) forceDeleteFile(dbPath);
             } else {
               if (kDebugMode) {
-                print('AuthNotifier._init: DB exists but no key in storage.');
+                debugPrint(
+                  'AuthNotifier._init: DB exists but no key in storage.',
+                );
               }
               state = AuthState.locked;
               return;
@@ -76,7 +91,7 @@ class AuthNotifier extends Notifier<AuthState> {
       state = AuthState.unsetup;
     } catch (e) {
       if (kDebugMode) {
-        print('AuthNotifier._init error: $e');
+        debugPrint('AuthNotifier._init error: $e');
       }
       if (ref.mounted) {
         state = AuthState.unsetup;
@@ -97,7 +112,7 @@ class AuthNotifier extends Notifier<AuthState> {
           final dbPath = await getVaultDatabasePath();
           if (await fileExists(dbPath)) {
             if (kDebugMode) {
-              print('setupMasterPassword: deleting stale DB at $dbPath');
+              debugPrint('setupMasterPassword: deleting stale DB at $dbPath');
             }
             await deleteDatabase(dbPath);
             if (await fileExists(dbPath)) forceDeleteFile(dbPath);
@@ -108,6 +123,13 @@ class AuthNotifier extends Notifier<AuthState> {
       final saltBase64 = encryption.generateSaltBase64();
       await encryption.deriveKey(password, saltBase64);
       final key = encryption.masterKey;
+
+      // Store a verification blob so future unlocks can distinguish a wrong
+      // password from actual DB corruption without wiping the vault.
+      final verifyBytes = encryption.encryptBytes(
+        utf8.encode(_kVerifyPlaintext),
+      );
+      await storage.storeVerifyBlob(base64.encode(verifyBytes));
 
       await storage.storeMasterKey(key, saltBase64);
 
@@ -121,7 +143,7 @@ class AuthNotifier extends Notifier<AuthState> {
     } catch (e, st) {
       _lastError = e.toString();
       if (kDebugMode) {
-        print('Vault creation failed: $e\n$st');
+        debugPrint('Vault creation failed: $e\n$st');
       }
       return false;
     }
@@ -140,11 +162,43 @@ class AuthNotifier extends Notifier<AuthState> {
       }
 
       await encryption.deriveKey(password, saltBase64);
-      final key = encryption.masterKey;
 
+      // Verify password using the stored verification blob BEFORE opening the
+      // database. This cleanly separates "wrong password" (decryption failure)
+      // from "corrupted database" (SQLCipher error after correct key).
+      final verifyBlobBase64 = await storage.getVerifyBlob();
+      if (verifyBlobBase64 != null) {
+        try {
+          final plain = utf8.decode(
+            encryption.decryptBytes(base64.decode(verifyBlobBase64)),
+          );
+          if (plain != _kVerifyPlaintext) {
+            _lastError = 'Incorrect password.';
+            encryption.wipeKey();
+            return false;
+          }
+        } catch (_) {
+          _lastError = 'Incorrect password.';
+          encryption.wipeKey();
+          return false;
+        }
+      }
+
+      final key = encryption.masterKey;
       final db = ref.read(databaseServiceProvider);
       if (!kIsWeb) {
         await db.init(key);
+      }
+
+      // If this is an old vault (no verify blob), generate one now so future
+      // unlocks benefit from the fast wrong-password detection.
+      if (verifyBlobBase64 == null) {
+        try {
+          final verifyBytes = encryption.encryptBytes(
+            utf8.encode(_kVerifyPlaintext),
+          );
+          await storage.storeVerifyBlob(base64.encode(verifyBytes));
+        } catch (_) {} // Non-critical — don't fail the unlock.
       }
 
       state = AuthState.unlocked;
@@ -153,7 +207,7 @@ class AuthNotifier extends Notifier<AuthState> {
       if (await _handleDbOpenFailure(e)) return false;
       _lastError = e.toString();
       if (kDebugMode) {
-        print('Unlock failed: $e\n$st');
+        debugPrint('Unlock failed: $e\n$st');
       }
       return false;
     }
@@ -189,6 +243,10 @@ class AuthNotifier extends Notifier<AuthState> {
       }
 
       // If successful, persist the salt and key
+      final verifyBytes = encryption.encryptBytes(
+        utf8.encode(_kVerifyPlaintext),
+      );
+      await storage.storeVerifyBlob(base64.encode(verifyBytes));
       await storage.storeMasterKey(key, saltBase64);
 
       final db = ref.read(databaseServiceProvider);
@@ -206,7 +264,7 @@ class AuthNotifier extends Notifier<AuthState> {
     } catch (e, st) {
       _lastError = e.toString();
       if (kDebugMode) {
-        print('External unlock failed: $e\n$st');
+        debugPrint('External unlock failed: $e\n$st');
       }
       return false;
     }
@@ -242,7 +300,7 @@ class AuthNotifier extends Notifier<AuthState> {
       if (await _handleDbOpenFailure(e)) return false;
       _lastError = e.toString();
       if (kDebugMode) {
-        print('Biometric unlock failed: $e\n$st');
+        debugPrint('Biometric unlock failed: $e\n$st');
       }
       return false;
     }
@@ -253,6 +311,9 @@ class AuthNotifier extends Notifier<AuthState> {
     if (!kIsWeb) {
       await ref.read(databaseServiceProvider).close();
     }
+    // Clear all in-memory asset data so sensitive information is not retained
+    // while the vault is locked.
+    ref.invalidate(assetsProvider);
     state = AuthState.locked;
   }
 

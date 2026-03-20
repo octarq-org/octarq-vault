@@ -70,12 +70,27 @@ String _formatSyncTime(DateTime dt) {
   return '${dt.year}-${pad(dt.month)}-${pad(dt.day)} ${pad(dt.hour)}:${pad(dt.minute)}';
 }
 
+const _kAutoLockMinutesKey = 'auto_lock_minutes';
+const _kAutoLockDefault = 5;
+
 class AutoLockNotifier extends Notifier<int> {
   @override
-  int build() => 5;
+  int build() {
+    // Load persisted value asynchronously; start with default.
+    Future.microtask(_load);
+    return _kAutoLockDefault;
+  }
 
-  void setMinutes(int minutes) {
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getInt(_kAutoLockMinutesKey);
+    if (saved != null && ref.mounted) state = saved;
+  }
+
+  Future<void> setMinutes(int minutes) async {
     state = minutes;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_kAutoLockMinutesKey, minutes);
   }
 }
 
@@ -150,11 +165,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               FilledButton(
                 onPressed: () async {
-                  ref
+                  await ref
                       .read(autoLockMinutesProvider.notifier)
                       .setMinutes(selected);
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setInt('auto_lock_minutes', selected);
                   if (ctx.mounted) Navigator.pop(ctx);
                 },
                 style: FilledButton.styleFrom(

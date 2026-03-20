@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:asset_vault/providers/relations_provider.dart';
-import 'package:asset_vault/providers/service_providers.dart';
-import 'package:asset_vault/services/database_service.dart';
+import 'package:octarq_vault/providers/relations_provider.dart';
+import 'package:octarq_vault/providers/service_providers.dart';
+import 'package:octarq_vault/services/database_service.dart';
 
 class MockDatabaseService extends DatabaseService {
   final List<Map<String, dynamic>> insertedRelations = [];

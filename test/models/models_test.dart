@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:asset_vault/models/asset.dart';
-import 'package:asset_vault/models/field.dart';
-import 'package:asset_vault/models/tag.dart';
-import 'package:asset_vault/models/reminder.dart';
+import 'package:octarq_vault/models/asset.dart';
+import 'package:octarq_vault/models/field.dart';
+import 'package:octarq_vault/models/tag.dart';
+import 'package:octarq_vault/models/reminder.dart';
 
 void main() {
   group('Asset model', () {

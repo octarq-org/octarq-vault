@@ -8,7 +8,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:asset_vault/main.dart';
+import 'package:octarq_vault/main.dart';
 
 void main() {
   testWidgets('App loads smoke test', (WidgetTester tester) async {
