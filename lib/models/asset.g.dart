@@ -29,6 +29,11 @@ _Asset _$AssetFromJson(Map<String, dynamic> json) => _Asset(
           ?.map((e) => Reminder.fromJson(e as Map<String, dynamic>))
           .toList() ??
       const [],
+  attachments:
+      (json['attachments'] as List<dynamic>?)
+          ?.map((e) => AssetAttachment.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
 );
 
 Map<String, dynamic> _$AssetToJson(_Asset instance) => <String, dynamic>{
@@ -42,4 +47,5 @@ Map<String, dynamic> _$AssetToJson(_Asset instance) => <String, dynamic>{
   'fields': instance.fields,
   'tags': instance.tags,
   'reminders': instance.reminders,
+  'attachments': instance.attachments.map((e) => e.toJson()).toList(),
 };

@@ -8,16 +8,17 @@ import 'package:http/http.dart' as http;
 import 'e2ee_sync_service.dart';
 import '../models/asset.dart';
 import '../models/asset_type.dart';
+import '../models/attachment.dart';
 
 final googleDriveServiceProvider = Provider<GoogleDriveService>((ref) {
   return GoogleDriveService(ref.read(e2eeSyncServiceProvider));
 });
 
 class GoogleDriveService {
-  static const String _backupFileName = 'octarq_vault.enc';
+  static const String _snapshotFileName = 'octarq_vault.enc';
+  static const String _attachmentFolder = 'octarq_attachments';
 
   final E2EESyncService _syncService;
-
   final List<String> _scopes = [drive.DriveApi.driveAppdataScope];
 
   GoogleDriveService(this._syncService);
@@ -26,7 +27,6 @@ class GoogleDriveService {
 
   Future<void> _ensureInitialized() async {
     if (!_initialized) {
-      // In a real app we might pass clientId here, but on Web it's usually in index.html
       await GoogleSignIn.instance.initialize();
       _initialized = true;
     }
@@ -41,7 +41,8 @@ class GoogleDriveService {
     } on UnimplementedError {
       if (kDebugMode) {
         debugPrint(
-          'attemptLightweightAuthentication is unimplemented. Falling back to authenticate.',
+          'attemptLightweightAuthentication is unimplemented. '
+          'Falling back to authenticate.',
         );
       }
       return null;
@@ -78,10 +79,13 @@ class GoogleDriveService {
     await GoogleSignIn.instance.signOut();
   }
 
+  // -------------------------------------------------------------------------
+  // Drive API client
+  // -------------------------------------------------------------------------
+
   Future<drive.DriveApi?> _getDriveApi() async {
     await _ensureInitialized();
     try {
-      // Ensure user is authenticated and has granted Drive scope.
       GoogleSignInAccount? account;
       try {
         account = await GoogleSignIn.instance.attemptLightweightAuthentication(
@@ -90,7 +94,6 @@ class GoogleDriveService {
       } catch (_) {}
       account ??= await GoogleSignIn.instance.authenticate(scopeHint: _scopes);
 
-      // Authorize Drive-specific scopes and obtain an access token.
       final tokenData = await account.authorizationClient.authorizeScopes(
         _scopes,
       );
@@ -99,15 +102,13 @@ class GoogleDriveService {
         throw Exception('Empty access token returned from Google Sign-In.');
       }
 
-      // Build a non-refreshing auth client (valid ~1 h). For long-running
-      // sessions the user may need to re-authenticate.
       final credentials = gauth.AccessCredentials(
         gauth.AccessToken(
           'Bearer',
           accessToken,
           DateTime.now().toUtc().add(const Duration(hours: 1)),
         ),
-        null, // no refresh token available via google_sign_in
+        null,
         _scopes,
       );
       final authClient = gauth.authenticatedClient(http.Client(), credentials);
@@ -118,105 +119,210 @@ class GoogleDriveService {
     }
   }
 
-  /// Locate the backup file in appDataFolder
-  Future<String?> _getFileId(drive.DriveApi api) async {
+  // -------------------------------------------------------------------------
+  // File helpers
+  // -------------------------------------------------------------------------
+
+  Future<String?> _getFileId(
+    drive.DriveApi api,
+    String fileName,
+  ) async {
     final fileList = await api.files.list(
       spaces: 'appDataFolder',
-      q: "name = '$_backupFileName'",
+      q: "name = '$fileName'",
       $fields: 'files(id, name)',
     );
     final files = fileList.files;
-    if (files != null && files.isNotEmpty) {
-      return files.first.id;
-    }
-    return null;
+    return (files != null && files.isNotEmpty) ? files.first.id : null;
   }
 
-  /// Sync currently loaded assets into E2EE payload and upload to Google Drive
-  Future<void> syncToDrive(
-    List<Asset> assets, {
-    List<AssetType> customAssetTypes = const [],
-    List<Map<String, dynamic>> relations = const [],
-    List<Map<String, dynamic>> tombstones = const [],
-  }) async {
-    final api = await _getDriveApi();
-    if (api == null) throw Exception('Not signed in to Google Drive');
-
-    final encryptedBlob = _syncService.packSnapshotTOCiphertext(
-      assets,
-      customAssetTypes: customAssetTypes,
-      relations: relations,
-      tombstones: tombstones,
-    );
-
-    final media = drive.Media(
-      Stream.value(encryptedBlob.toList()),
-      encryptedBlob.length,
-    );
-
-    final fileId = await _getFileId(api);
-    if (fileId == null) {
-      // Create new file
-      final file = drive.File()
-        ..name = _backupFileName
-        ..parents = ['appDataFolder'];
-      await api.files.create(file, uploadMedia: media);
-    } else {
-      // Update existing
-      final file = drive.File()..name = _backupFileName;
-      await api.files.update(file, fileId, uploadMedia: media);
-    }
-
-    if (kDebugMode) {
-      debugPrint(
-        'Successfully pushed E2EE snapshot to Google Drive appDataFolder.',
-      );
-    }
-  }
-
-  /// Download the E2EE payload from Google Drive as raw bytes for Cold Start recovery.
-  Future<Uint8List?> readRawBytesFromDrive() async {
-    final api = await _getDriveApi();
-    if (api == null) throw Exception('Not signed in to Google Drive');
-
-    final fileId = await _getFileId(api);
-    if (fileId == null) return null; // No backup yet
-
-    // Bypass strict type casting `as drive.Media` which crashes on Web (minified JS)
+  Future<Uint8List?> _downloadFile(drive.DriveApi api, String fileId) async {
     final dynamic response = await api.files.get(
       fileId,
       downloadOptions: drive.DownloadOptions.fullMedia,
     );
 
     final List<int> bytes = [];
-    await for (var chunk in (response.stream as Stream)) {
+    await for (final chunk in (response.stream as Stream)) {
       if (chunk is List<int>) {
         bytes.addAll(chunk);
       } else if (chunk is Iterable) {
         bytes.addAll(chunk.map((dynamic e) => e as int));
       } else {
-        // Fallback for JS web types or strings if returned unexpectedly
         try {
-          final dynChunk = chunk as dynamic;
-          bytes.addAll(List<int>.from(dynChunk));
+          bytes.addAll(List<int>.from(chunk as dynamic));
         } catch (_) {
-          // If even that fails, we ignore or log.
           if (kDebugMode) {
-            debugPrint('Unrecognized chunk type: ${chunk.runtimeType}');
+            debugPrint('Unrecognised chunk type: ${chunk.runtimeType}');
           }
         }
       }
     }
-
-    final uint8List = Uint8List.fromList(bytes);
-    if (uint8List.isEmpty) return null;
-    return uint8List;
+    final result = Uint8List.fromList(bytes);
+    return result.isEmpty ? null : result;
   }
 
-  /// Download the E2EE payload from Google Drive and unpack it into a VaultSnapshot
+  Future<void> _uploadFile(
+    drive.DriveApi api,
+    String fileName,
+    Uint8List data,
+  ) async {
+    final media = drive.Media(
+      Stream.value(data.toList()),
+      data.length,
+    );
+    final existingId = await _getFileId(api, fileName);
+    if (existingId == null) {
+      final file = drive.File()
+        ..name = fileName
+        ..parents = ['appDataFolder'];
+      await api.files.create(file, uploadMedia: media);
+    } else {
+      final file = drive.File()..name = fileName;
+      await api.files.update(file, existingId, uploadMedia: media);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Full snapshot sync
+  // -------------------------------------------------------------------------
+
+  /// Encrypts the vault state and uploads it to Drive as [_snapshotFileName].
+  Future<void> syncToDrive(
+    List<Asset> assets, {
+    List<AssetType> customAssetTypes = const [],
+    List<Map<String, dynamic>> relations = const [],
+    List<Map<String, dynamic>> tombstones = const [],
+    List<OpLogEntry> opLog = const [],
+    List<AssetAttachment> attachmentManifest = const [],
+  }) async {
+    final api = await _getDriveApi();
+    if (api == null) throw Exception('Not signed in to Google Drive');
+
+    final blob = _syncService.packSnapshotTOCiphertext(
+      assets,
+      customAssetTypes: customAssetTypes,
+      relations: relations,
+      tombstones: tombstones,
+      opLog: opLog,
+      attachmentManifest: attachmentManifest,
+    );
+    await _uploadFile(api, _snapshotFileName, blob);
+
+    if (kDebugMode) {
+      debugPrint('Pushed full E2EE snapshot to Google Drive appDataFolder.');
+    }
+  }
+
+  /// Downloads and decrypts the vault snapshot from Drive.
   Future<VaultSnapshot?> readFromDrive() async {
-    final uint8List = await readRawBytesFromDrive();
-    if (uint8List == null) return null;
-    return _syncService.unpackCiphertextToSnapshot(uint8List);
+    final bytes = await readRawBytesFromDrive();
+    if (bytes == null) return null;
+    return _syncService.unpackCiphertextToSnapshot(bytes);
+  }
+
+  /// Downloads the raw encrypted snapshot bytes from Drive.
+  Future<Uint8List?> readRawBytesFromDrive() async {
+    final api = await _getDriveApi();
+    if (api == null) throw Exception('Not signed in to Google Drive');
+
+    final fileId = await _getFileId(api, _snapshotFileName);
+    if (fileId == null) return null;
+    return _downloadFile(api, fileId);
+  }
+
+  // -------------------------------------------------------------------------
+  // Delta sync
+  // -------------------------------------------------------------------------
+
+  /// Encrypts [opLogEntries] into a delta blob and uploads it to Drive.
+  ///
+  /// Delta blobs are stored as `octarq_delta_<maxSeq>.enc` in appDataFolder.
+  /// The receiver downloads all delta files with seq > their lastSyncSeq.
+  Future<void> syncDeltaToDrive({
+    required List<OpLogEntry> opLogEntries,
+    required int baseSeq,
+    List<AssetAttachment> attachmentManifest = const [],
+  }) async {
+    if (opLogEntries.isEmpty) return;
+    final api = await _getDriveApi();
+    if (api == null) throw Exception('Not signed in to Google Drive');
+
+    final maxSeq = opLogEntries.last.seq;
+    final fileName = 'octarq_delta_$maxSeq.enc';
+    final blob = _syncService.packDeltaToCiphertext(
+      opLogEntries: opLogEntries,
+      baseSeq: baseSeq,
+      attachmentManifest: attachmentManifest,
+    );
+    await _uploadFile(api, fileName, blob);
+
+    if (kDebugMode) {
+      debugPrint(
+        'Pushed delta (${opLogEntries.length} entries, seq $baseSeq→$maxSeq) '
+        'to Google Drive.',
+      );
+    }
+  }
+
+  /// Lists all delta blob file names in appDataFolder.
+  Future<List<String>> listDeltaFiles() async {
+    final api = await _getDriveApi();
+    if (api == null) throw Exception('Not signed in to Google Drive');
+
+    final fileList = await api.files.list(
+      spaces: 'appDataFolder',
+      q: "name contains 'octarq_delta_'",
+      $fields: 'files(id, name)',
+    );
+    return (fileList.files ?? [])
+        .map((f) => f.name ?? '')
+        .where((n) => n.isNotEmpty)
+        .toList();
+  }
+
+  // -------------------------------------------------------------------------
+  // Attachment sync
+  // -------------------------------------------------------------------------
+
+  /// Uploads the encrypted blob for [attachment] to Drive.
+  ///
+  /// The blob is stored at `octarq_attachments/<uuid>.enc` in appDataFolder.
+  Future<void> uploadAttachment(
+    AssetAttachment attachment,
+    Uint8List encBytes,
+  ) async {
+    final api = await _getDriveApi();
+    if (api == null) throw Exception('Not signed in to Google Drive');
+
+    final fileName = '$_attachmentFolder/${attachment.encFileName}';
+    await _uploadFile(api, fileName, encBytes);
+
+    if (kDebugMode) {
+      debugPrint('Uploaded attachment ${attachment.encFileName} to Drive.');
+    }
+  }
+
+  /// Downloads the raw encrypted blob for [attachment] from Drive.
+  ///
+  /// Returns `null` if the file does not exist on Drive yet.
+  Future<Uint8List?> downloadAttachment(AssetAttachment attachment) async {
+    final api = await _getDriveApi();
+    if (api == null) throw Exception('Not signed in to Google Drive');
+
+    final fileName = '$_attachmentFolder/${attachment.encFileName}';
+    final fileId = await _getFileId(api, fileName);
+    if (fileId == null) return null;
+    return _downloadFile(api, fileId);
+  }
+
+  /// Deletes the remote attachment blob from Drive.
+  Future<void> deleteRemoteAttachment(AssetAttachment attachment) async {
+    final api = await _getDriveApi();
+    if (api == null) throw Exception('Not signed in to Google Drive');
+
+    final fileName = '$_attachmentFolder/${attachment.encFileName}';
+    final fileId = await _getFileId(api, fileName);
+    if (fileId != null) await api.files.delete(fileId);
   }
 }
