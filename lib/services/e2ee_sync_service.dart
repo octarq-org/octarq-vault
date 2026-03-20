@@ -85,10 +85,9 @@ class OpLogEntry {
     op: OpType.fromJson(json['op'] as String),
     entityType: OpEntityType.fromJson(json['entityType'] as String),
     entityId: json['entityId'] as String,
-    payload:
-        json['payload'] != null
-            ? Map<String, dynamic>.from(json['payload'] as Map)
-            : null,
+    payload: json['payload'] != null
+        ? Map<String, dynamic>.from(json['payload'] as Map)
+        : null,
     seq: (json['seq'] as num? ?? 0).toInt(),
     createdAt: (json['createdAt'] as num).toInt(),
   );
@@ -189,8 +188,7 @@ class VaultSnapshot {
     'relations': relations,
     'tombstones': tombstones,
     'opLog': opLog.map((e) => e.toJson()).toList(),
-    'attachmentManifest':
-        attachmentManifest.map((a) => a.toJson()).toList(),
+    'attachmentManifest': attachmentManifest.map((a) => a.toJson()).toList(),
   };
 
   factory VaultSnapshot.fromJson(Map<String, dynamic> json) {
@@ -378,7 +376,6 @@ class E2EESyncService {
   static const int _headerMagicLen = 4;
   static const int _headerSaltLenFieldLen = 2;
   static const int _payloadTypeByte = 1;
-  static const int _ivLen = 12;
 
   // Payload type constants stored in the AVV3 header.
   static const int _ptFull = 0x00;
@@ -435,8 +432,7 @@ class E2EESyncService {
 
       final saltLen =
           (payload[_headerMagicLen] << 8) | payload[_headerMagicLen + 1];
-      final afterSalt =
-          _headerMagicLen + _headerSaltLenFieldLen + saltLen;
+      final afterSalt = _headerMagicLen + _headerSaltLenFieldLen + saltLen;
       if (payload.length <= afterSalt) {
         return (payloadType: null, encrypted: payload);
       }
@@ -453,7 +449,10 @@ class E2EESyncService {
   // Pack helpers
   // -------------------------------------------------------------------------
 
-  Uint8List _buildPayload(Uint8List plainBytes, {required int payloadTypeFlag}) {
+  Uint8List _buildPayload(
+    Uint8List plainBytes, {
+    required int payloadTypeFlag,
+  }) {
     final cipherBytes = _encryptionService.encryptBytes(plainBytes);
     final currentSalt = _encryptionService.currentSaltBase64;
     final saltBytes = utf8.encode(currentSalt);

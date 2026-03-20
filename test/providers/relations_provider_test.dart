@@ -10,6 +10,10 @@ class MockDatabaseService extends DatabaseService {
   final List<String> deletedRelationIds = [];
   final Map<String, int> getRelationsCalls = {};
 
+  /// In-memory mock — no SQLCipher file; skip [ensureOpen]/[init] in tests.
+  @override
+  bool get isOpen => true;
+
   @override
   Future<List<Map<String, dynamic>>> getRelationsForAsset(
     String assetId,

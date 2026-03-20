@@ -59,6 +59,7 @@
 *.xcscmblueprint
 
 # macOS related
+**/macos/Runner/Configs/Signing.local.xcconfig
 **/macos/Flutter/ephemeral/
 **/macos/Flutter/Generated.xcconfig
 **/macos/Flutter/flutter_export_environment.sh

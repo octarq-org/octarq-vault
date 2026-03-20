@@ -47,5 +47,5 @@ Map<String, dynamic> _$AssetToJson(_Asset instance) => <String, dynamic>{
   'fields': instance.fields,
   'tags': instance.tags,
   'reminders': instance.reminders,
-  'attachments': instance.attachments.map((e) => e.toJson()).toList(),
+  'attachments': instance.attachments,
 };

@@ -103,7 +103,7 @@ class DatabaseService {
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
           await db.execute('''
-            CREATE TABLE asset_types (
+            CREATE TABLE IF NOT EXISTS asset_types (
               id TEXT PRIMARY KEY,
               name TEXT NOT NULL,
               icon TEXT NOT NULL,
@@ -113,7 +113,7 @@ class DatabaseService {
           ''');
 
           await db.execute('''
-            CREATE TABLE relations (
+            CREATE TABLE IF NOT EXISTS relations (
               id TEXT PRIMARY KEY,
               from_asset_id TEXT NOT NULL,
               to_asset_id TEXT NOT NULL,
@@ -134,7 +134,7 @@ class DatabaseService {
   static Future<void> _createV3Tables(Database db) async {
     // Append-only operation log: every mutation creates one entry.
     await db.execute('''
-      CREATE TABLE op_log (
+      CREATE TABLE IF NOT EXISTS op_log (
         seq        INTEGER PRIMARY KEY AUTOINCREMENT,
         id         TEXT    NOT NULL UNIQUE,
         op         TEXT    NOT NULL,
@@ -147,7 +147,7 @@ class DatabaseService {
 
     // Attachment metadata (blob lives on disk, not in the DB).
     await db.execute('''
-      CREATE TABLE asset_attachments (
+      CREATE TABLE IF NOT EXISTS asset_attachments (
         id           TEXT    PRIMARY KEY,
         asset_id     TEXT    NOT NULL,
         name         TEXT    NOT NULL,
@@ -167,6 +167,17 @@ class DatabaseService {
 
   Database get db {
     if (_db == null) throw Exception("Database not initialized");
+    return _db!;
+  }
+
+  /// True when [init]/[ensureOpen] has assigned a live [Database] handle.
+  bool get isOpen => _db != null;
+
+  /// Opens SQLCipher when [init] has not finished or was never called for this
+  /// process (e.g. race right after first `setupMasterPassword` / unlock).
+  Future<Database> ensureOpen(Uint8List masterKeyBytes) async {
+    if (_db != null) return _db!;
+    await init(masterKeyBytes);
     return _db!;
   }
 
@@ -301,9 +312,7 @@ class DatabaseService {
     Map<String, dynamic>? payload;
     final payloadStr = row['payload'] as String?;
     if (payloadStr != null) {
-      payload = Map<String, dynamic>.from(
-        jsonDecode(payloadStr) as Map,
-      );
+      payload = Map<String, dynamic>.from(jsonDecode(payloadStr) as Map);
     }
     return OpLogEntry(
       id: row['id'] as String,
@@ -321,20 +330,16 @@ class DatabaseService {
   // -------------------------------------------------------------------------
 
   Future<void> insertAttachment(AssetAttachment attachment) async {
-    await db.insert(
-      'asset_attachments',
-      {
-        'id': attachment.id,
-        'asset_id': attachment.assetId,
-        'name': attachment.name,
-        'mime_type': attachment.mimeType,
-        'size': attachment.size,
-        'enc_file_name': attachment.encFileName,
-        'created_at': attachment.createdAt,
-        'updated_at': attachment.updatedAt,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('asset_attachments', {
+      'id': attachment.id,
+      'asset_id': attachment.assetId,
+      'name': attachment.name,
+      'mime_type': attachment.mimeType,
+      'size': attachment.size,
+      'enc_file_name': attachment.encFileName,
+      'created_at': attachment.createdAt,
+      'updated_at': attachment.updatedAt,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<List<AssetAttachment>> getAttachmentsForAsset(String assetId) async {
@@ -348,10 +353,7 @@ class DatabaseService {
   }
 
   Future<List<AssetAttachment>> getAllAttachments() async {
-    final rows = await db.query(
-      'asset_attachments',
-      orderBy: 'created_at ASC',
-    );
+    final rows = await db.query('asset_attachments', orderBy: 'created_at ASC');
     return rows.map(_rowToAttachment).toList();
   }
 

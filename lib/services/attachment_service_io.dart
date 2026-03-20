@@ -83,9 +83,7 @@ class AttachmentService {
     final dir = await _dir();
     final f = _file(dir, attachment);
     if (!f.existsSync()) {
-      throw Exception(
-        'Attachment file not found: ${attachment.encFileName}',
-      );
+      throw Exception('Attachment file not found: ${attachment.encFileName}');
     }
     final encBytes = await f.readAsBytes();
     return _enc.decryptBytes(encBytes);
@@ -96,9 +94,7 @@ class AttachmentService {
     final dir = await _dir();
     final f = _file(dir, attachment);
     if (!f.existsSync()) {
-      throw Exception(
-        'Attachment file not found: ${attachment.encFileName}',
-      );
+      throw Exception('Attachment file not found: ${attachment.encFileName}');
     }
     return f.readAsBytes();
   }

@@ -24,12 +24,23 @@ class AssetsNotifier extends Notifier<List<Asset>> {
   /// Persisted through snapshots via the tombstones field in VaultSnapshot.
   final _tombstones = TombstoneRegistry();
 
+  Future<Database> _vaultDb() async {
+    final dbSvc = ref.read(databaseServiceProvider);
+    if (dbSvc.isOpen) return dbSvc.db;
+    final key = ref.read(encryptionServiceProvider).masterKey;
+    return dbSvc.ensureOpen(key);
+  }
+
   @override
   List<Asset> build() {
-    // Security: Clear in-memory assets when vault is locked
+    // Security: Clear in-memory assets when vault is locked; reload from DB
+    // when unlocking (build()'s microtask only runs once for the notifier).
     ref.listen(authProvider, (previous, next) {
       if (next == AuthState.locked || next == AuthState.unsetup) {
         state = [];
+        _tombstones.clear();
+      } else if (next == AuthState.unlocked && previous != AuthState.unlocked) {
+        Future.microtask(() => loadAssets());
       }
     });
 
@@ -105,8 +116,8 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       return;
     }
     try {
+      final db = await _vaultDb();
       final dbService = ref.read(databaseServiceProvider);
-      final db = dbService.db;
       final List<Map<String, dynamic>> assetMaps = await db.query('assets');
 
       final List<Asset> assets = [];
@@ -271,7 +282,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
 
   Future<void> addAsset(Asset asset) async {
     if (!kIsWeb) {
-      final db = ref.read(databaseServiceProvider).db;
+      final db = await _vaultDb();
       await db.transaction((txn) async {
         await txn.insert('assets', {
           'id': asset.id,
@@ -304,7 +315,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
   Future<void> batchAddAssets(List<Asset> assets) async {
     if (assets.isEmpty) return;
     if (!kIsWeb) {
-      final db = ref.read(databaseServiceProvider).db;
+      final db = await _vaultDb();
       for (final asset in assets) {
         await db.transaction((txn) async {
           await txn.insert('assets', {
@@ -337,7 +348,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
 
   Future<void> updateAsset(Asset updatedAsset) async {
     if (!kIsWeb) {
-      final db = ref.read(databaseServiceProvider).db;
+      final db = await _vaultDb();
       await db.transaction((txn) async {
         await txn.update(
           'assets',
@@ -379,7 +390,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
 
   Future<void> deleteAsset(String id) async {
     if (!kIsWeb) {
-      final db = ref.read(databaseServiceProvider).db;
+      final db = await _vaultDb();
       await db.delete('assets', where: 'id = ?', whereArgs: [id]);
     }
     state = state.where((a) => a.id != id).toList();
@@ -439,10 +450,10 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       );
       await ref.read(webVaultStorageProvider).writeEncrypted(blob);
     } else {
-      final dbService = ref.read(databaseServiceProvider);
-      final db = dbService.db;
+      final db = await _vaultDb();
       await db.delete('relations');
       await db.delete('assets');
+      final dbService = ref.read(databaseServiceProvider);
       await dbService.deleteAllTags();
       await dbService.deleteAllAssetTypes();
     }
@@ -464,7 +475,9 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       }
     } else {
       final dbService = ref.read(databaseServiceProvider);
-      final db = dbService.db;
+      final db = await dbService.ensureOpen(
+        ref.read(encryptionServiceProvider).masterKey,
+      );
       await db.delete('assets');
       await dbService.deleteAllTags();
       await dbService.deleteAllAssetTypes();
@@ -528,7 +541,9 @@ class AssetsNotifier extends Notifier<List<Asset>> {
     List<Map<String, dynamic>> relations = [];
     if (!kIsWeb) {
       try {
-        relations = await ref.read(databaseServiceProvider).getAllRelations();
+        final dbSvc = ref.read(databaseServiceProvider);
+        await dbSvc.ensureOpen(ref.read(encryptionServiceProvider).masterKey);
+        relations = await dbSvc.getAllRelations();
       } catch (_) {}
     }
 

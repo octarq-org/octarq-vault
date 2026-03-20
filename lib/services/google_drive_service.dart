@@ -123,10 +123,7 @@ class GoogleDriveService {
   // File helpers
   // -------------------------------------------------------------------------
 
-  Future<String?> _getFileId(
-    drive.DriveApi api,
-    String fileName,
-  ) async {
+  Future<String?> _getFileId(drive.DriveApi api, String fileName) async {
     final fileList = await api.files.list(
       spaces: 'appDataFolder',
       q: "name = '$fileName'",
@@ -167,10 +164,7 @@ class GoogleDriveService {
     String fileName,
     Uint8List data,
   ) async {
-    final media = drive.Media(
-      Stream.value(data.toList()),
-      data.length,
-    );
+    final media = drive.Media(Stream.value(data.toList()), data.length);
     final existingId = await _getFileId(api, fileName);
     if (existingId == null) {
       final file = drive.File()

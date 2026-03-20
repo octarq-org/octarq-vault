@@ -1,0 +1,3 @@
+// Copy to Signing.local.xcconfig, or: MACOS_DEVELOPMENT_TEAM=Your10CharID make build-macos
+// Team ID: Xcode → Settings → Accounts → select team → “Team ID”
+DEVELOPMENT_TEAM = XXXXXXXXXX

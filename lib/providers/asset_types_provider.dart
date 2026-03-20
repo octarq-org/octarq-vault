@@ -7,6 +7,14 @@ import '../utils/default_asset_types.dart';
 import 'locale_provider.dart';
 import 'service_providers.dart';
 
+Future<void> _ensureTypesDb(Ref ref) async {
+  if (kIsWeb) return;
+  final dbSvc = ref.read(databaseServiceProvider);
+  if (dbSvc.isOpen) return;
+  final key = ref.read(encryptionServiceProvider).masterKey;
+  await dbSvc.ensureOpen(key);
+}
+
 final assetTypesProvider =
     NotifierProvider<AssetTypesNotifier, List<AssetType>>(() {
       return AssetTypesNotifier();
@@ -30,6 +38,7 @@ class AssetTypesNotifier extends Notifier<List<AssetType>> {
   Future<void> setCustomTypesFromSnapshot(List<AssetType> customTypes) async {
     state = [..._defaultsForCurrentLocale(), ...customTypes];
     if (kIsWeb) return;
+    await _ensureTypesDb(ref);
     final dbService = ref.read(databaseServiceProvider);
     await dbService.deleteAllAssetTypes();
     for (final type in customTypes) {
@@ -52,6 +61,7 @@ class AssetTypesNotifier extends Notifier<List<AssetType>> {
       state = [...defaults];
       return;
     }
+    await _ensureTypesDb(ref);
     final dbService = ref.read(databaseServiceProvider);
     final records = await dbService.getCustomAssetTypes();
 
@@ -76,6 +86,7 @@ class AssetTypesNotifier extends Notifier<List<AssetType>> {
 
   Future<void> addCustomType(AssetType type) async {
     if (!kIsWeb) {
+      await _ensureTypesDb(ref);
       final dbService = ref.read(databaseServiceProvider);
       final fieldSchemaJson = jsonEncode(
         type.fieldSchema.map((e) => e.toJson()).toList(),
@@ -95,6 +106,7 @@ class AssetTypesNotifier extends Notifier<List<AssetType>> {
 
   Future<void> deleteCustomType(String id) async {
     if (!kIsWeb) {
+      await _ensureTypesDb(ref);
       final dbService = ref.read(databaseServiceProvider);
       await dbService.deleteAssetType(id);
     }

@@ -1,7 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webdav_client/webdav_client.dart' as webdav;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import 'platform_secure_storage.dart';
 
 import '../models/attachment.dart';
 import 'e2ee_sync_service.dart';
@@ -39,7 +40,8 @@ class WebDavService {
     );
     await _client!.ping(); // Validate credentials
 
-    final storage = const FlutterSecureStorage();
+    // Store credentials securely in the platform Keychain / Keystore.
+    final storage = platformFlutterSecureStorage();
     await storage.write(key: 'webdav_url', value: url);
     await storage.write(key: 'webdav_user', value: username);
     await storage.write(key: 'webdav_pass', value: password);
@@ -47,7 +49,7 @@ class WebDavService {
 
   Future<bool> hasCredentials() async {
     if (kIsWeb) return false;
-    final storage = const FlutterSecureStorage();
+    final storage = platformFlutterSecureStorage();
     final url = await storage.read(key: 'webdav_url');
     return url != null && url.isNotEmpty;
   }
@@ -56,7 +58,7 @@ class WebDavService {
     if (_client != null) return;
     if (kIsWeb) throw UnsupportedError('WebDAV is not supported on web.');
 
-    final storage = const FlutterSecureStorage();
+    final storage = platformFlutterSecureStorage();
     final url = await storage.read(key: 'webdav_url');
     final user = await storage.read(key: 'webdav_user');
     final pass = await storage.read(key: 'webdav_pass');
@@ -178,7 +180,7 @@ class WebDavService {
 
   Future<void> clearCredentials() async {
     if (!kIsWeb) {
-      final storage = const FlutterSecureStorage();
+      final storage = platformFlutterSecureStorage();
       await storage.delete(key: 'webdav_url');
       await storage.delete(key: 'webdav_user');
       await storage.delete(key: 'webdav_pass');

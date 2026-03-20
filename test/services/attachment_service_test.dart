@@ -3,7 +3,6 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'package:octarq_vault/services/attachment_service_io.dart';
@@ -190,10 +189,7 @@ void main() {
       createdAt: 0,
       updatedAt: 0,
     );
-    expect(
-      () => svc.loadAttachmentBytes(missing),
-      throwsA(isA<Exception>()),
-    );
+    expect(() => svc.loadAttachmentBytes(missing), throwsA(isA<Exception>()));
   });
 
   test('each save generates a unique encFileName', () async {

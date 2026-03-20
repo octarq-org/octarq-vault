@@ -292,9 +292,7 @@ void main() {
       'extractSaltFromPayload returns null for invalid or truncated payload',
       () {
         expect(
-          E2EESyncService.extractSaltFromPayload(
-            Uint8List.fromList([1, 2, 3]),
-          ),
+          E2EESyncService.extractSaltFromPayload(Uint8List.fromList([1, 2, 3])),
           isNull,
         );
 
@@ -564,9 +562,7 @@ void main() {
         );
         final remote = VaultSnapshot(
           version: 3,
-          assets: [
-            _makeAsset(id: 'a1', name: 'Remote Name', updatedAt: 2000),
-          ],
+          assets: [_makeAsset(id: 'a1', name: 'Remote Name', updatedAt: 2000)],
         );
 
         final result = VaultSnapshot.mergeSnapshots(
@@ -700,35 +696,37 @@ void main() {
       expect(merged.opLog.map((e) => e.seq).toList(), [1, 2, 3]);
     });
 
-    test('attachment manifest is merged, tombstoned asset attachments removed',
-        () {
-      final local = VaultSnapshot(
-        version: 3,
-        assets: [_makeAsset(id: 'a1', name: 'A1', updatedAt: 1000)],
-        attachmentManifest: [
-          _makeAttachment(id: 'att1', assetId: 'a1'),
-          _makeAttachment(id: 'att2', assetId: 'a2'),
-        ],
-      );
-      final remote = VaultSnapshot(
-        version: 3,
-        assets: [],
-        tombstones: [{'id': 'a1', 'deletedAt': 2000}],
-        attachmentManifest: [
-          _makeAttachment(id: 'att3', assetId: 'a2'),
-        ],
-      );
+    test(
+      'attachment manifest is merged, tombstoned asset attachments removed',
+      () {
+        final local = VaultSnapshot(
+          version: 3,
+          assets: [_makeAsset(id: 'a1', name: 'A1', updatedAt: 1000)],
+          attachmentManifest: [
+            _makeAttachment(id: 'att1', assetId: 'a1'),
+            _makeAttachment(id: 'att2', assetId: 'a2'),
+          ],
+        );
+        final remote = VaultSnapshot(
+          version: 3,
+          assets: [],
+          tombstones: [
+            {'id': 'a1', 'deletedAt': 2000},
+          ],
+          attachmentManifest: [_makeAttachment(id: 'att3', assetId: 'a2')],
+        );
 
-      final merged = VaultSnapshot.mergeSnapshots(
-        local: local,
-        remote: remote,
-      ).snapshot;
+        final merged = VaultSnapshot.mergeSnapshots(
+          local: local,
+          remote: remote,
+        ).snapshot;
 
-      // att1 belongs to tombstoned a1 → removed
-      final attIds = merged.attachmentManifest.map((a) => a.id).toSet();
-      expect(attIds, isNot(contains('att1')));
-      expect(attIds, containsAll(['att2', 'att3']));
-    });
+        // att1 belongs to tombstoned a1 → removed
+        final attIds = merged.attachmentManifest.map((a) => a.id).toSet();
+        expect(attIds, isNot(contains('att1')));
+        expect(attIds, containsAll(['att2', 'att3']));
+      },
+    );
   });
 
   // -------------------------------------------------------------------------

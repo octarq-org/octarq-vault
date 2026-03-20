@@ -20,6 +20,9 @@ class _MockAssetTypesDatabaseService extends DatabaseService {
   bool deleteAllCalled = false;
 
   @override
+  bool get isOpen => true;
+
+  @override
   Future<List<Map<String, dynamic>>> getCustomAssetTypes() async {
     return assetTypes.map((item) => Map<String, dynamic>.from(item)).toList();
   }

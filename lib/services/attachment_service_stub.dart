@@ -10,11 +10,10 @@ class AttachmentService {
   // ignore: avoid_unused_constructor_parameters
   AttachmentService(EncryptionService _);
 
-  static Never _unsupported() =>
-      throw UnsupportedError(
-        'Attachment storage is not supported on this platform. '
-        'Use a native (iOS / Android / macOS / Linux / Windows) build.',
-      );
+  static Never _unsupported() => throw UnsupportedError(
+    'Attachment storage is not supported on this platform. '
+    'Use a native (iOS / Android / macOS / Linux / Windows) build.',
+  );
 
   Future<AssetAttachment> saveAttachment({
     required String assetId,

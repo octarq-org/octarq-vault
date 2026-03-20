@@ -6,8 +6,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'platform_secure_storage.dart';
+
 class SecureStorageService {
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final FlutterSecureStorage _storage = platformFlutterSecureStorage();
   LocalAuthentication? _auth;
 
   // Current key aliases (octarq_vault_* naming scheme)
@@ -125,7 +127,14 @@ class SecureStorageService {
       await prefs.setString(_verifyAlias, base64Blob);
       return;
     }
-    await _storage.write(key: _verifyAlias, value: base64Blob);
+    try {
+      await _storage.write(key: _verifyAlias, value: base64Blob);
+    } on PlatformException catch (e) {
+      throw Exception(
+        'Keychain unavailable: ${e.message}. '
+        'On macOS, code-signing is required for secure Keychain access.',
+      );
+    }
   }
 
   /// Returns the stored verification blob, or null if not yet created

@@ -52,4 +52,6 @@ class TombstoneRegistry {
   int get length => _tombstones.length;
 
   bool get isEmpty => _tombstones.isEmpty;
+
+  void clear() => _tombstones.clear();
 }
