@@ -4,7 +4,7 @@ import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
 
-/// The translations for Spanish (`es`).
+/// The translations for Spanish Castilian (`es`).
 class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
@@ -519,7 +519,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String deleteTagConfirmation(String name) {
-    return '¿Quitar "$name" de todos los activos?';
+    return '¿Quitar \"$name\" de todos los activos?';
   }
 
   @override
@@ -883,4 +883,77 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get icloudNotAvailable =>
       'iCloud no está disponible en este dispositivo.';
+
+  @override
+  String get exportJsonSecurityTitle => '¿Exportar JSON en texto plano?';
+
+  @override
+  String get exportJsonSecurityBody =>
+      'La exportación no está cifrada: los valores serán legibles. Cualquier app con acceso al portapapeles podría verlos. Usa copias .enc cifradas cuando sea posible.';
+
+  @override
+  String get exportJsonContinueExport => 'Copiar al portapapeles';
+
+  @override
+  String get syncStatusTitle => 'Sincronización';
+
+  @override
+  String get syncStatusNotConfigured => 'Sin configurar';
+
+  @override
+  String get syncStatusNever => 'Aún no sincronizado';
+
+  @override
+  String get syncConflictsScreenTitle => 'Conflictos de sincronización';
+
+  @override
+  String get syncConflictsEmpty => 'No hay conflictos pendientes.';
+
+  @override
+  String get syncConflictSameTime =>
+      'Este activo se editó en dos dispositivos con la misma marca de tiempo. Elige qué versión conservar.';
+
+  @override
+  String get syncConflictVersionThisDevice => 'Este dispositivo';
+
+  @override
+  String get syncConflictVersionRemote => 'Dispositivo remoto';
+
+  @override
+  String get keepThisDevice => 'Conservar este dispositivo';
+
+  @override
+  String get keepRemoteDevice => 'Conservar remoto';
+
+  @override
+  String get syncConflictsDetectedSnack =>
+      'Hay conflictos de sincronización por resolver.';
+
+  @override
+  String get openSyncConflictsAction => 'Resolver';
+
+  @override
+  String driveMergeConflictsSnack(int count) {
+    return 'Fusionado con $count conflicto(s) pendiente(s).';
+  }
+
+  @override
+  String get webdavWebGuideTitle => 'Web / limitaciones WebDAV';
+
+  @override
+  String get webdavWebGuideBody =>
+      'El navegador no puede guardar contraseñas WebDAV en un almacén seguro, por eso OctarqVault desactiva WebDAV directo en web. Las peticiones WebDAV entre orígenes suelen bloquearse por CORS salvo que el servidor envíe Access-Control-Allow-* o uses un proxy inverso del mismo origen. En web se recomienda Google Drive o archivo local vinculado.';
+
+  @override
+  String get webdavProxyBaseUrlLabel => 'URL base del proxy (referencia)';
+
+  @override
+  String get webdavProxyBaseUrlHint => 'https://tu-dominio.com/webdav-proxy';
+
+  @override
+  String get webdavProxySaveNote =>
+      'Solo en este navegador. Una versión futura podría usar esta URL con un proxy compatible.';
+
+  @override
+  String get webdavProxySaved => 'URL de referencia guardada.';
 }

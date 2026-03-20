@@ -10,6 +10,7 @@ import '../providers/auth_provider.dart';
 import '../providers/assets_provider.dart';
 import '../providers/locale_preference_provider.dart';
 import '../providers/sync_settings_provider.dart';
+import '../providers/sync_conflicts_provider.dart';
 import '../models/asset.dart';
 import '../models/sync_settings.dart';
 import '../main.dart';
@@ -157,6 +158,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _exportJson(WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: kSurfaceColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Text(l10n.exportJsonSecurityTitle),
+        content: SingleChildScrollView(
+          child: Text(
+            l10n.exportJsonSecurityBody,
+            style: const TextStyle(fontSize: 14, height: 1.4),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: kPrimaryGreen,
+              foregroundColor: Colors.black,
+            ),
+            child: Text(l10n.exportJsonContinueExport),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
     final scaffoldMsgr = ScaffoldMessenger.of(context);
     try {
       final assets = ref.read(assetsProvider);
@@ -609,6 +641,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final syncMethods = ref.watch(syncSettingsProvider);
     final localeOverride = ref.watch(localePreferenceProvider);
     final lastSyncAt = ref.watch(lastSyncAtProvider);
+    final pendingConflicts = ref.watch(pendingSyncConflictsProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.settingsTitle)),
@@ -665,6 +698,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.go('/settings/webdav'),
           ),
+          if (pendingConflicts.isNotEmpty)
+            ListTile(
+              leading: Badge(
+                label: Text('${pendingConflicts.length}'),
+                backgroundColor: Colors.redAccent,
+                child: const Icon(Icons.merge_type),
+              ),
+              title: Text(l10n.syncConflictsScreenTitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go('/settings/sync-conflicts'),
+            ),
           ListTile(
             leading: const Icon(Icons.access_time),
             title: const Text('Last Sync'),

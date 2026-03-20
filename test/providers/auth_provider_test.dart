@@ -169,8 +169,8 @@ void main() {
 
     test('transitions to unsetup when no stored key', () async {
       // Pump the event loop to let the fire-and-forget _init() complete
-      for (int i = 0; i < 50; i++) {
-        await Future.delayed(Duration.zero);
+      for (int i = 0; i < 200; i++) {
+        await Future<void>.delayed(Duration.zero);
         if (container.read(authProvider) != AuthState.initializing) break;
       }
       final state = container.read(authProvider);

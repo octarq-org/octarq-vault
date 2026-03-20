@@ -15,6 +15,7 @@ import '../views/asset_form_screen.dart';
 import '../views/asset_detail_screen.dart';
 import '../views/settings_screen.dart';
 import '../views/webdav_settings_screen.dart';
+import '../views/sync_conflicts_screen.dart';
 import '../views/asset_type_manager_screen.dart';
 import '../views/tag_manager_screen.dart';
 
@@ -144,6 +145,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                 parentNavigatorKey: shellNavigatorKey,
                 pageBuilder: (context, state) =>
                     const NoTransitionPage(child: TagManagerScreen()),
+              ),
+              GoRoute(
+                path: 'sync-conflicts',
+                parentNavigatorKey: shellNavigatorKey,
+                pageBuilder: (context, state) =>
+                    const NoTransitionPage(child: SyncConflictsScreen()),
               ),
             ],
           ),

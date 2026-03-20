@@ -1507,7 +1507,7 @@ abstract class AppLocalizations {
   /// No description provided for @passwordTooShort.
   ///
   /// In en, this message translates to:
-  /// **'Password too short (8 chars min)'**
+  /// **'Password too short (12 chars min)'**
   String get passwordTooShort;
 
   /// No description provided for @passwordsDoNotMatch.
@@ -1576,45 +1576,197 @@ abstract class AppLocalizations {
   /// **'Notifications for expiring assets'**
   String get notificationChannelDescription;
 
+  /// No description provided for @webSecurityTitle.
+  ///
   /// In en, this message translates to:
   /// **'Web Security Notice'**
   String get webSecurityTitle;
 
+  /// No description provided for @webSecurityBody.
+  ///
   /// In en, this message translates to:
-  /// **'On the web, encryption keys are stored in the browser's localStorage...'**
+  /// **'On the web, encryption keys are stored in the browser\'s localStorage and IndexedDB — not in a hardware-backed secure enclave like iOS Keychain or Android Keystore. For higher security, use the native app on your phone or desktop.'**
   String get webSecurityBody;
 
+  /// No description provided for @webSecurityLearnMore.
+  ///
   /// In en, this message translates to:
   /// **'Learn more'**
   String get webSecurityLearnMore;
 
+  /// No description provided for @webdavCorsWarning.
+  ///
   /// In en, this message translates to:
-  /// **'CORS notice: Most WebDAV servers block direct browser requests...'**
+  /// **'CORS notice: Most WebDAV servers block direct browser requests. Use a server with CORS headers enabled (e.g., Nextcloud with correct settings), or use a desktop/mobile app for WebDAV sync.'**
   String get webdavCorsWarning;
 
+  /// No description provided for @driveSmartMergeSuccess.
+  ///
   /// In en, this message translates to:
   /// **'Merged {local} local + {remote} remote assets (LWW)'**
   String driveSmartMergeSuccess(int local, int remote);
 
+  /// No description provided for @icloudBackup.
+  ///
   /// In en, this message translates to:
   /// **'iCloud Backup'**
   String get icloudBackup;
 
+  /// No description provided for @icloudBackupSubtitle.
+  ///
   /// In en, this message translates to:
   /// **'Sync encrypted vault to iCloud Drive (iOS only)'**
   String get icloudBackupSubtitle;
 
+  /// No description provided for @icloudBackupSuccess.
+  ///
   /// In en, this message translates to:
   /// **'iCloud backup successful!'**
   String get icloudBackupSuccess;
 
+  /// No description provided for @icloudRestoreSuccess.
+  ///
   /// In en, this message translates to:
   /// **'Restored {count} assets from iCloud'**
   String icloudRestoreSuccess(int count);
 
+  /// No description provided for @icloudNotAvailable.
+  ///
   /// In en, this message translates to:
   /// **'iCloud is not available on this device.'**
   String get icloudNotAvailable;
+
+  /// No description provided for @exportJsonSecurityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export plaintext JSON?'**
+  String get exportJsonSecurityTitle;
+
+  /// No description provided for @exportJsonSecurityBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The export is unencrypted: field values will be readable as plain text. Anyone or any app that can read your clipboard could see this data. Encrypted backups (.enc) stay protected — use those when possible.'**
+  String get exportJsonSecurityBody;
+
+  /// No description provided for @exportJsonContinueExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy to clipboard'**
+  String get exportJsonContinueExport;
+
+  /// No description provided for @syncStatusTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync'**
+  String get syncStatusTitle;
+
+  /// No description provided for @syncStatusNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set up'**
+  String get syncStatusNotConfigured;
+
+  /// No description provided for @syncStatusNever.
+  ///
+  /// In en, this message translates to:
+  /// **'No sync yet'**
+  String get syncStatusNever;
+
+  /// No description provided for @syncConflictsScreenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync conflicts'**
+  String get syncConflictsScreenTitle;
+
+  /// No description provided for @syncConflictsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No pending conflicts.'**
+  String get syncConflictsEmpty;
+
+  /// No description provided for @syncConflictSameTime.
+  ///
+  /// In en, this message translates to:
+  /// **'This asset was edited on two devices with the same timestamp. Choose which version to keep.'**
+  String get syncConflictSameTime;
+
+  /// No description provided for @syncConflictVersionThisDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'This device'**
+  String get syncConflictVersionThisDevice;
+
+  /// No description provided for @syncConflictVersionRemote.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote device'**
+  String get syncConflictVersionRemote;
+
+  /// No description provided for @keepThisDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep this device'**
+  String get keepThisDevice;
+
+  /// No description provided for @keepRemoteDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep remote'**
+  String get keepRemoteDevice;
+
+  /// No description provided for @syncConflictsDetectedSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync conflicts need your choice.'**
+  String get syncConflictsDetectedSnack;
+
+  /// No description provided for @openSyncConflictsAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve'**
+  String get openSyncConflictsAction;
+
+  /// No description provided for @driveMergeConflictsSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Merged with {count} conflict(s) to resolve.'**
+  String driveMergeConflictsSnack(int count);
+
+  /// No description provided for @webdavWebGuideTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Web / WebDAV limitations'**
+  String get webdavWebGuideTitle;
+
+  /// No description provided for @webdavWebGuideBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Browsers cannot store WebDAV passwords in a secure enclave, so OctarqVault disables direct WebDAV on web. Cross-origin WebDAV requests are usually blocked by CORS unless your server sends Access-Control-Allow-* headers or you put a same-origin reverse proxy in front of WebDAV (e.g. nginx) that forwards PROPFIND/GET/PUT. Recommended on web: Google Drive sync or linked local file.'**
+  String get webdavWebGuideBody;
+
+  /// No description provided for @webdavProxyBaseUrlLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Proxy base URL (reference)'**
+  String get webdavProxyBaseUrlLabel;
+
+  /// No description provided for @webdavProxyBaseUrlHint.
+  ///
+  /// In en, this message translates to:
+  /// **'https://your-domain.com/webdav-proxy'**
+  String get webdavProxyBaseUrlHint;
+
+  /// No description provided for @webdavProxySaveNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved on this browser only. A future version may route sync through this URL if you run a compatible proxy.'**
+  String get webdavProxySaveNote;
+
+  /// No description provided for @webdavProxySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference URL saved.'**
+  String get webdavProxySaved;
 }
 
 class _AppLocalizationsDelegate

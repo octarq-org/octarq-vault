@@ -13,6 +13,7 @@ import '../services/e2ee_sync_service.dart';
 import 'service_providers.dart';
 import '../models/sync_settings.dart';
 import 'sync_settings_provider.dart';
+import 'sync_conflicts_provider.dart';
 import 'auth_provider.dart';
 import 'asset_types_provider.dart';
 import 'relations_provider.dart';
@@ -70,15 +71,10 @@ class AssetsNotifier extends Notifier<List<Asset>> {
                     remote: remoteSnapshot,
                   );
                   localSnapshot = result.snapshot;
-                  if (result.conflicts.isNotEmpty && kDebugMode) {
-                    // Conflicts (same id, same updatedAt, different content)
-                    // are kept as local during cold-start merge. Users can
-                    // manually resolve via Settings → Pull from Google Drive.
-                    debugPrint(
-                      'loadAssets: ${result.conflicts.length} conflict(s) '
-                      'detected during cold-start merge. Local versions kept. '
-                      'Use "Pull from Google Drive" to resolve interactively.',
-                    );
+                  if (result.conflicts.isNotEmpty) {
+                    ref
+                        .read(pendingSyncConflictsProvider.notifier)
+                        .mergeFrom(result.conflicts);
                   }
                   // Persist merged blob back to IndexedDB
                   final mergedBlob = syncService.packSnapshotTOCiphertext(
@@ -214,9 +210,17 @@ class AssetsNotifier extends Notifier<List<Asset>> {
                 remote: remoteSnapshot,
               );
 
-              // If merge result is newer or has different asset count, update local DB
+              if (result.conflicts.isNotEmpty) {
+                ref
+                    .read(pendingSyncConflictsProvider.notifier)
+                    .mergeFrom(result.conflicts);
+              }
+
+              // Persist merge when remote wins on timestamps/count, or when
+              // conflicts need the merged non-tie state reflected locally.
               if (result.snapshot.updatedAt > localSnapshot.updatedAt ||
-                  result.snapshot.assets.length != state.length) {
+                  result.snapshot.assets.length != state.length ||
+                  result.conflicts.isNotEmpty) {
                 await replaceFromSnapshot(result.snapshot);
               }
             }

@@ -1,19 +1,21 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_localizations.dart';
 import '../services/webdav_service.dart';
 import '../services/e2ee_sync_service.dart';
 import '../services/local_file_sync_service.dart';
 import '../services/google_drive_service.dart';
 import '../services/enc_file_io.dart';
-import '../models/asset.dart';
 import '../providers/assets_provider.dart';
 import '../providers/asset_types_provider.dart';
 import '../providers/service_providers.dart';
+import '../providers/sync_conflicts_provider.dart';
 import '../widgets/google_sign_in_button.dart';
 
 class WebDavSettingsScreen extends ConsumerStatefulWidget {
@@ -29,6 +31,9 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
   final _urlController = TextEditingController();
   final _userController = TextEditingController();
   final _passController = TextEditingController();
+  final _webProxyRefController = TextEditingController();
+
+  static const _webdavProxyPrefKey = 'webdav_proxy_base_url_web';
 
   bool _isLoading = false;
   bool _isConnected = false;
@@ -41,6 +46,31 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
     super.initState();
     _checkStatus();
     _initWebSignIn();
+    _loadWebProxyPref();
+  }
+
+  Future<void> _loadWebProxyPref() async {
+    if (!kIsWeb) return;
+    final prefs = await SharedPreferences.getInstance();
+    final v = prefs.getString(_webdavProxyPrefKey);
+    if (!mounted) return;
+    if (v != null && v.isNotEmpty) {
+      _webProxyRefController.text = v;
+    }
+    setState(() {});
+  }
+
+  Future<void> _saveWebProxyPref() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _webdavProxyPrefKey,
+      _webProxyRefController.text.trim(),
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.webdavProxySaved)),
+      );
+    }
   }
 
   Future<void> _initWebSignIn() async {
@@ -82,6 +112,7 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
     _urlController.dispose();
     _userController.dispose();
     _passController.dispose();
+    _webProxyRefController.dispose();
     super.dispose();
   }
 
@@ -234,34 +265,59 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
                   ),
                   const SizedBox(height: 8),
                   if (kIsWeb)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1C1A00),
-                        border: Border.all(color: const Color(0xFF5C5000)),
-                        borderRadius: BorderRadius.circular(8),
+                    ExpansionTile(
+                      tilePadding: const EdgeInsets.symmetric(horizontal: 4),
+                      title: Text(l10n.webdavWebGuideTitle),
+                      subtitle: Text(
+                        l10n.webdavCorsWarning,
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 12,
+                        ),
                       ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.warning_amber_rounded,
-                            color: Color(0xFFFFD600),
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              l10n.webdavCorsWarning,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                l10n.webdavWebGuideBody,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                  height: 1.35,
+                                ),
                               ),
-                            ),
+                              const SizedBox(height: 16),
+                              TextField(
+                                controller: _webProxyRefController,
+                                decoration: InputDecoration(
+                                  labelText: l10n.webdavProxyBaseUrlLabel,
+                                  hintText: l10n.webdavProxyBaseUrlHint,
+                                  border: const OutlineInputBorder(),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                l10n.webdavProxySaveNote,
+                                style: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: FilledButton(
+                                  onPressed: _saveWebProxyPref,
+                                  child: Text(l10n.save),
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   if (_isConnected)
                     Column(
@@ -707,48 +763,6 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
     }
   }
 
-  /// Shows a dialog to resolve a sync conflict. Returns the asset the user chose
-  /// to keep, or null to skip (keep current winner from LWW).
-  Future<Asset?> _showConflictDialog(AssetConflict conflict) async {
-    if (!mounted) return null;
-    return showDialog<Asset>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text('Sync Conflict: "${conflict.local.name}"'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Both devices edited this asset at the same time. Choose which version to keep:',
-                style: TextStyle(fontSize: 13),
-              ),
-              const SizedBox(height: 16),
-              _ConflictVersionCard(label: 'This device', asset: conflict.local),
-              const SizedBox(height: 8),
-              _ConflictVersionCard(
-                label: 'Remote device',
-                asset: conflict.remote,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, conflict.local),
-            child: const Text('Keep This Device'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, conflict.remote),
-            child: const Text('Keep Remote'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _handleGoogleDrivePull() async {
     setState(() => _isLoading = true);
     try {
@@ -784,41 +798,43 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
         local: localSnapshot,
         remote: remoteSnapshot,
       );
-      var merged = mergeResult.snapshot;
 
-      // Resolve conflicts (same id, same updatedAt, different content)
-      if (mergeResult.conflicts.isNotEmpty && mounted) {
-        for (final conflict in mergeResult.conflicts) {
-          final winner = await _showConflictDialog(conflict);
-          if (winner != null) {
-            final assets = merged.assets.toList();
-            final idx = assets.indexWhere((a) => a.id == winner.id);
-            if (idx >= 0) assets[idx] = winner;
-            merged = VaultSnapshot(
-              version: merged.version,
-              assets: assets,
-              customAssetTypes: merged.customAssetTypes,
-              relations: merged.relations,
-              tombstones: merged.tombstones,
-            );
-          }
-        }
+      if (mergeResult.conflicts.isNotEmpty) {
+        ref
+            .read(pendingSyncConflictsProvider.notifier)
+            .mergeFrom(mergeResult.conflicts);
       }
 
-      await ref.read(assetsProvider.notifier).replaceFromSnapshot(merged);
+      await ref
+          .read(assetsProvider.notifier)
+          .replaceFromSnapshot(mergeResult.snapshot);
 
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              l10n.driveSmartMergeSuccess(
-                localAssets.length,
-                remoteSnapshot.assets.length,
+        if (mergeResult.conflicts.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                l10n.driveMergeConflictsSnack(mergeResult.conflicts.length),
+              ),
+              action: SnackBarAction(
+                label: l10n.openSyncConflictsAction,
+                onPressed: () => context.push('/settings/sync-conflicts'),
               ),
             ),
-          ),
-        );
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                l10n.driveSmartMergeSuccess(
+                  localAssets.length,
+                  remoteSnapshot.assets.length,
+                ),
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -833,43 +849,5 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-}
-
-/// A card summarising one version of an asset for conflict resolution.
-class _ConflictVersionCard extends StatelessWidget {
-  final String label;
-  final Asset asset;
-
-  const _ConflictVersionCard({required this.label, required this.asset});
-
-  @override
-  Widget build(BuildContext context) {
-    final updated = DateTime.fromMillisecondsSinceEpoch(asset.updatedAt);
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.white24),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Updated: ${updated.toLocal()}',
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
-          ),
-          Text(
-            '${asset.fields.length} field(s)',
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
-          ),
-        ],
-      ),
-    );
   }
 }
