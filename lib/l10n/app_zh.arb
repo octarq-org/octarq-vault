@@ -277,5 +277,32 @@
       "count": {"type": "int"}
     }
   },
-  "icloudNotAvailable": "此设备上 iCloud 不可用。"
+  "icloudNotAvailable": "此设备上 iCloud 不可用。",
+  "exportJsonSecurityTitle": "导出明文 JSON？",
+  "exportJsonSecurityBody": "导出内容未经加密：字段将以明文可读。能访问剪贴板的应用或用户可能看到数据。请优先使用加密的 .enc 备份。",
+  "exportJsonContinueExport": "复制到剪贴板",
+  "syncStatusTitle": "同步",
+  "syncStatusNotConfigured": "未配置",
+  "syncStatusNever": "尚未同步",
+  "syncConflictsScreenTitle": "同步冲突",
+  "syncConflictsEmpty": "暂无待处理冲突。",
+  "syncConflictSameTime": "两台设备在同一时间戳修改了该资产，请选择保留的版本。",
+  "syncConflictVersionThisDevice": "本机版本",
+  "syncConflictVersionRemote": "远端版本",
+  "keepThisDevice": "保留本机",
+  "keepRemoteDevice": "保留远端",
+  "syncConflictsDetectedSnack": "存在同步冲突，需要您选择保留版本。",
+  "openSyncConflictsAction": "去处理",
+  "driveMergeConflictsSnack": "已合并，有 {count} 个冲突待处理。",
+  "@driveMergeConflictsSnack": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "webdavWebGuideTitle": "Web / WebDAV 说明",
+  "webdavWebGuideBody": "浏览器无法像系统钥匙串那样安全保存 WebDAV 密码，因此 Web 端默认禁用直连 WebDAV。跨域 WebDAV 请求通常会被 CORS 拦截，除非服务端返回 Access-Control-Allow-*，或在同源反向代理（如 nginx）后转发 PROPFIND/GET/PUT。Web 上推荐：Google Drive 同步或关联本地文件。",
+  "webdavProxyBaseUrlLabel": "代理基址（备忘）",
+  "webdavProxyBaseUrlHint": "https://你的域名/webdav-proxy",
+  "webdavProxySaveNote": "仅保存在本浏览器。后续版本若支持，可通过兼容代理走同步。",
+  "webdavProxySaved": "已保存备忘地址。"
 }

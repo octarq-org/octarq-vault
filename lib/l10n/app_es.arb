@@ -428,5 +428,32 @@
       "count": {"type": "int"}
     }
   },
-  "icloudNotAvailable": "iCloud no está disponible en este dispositivo."
+  "icloudNotAvailable": "iCloud no está disponible en este dispositivo.",
+  "exportJsonSecurityTitle": "¿Exportar JSON en texto plano?",
+  "exportJsonSecurityBody": "La exportación no está cifrada: los valores serán legibles. Cualquier app con acceso al portapapeles podría verlos. Usa copias .enc cifradas cuando sea posible.",
+  "exportJsonContinueExport": "Copiar al portapapeles",
+  "syncStatusTitle": "Sincronización",
+  "syncStatusNotConfigured": "Sin configurar",
+  "syncStatusNever": "Aún no sincronizado",
+  "syncConflictsScreenTitle": "Conflictos de sincronización",
+  "syncConflictsEmpty": "No hay conflictos pendientes.",
+  "syncConflictSameTime": "Este activo se editó en dos dispositivos con la misma marca de tiempo. Elige qué versión conservar.",
+  "syncConflictVersionThisDevice": "Este dispositivo",
+  "syncConflictVersionRemote": "Dispositivo remoto",
+  "keepThisDevice": "Conservar este dispositivo",
+  "keepRemoteDevice": "Conservar remoto",
+  "syncConflictsDetectedSnack": "Hay conflictos de sincronización por resolver.",
+  "openSyncConflictsAction": "Resolver",
+  "driveMergeConflictsSnack": "Fusionado con {count} conflicto(s) pendiente(s).",
+  "@driveMergeConflictsSnack": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "webdavWebGuideTitle": "Web / limitaciones WebDAV",
+  "webdavWebGuideBody": "El navegador no puede guardar contraseñas WebDAV en un almacén seguro, por eso OctarqVault desactiva WebDAV directo en web. Las peticiones WebDAV entre orígenes suelen bloquearse por CORS salvo que el servidor envíe Access-Control-Allow-* o uses un proxy inverso del mismo origen. En web se recomienda Google Drive o archivo local vinculado.",
+  "webdavProxyBaseUrlLabel": "URL base del proxy (referencia)",
+  "webdavProxyBaseUrlHint": "https://tu-dominio.com/webdav-proxy",
+  "webdavProxySaveNote": "Solo en este navegador. Una versión futura podría usar esta URL con un proxy compatible.",
+  "webdavProxySaved": "URL de referencia guardada."
 }

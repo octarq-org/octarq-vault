@@ -12,6 +12,7 @@ import '../providers/auth_provider.dart';
 import '../providers/search_provider.dart';
 import '../utils/icon_helper.dart';
 import '../providers/auto_lock_provider.dart';
+import '../utils/auto_lock.dart';
 
 class MainLayoutScreen extends ConsumerStatefulWidget {
   const MainLayoutScreen({super.key, required this.child});
@@ -47,9 +48,12 @@ class _MainLayoutScreenState extends ConsumerState<MainLayoutScreen>
         state == AppLifecycleState.inactive) {
       _pausedAt = DateTime.now();
     } else if (state == AppLifecycleState.resumed && _pausedAt != null) {
-      final elapsed = DateTime.now().difference(_pausedAt!);
       final limitMinutes = ref.read(autoLockMinutesProvider);
-      if (elapsed.inMinutes >= limitMinutes) {
+      if (shouldLockAfterBackground(
+        pausedAt: _pausedAt!,
+        now: DateTime.now(),
+        limitMinutes: limitMinutes,
+      )) {
         _pausedAt = null;
         ref.read(authProvider.notifier).lock();
       }

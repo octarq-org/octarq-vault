@@ -867,4 +867,76 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get icloudNotAvailable => 'iCloud is not available on this device.';
+
+  @override
+  String get exportJsonSecurityTitle => 'Export plaintext JSON?';
+
+  @override
+  String get exportJsonSecurityBody =>
+      'The export is unencrypted: field values will be readable as plain text. Anyone or any app that can read your clipboard could see this data. Encrypted backups (.enc) stay protected — use those when possible.';
+
+  @override
+  String get exportJsonContinueExport => 'Copy to clipboard';
+
+  @override
+  String get syncStatusTitle => 'Sync';
+
+  @override
+  String get syncStatusNotConfigured => 'Not set up';
+
+  @override
+  String get syncStatusNever => 'No sync yet';
+
+  @override
+  String get syncConflictsScreenTitle => 'Sync conflicts';
+
+  @override
+  String get syncConflictsEmpty => 'No pending conflicts.';
+
+  @override
+  String get syncConflictSameTime =>
+      'This asset was edited on two devices with the same timestamp. Choose which version to keep.';
+
+  @override
+  String get syncConflictVersionThisDevice => 'This device';
+
+  @override
+  String get syncConflictVersionRemote => 'Remote device';
+
+  @override
+  String get keepThisDevice => 'Keep this device';
+
+  @override
+  String get keepRemoteDevice => 'Keep remote';
+
+  @override
+  String get syncConflictsDetectedSnack => 'Sync conflicts need your choice.';
+
+  @override
+  String get openSyncConflictsAction => 'Resolve';
+
+  @override
+  String driveMergeConflictsSnack(int count) {
+    return 'Merged with $count conflict(s) to resolve.';
+  }
+
+  @override
+  String get webdavWebGuideTitle => 'Web / WebDAV limitations';
+
+  @override
+  String get webdavWebGuideBody =>
+      'Browsers cannot store WebDAV passwords in a secure enclave, so OctarqVault disables direct WebDAV on web. Cross-origin WebDAV requests are usually blocked by CORS unless your server sends Access-Control-Allow-* headers or you put a same-origin reverse proxy in front of WebDAV (e.g. nginx) that forwards PROPFIND/GET/PUT. Recommended on web: Google Drive sync or linked local file.';
+
+  @override
+  String get webdavProxyBaseUrlLabel => 'Proxy base URL (reference)';
+
+  @override
+  String get webdavProxyBaseUrlHint => 'https://your-domain.com/webdav-proxy';
+
+  @override
+  String get webdavProxySaveNote =>
+      'Saved on this browser only. A future version may route sync through this URL if you run a compatible proxy.';
+
+  @override
+  String get webdavProxySaved => 'Reference URL saved.';
 }

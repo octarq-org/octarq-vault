@@ -429,5 +429,32 @@
       "count": {"type": "int"}
     }
   },
-  "icloudNotAvailable": "iCloud is not available on this device."
+  "icloudNotAvailable": "iCloud is not available on this device.",
+  "exportJsonSecurityTitle": "Export plaintext JSON?",
+  "exportJsonSecurityBody": "The export is unencrypted: field values will be readable as plain text. Anyone or any app that can read your clipboard could see this data. Encrypted backups (.enc) stay protected — use those when possible.",
+  "exportJsonContinueExport": "Copy to clipboard",
+  "syncStatusTitle": "Sync",
+  "syncStatusNotConfigured": "Not set up",
+  "syncStatusNever": "No sync yet",
+  "syncConflictsScreenTitle": "Sync conflicts",
+  "syncConflictsEmpty": "No pending conflicts.",
+  "syncConflictSameTime": "This asset was edited on two devices with the same timestamp. Choose which version to keep.",
+  "syncConflictVersionThisDevice": "This device",
+  "syncConflictVersionRemote": "Remote device",
+  "keepThisDevice": "Keep this device",
+  "keepRemoteDevice": "Keep remote",
+  "syncConflictsDetectedSnack": "Sync conflicts need your choice.",
+  "openSyncConflictsAction": "Resolve",
+  "driveMergeConflictsSnack": "Merged with {count} conflict(s) to resolve.",
+  "@driveMergeConflictsSnack": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "webdavWebGuideTitle": "Web / WebDAV limitations",
+  "webdavWebGuideBody": "Browsers cannot store WebDAV passwords in a secure enclave, so OctarqVault disables direct WebDAV on web. Cross-origin WebDAV requests are usually blocked by CORS unless your server sends Access-Control-Allow-* headers or you put a same-origin reverse proxy in front of WebDAV (e.g. nginx) that forwards PROPFIND/GET/PUT. Recommended on web: Google Drive sync or linked local file.",
+  "webdavProxyBaseUrlLabel": "Proxy base URL (reference)",
+  "webdavProxyBaseUrlHint": "https://your-domain.com/webdav-proxy",
+  "webdavProxySaveNote": "Saved on this browser only. A future version may route sync through this URL if you run a compatible proxy.",
+  "webdavProxySaved": "Reference URL saved."
 }

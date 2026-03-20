@@ -4,9 +4,21 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/assets_provider.dart';
 import '../providers/asset_types_provider.dart';
+import '../providers/sync_conflicts_provider.dart';
+import '../providers/sync_settings_provider.dart';
 import '../utils/icon_helper.dart';
 import '../l10n/app_localizations.dart';
 import '../main.dart';
+
+String _dashboardFormatSyncTime(DateTime dt) {
+  final now = DateTime.now();
+  final diff = now.difference(dt);
+  if (diff.inSeconds < 60) return 'Just now';
+  if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+  if (diff.inHours < 24) return '${diff.inHours}h ago';
+  String pad(int n) => n.toString().padLeft(2, '0');
+  return '${dt.year}-${pad(dt.month)}-${pad(dt.day)} ${pad(dt.hour)}:${pad(dt.minute)}';
+}
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -53,6 +65,21 @@ class DashboardScreen extends ConsumerWidget {
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     final recentSlice = recentAssets.take(5).toList();
 
+    final pendingConflicts = ref.watch(pendingSyncConflictsProvider);
+    final syncMethods = ref.watch(syncSettingsProvider);
+    final lastSync = ref.watch(lastSyncAtProvider);
+    final String syncStatusValue;
+    if (syncMethods.isEmpty) {
+      syncStatusValue = l10n.syncStatusNotConfigured;
+    } else {
+      syncStatusValue = lastSync.when(
+        data: (dt) =>
+            dt == null ? l10n.syncStatusNever : _dashboardFormatSyncTime(dt),
+        loading: () => '…',
+        error: (_, _) => l10n.syncStatusNever,
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: assets.isEmpty
@@ -89,6 +116,26 @@ class DashboardScreen extends ConsumerWidget {
                         value: '\$${totalMonthlyCost.toStringAsFixed(2)}',
                         icon: Icons.trending_up_rounded,
                         iconColor: const Color(0xFF4FC3F7),
+                      ),
+                      const SizedBox(width: 16),
+                      _StatCard(
+                        title: l10n.syncStatusTitle,
+                        value: syncStatusValue,
+                        icon: Icons.cloud_sync_outlined,
+                        iconColor: pendingConflicts.isNotEmpty
+                            ? const Color(0xFFFF5252)
+                            : const Color(0xFF90CAF9),
+                        valueColor: pendingConflicts.isNotEmpty
+                            ? const Color(0xFFFF8A80)
+                            : null,
+                        badgeCount: pendingConflicts.isNotEmpty
+                            ? pendingConflicts.length
+                            : null,
+                        onTap: () => context.go(
+                          pendingConflicts.isNotEmpty
+                              ? '/settings/sync-conflicts'
+                              : '/settings/webdav',
+                        ),
                       ),
                     ],
                   ),
@@ -209,6 +256,7 @@ class _StatCard extends StatelessWidget {
     required this.iconColor,
     this.valueColor,
     this.onTap,
+    this.badgeCount,
   });
 
   final String title;
@@ -217,9 +265,21 @@ class _StatCard extends StatelessWidget {
   final Color iconColor;
   final Color? valueColor;
   final VoidCallback? onTap;
+  final int? badgeCount;
 
   @override
   Widget build(BuildContext context) {
+    Widget iconWidget = Icon(icon, color: iconColor, size: 28);
+    if (badgeCount != null && badgeCount! > 0) {
+      iconWidget = Badge(
+        label: Text(
+          '$badgeCount',
+          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700),
+        ),
+        backgroundColor: Colors.redAccent,
+        child: iconWidget,
+      );
+    }
     final content = Row(
       children: [
         Expanded(
@@ -246,7 +306,7 @@ class _StatCard extends StatelessWidget {
             ],
           ),
         ),
-        Icon(icon, color: iconColor, size: 28),
+        iconWidget,
       ],
     );
     return Expanded(

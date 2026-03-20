@@ -846,4 +846,74 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get icloudNotAvailable => '此设备上 iCloud 不可用。';
+
+  @override
+  String get exportJsonSecurityTitle => '导出明文 JSON？';
+
+  @override
+  String get exportJsonSecurityBody =>
+      '导出内容未经加密：字段将以明文可读。能访问剪贴板的应用或用户可能看到数据。请优先使用加密的 .enc 备份。';
+
+  @override
+  String get exportJsonContinueExport => '复制到剪贴板';
+
+  @override
+  String get syncStatusTitle => '同步';
+
+  @override
+  String get syncStatusNotConfigured => '未配置';
+
+  @override
+  String get syncStatusNever => '尚未同步';
+
+  @override
+  String get syncConflictsScreenTitle => '同步冲突';
+
+  @override
+  String get syncConflictsEmpty => '暂无待处理冲突。';
+
+  @override
+  String get syncConflictSameTime => '两台设备在同一时间戳修改了该资产，请选择保留的版本。';
+
+  @override
+  String get syncConflictVersionThisDevice => '本机版本';
+
+  @override
+  String get syncConflictVersionRemote => '远端版本';
+
+  @override
+  String get keepThisDevice => '保留本机';
+
+  @override
+  String get keepRemoteDevice => '保留远端';
+
+  @override
+  String get syncConflictsDetectedSnack => '存在同步冲突，需要您选择保留版本。';
+
+  @override
+  String get openSyncConflictsAction => '去处理';
+
+  @override
+  String driveMergeConflictsSnack(int count) {
+    return '已合并，有 $count 个冲突待处理。';
+  }
+
+  @override
+  String get webdavWebGuideTitle => 'Web / WebDAV 说明';
+
+  @override
+  String get webdavWebGuideBody =>
+      '浏览器无法像系统钥匙串那样安全保存 WebDAV 密码，因此 Web 端默认禁用直连 WebDAV。跨域 WebDAV 请求通常会被 CORS 拦截，除非服务端返回 Access-Control-Allow-*，或在同源反向代理（如 nginx）后转发 PROPFIND/GET/PUT。Web 上推荐：Google Drive 同步或关联本地文件。';
+
+  @override
+  String get webdavProxyBaseUrlLabel => '代理基址（备忘）';
+
+  @override
+  String get webdavProxyBaseUrlHint => 'https://你的域名/webdav-proxy';
+
+  @override
+  String get webdavProxySaveNote => '仅保存在本浏览器。后续版本若支持，可通过兼容代理走同步。';
+
+  @override
+  String get webdavProxySaved => '已保存备忘地址。';
 }

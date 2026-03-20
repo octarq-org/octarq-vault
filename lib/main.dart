@@ -10,6 +10,7 @@ import 'providers/locale_provider.dart';
 import 'router/app_router.dart';
 import 'providers/auto_lock_provider.dart';
 import 'providers/auth_provider.dart';
+import 'utils/auto_lock.dart';
 
 // ─── Design Tokens ──────────────────────────────────────────────────────────
 const kPrimaryGreen = Color(0xFF00C896);
@@ -67,8 +68,12 @@ class _OctarqVaultAppState extends ConsumerState<OctarqVaultApp>
     } else if (state == AppLifecycleState.resumed) {
       if (_pausedAt != null) {
         final waitMinutes = ref.read(autoLockMinutesProvider);
-        final diff = DateTime.now().difference(_pausedAt!).inMinutes;
-        if (diff >= waitMinutes) {
+        final paused = _pausedAt!;
+        if (shouldLockAfterBackground(
+          pausedAt: paused,
+          now: DateTime.now(),
+          limitMinutes: waitMinutes,
+        )) {
           ref.read(authProvider.notifier).lock();
         }
         _pausedAt = null;
