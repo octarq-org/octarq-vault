@@ -1,4 +1,27 @@
 
+## [1.3.2] - 2026-03-20
+
+### 🚀 Features
+
+- Sync conflict UI, JSON export warning, WebDAV web guide, auto-lock tests (#4)
+- Expand sync settings and add Spanish localization
+- Implement all backlog items for open-source beta (#1)
+
+### 📚 Documentation
+
+- Update READMEs with E2EE sync, i18n, CI
+
+### 🧪 Testing
+
+- Add unit tests for AssetsNotifier state mutations and TombstoneRegistry (#2)
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to v1.3.2
+- Enforce secure credential storage and increase password requirements (#3)
+- *(github-actions)* Revert to push tags trigger only
+- Update CHANGELOG for v1.3.1
+- *(github-actions)* Remove redundant push tags trigger
 ## [1.3.1] - 2026-03-16
 
 ### 🚀 Features
@@ -39,3 +62,4 @@
 - Bump version 1.1.1+1
 - Mvp 1.1.0+1
 - MVP 1.0.0+1
+
