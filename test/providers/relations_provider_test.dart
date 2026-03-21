@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:octarq_vault/providers/relations_provider.dart';
 import 'package:octarq_vault/providers/service_providers.dart';
 import 'package:octarq_vault/services/database_service.dart';
+import 'package:octarq_vault/services/e2ee_sync_service.dart';
 
 class MockDatabaseService extends DatabaseService {
   final List<Map<String, dynamic>> insertedRelations = [];
@@ -38,6 +39,9 @@ class MockDatabaseService extends DatabaseService {
     deletedRelationIds.add(id);
     insertedRelations.removeWhere((relation) => relation['id'] == id);
   }
+
+  @override
+  Future<OpLogEntry> appendOpLog(OpLogEntry entry) async => entry;
 }
 
 void main() {

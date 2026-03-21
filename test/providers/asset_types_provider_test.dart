@@ -8,6 +8,7 @@ import 'package:octarq_vault/providers/asset_types_provider.dart';
 import 'package:octarq_vault/providers/locale_preference_provider.dart';
 import 'package:octarq_vault/providers/service_providers.dart';
 import 'package:octarq_vault/services/database_service.dart';
+import 'package:octarq_vault/services/e2ee_sync_service.dart';
 import 'package:octarq_vault/utils/default_asset_types.dart';
 
 class _ZhLocalePreferenceNotifier extends LocalePreferenceNotifier {
@@ -43,6 +44,9 @@ class _MockAssetTypesDatabaseService extends DatabaseService {
     deleteAllCalled = true;
     assetTypes.clear();
   }
+
+  @override
+  Future<OpLogEntry> appendOpLog(OpLogEntry entry) async => entry;
 }
 
 void main() {
