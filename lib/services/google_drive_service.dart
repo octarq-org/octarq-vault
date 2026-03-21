@@ -79,6 +79,87 @@ class GoogleDriveService {
     await GoogleSignIn.instance.signOut();
   }
 
+  static bool _isLikelyAuthFailure(Object e) {
+    final s = e.toString().toLowerCase();
+    return s.contains('401') ||
+        s.contains('403') ||
+        s.contains('unauthorized') ||
+        s.contains('invalid_credential') ||
+        s.contains('invalid grant');
+  }
+
+  Future<void> _reauthenticateForDrive() async {
+    await _ensureInitialized();
+    try {
+      await GoogleSignIn.instance.authenticate(scopeHint: _scopes);
+    } catch (e) {
+      if (kDebugMode) debugPrint('Drive re-authenticate: $e');
+    }
+  }
+
+  Future<void> _withFreshApiVoid(
+    Future<void> Function(drive.DriveApi api) fn,
+  ) async {
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final api = await _getDriveApi();
+      if (api == null) throw Exception('Not signed in to Google Drive');
+      try {
+        await fn(api);
+        return;
+      } catch (e) {
+        if (attempt == 0 && _isLikelyAuthFailure(e)) {
+          if (kDebugMode) {
+            debugPrint('Google Drive: token rejected, re-auth and retry: $e');
+          }
+          await _reauthenticateForDrive();
+          continue;
+        }
+        rethrow;
+      }
+    }
+  }
+
+  Future<T?> _withFreshApiNullable<T>(
+    Future<T?> Function(drive.DriveApi api) fn,
+  ) async {
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final api = await _getDriveApi();
+      if (api == null) return null;
+      try {
+        return await fn(api);
+      } catch (e) {
+        if (attempt == 0 && _isLikelyAuthFailure(e)) {
+          if (kDebugMode) {
+            debugPrint('Google Drive: token rejected, re-auth and retry: $e');
+          }
+          await _reauthenticateForDrive();
+          continue;
+        }
+        rethrow;
+      }
+    }
+    return null;
+  }
+
+  Future<List<String>> _withFreshApiList(
+    Future<List<String>> Function(drive.DriveApi api) fn,
+  ) async {
+    for (var attempt = 0; attempt < 2; attempt++) {
+      final api = await _getDriveApi();
+      if (api == null) throw Exception('Not signed in to Google Drive');
+      try {
+        return await fn(api);
+      } catch (e) {
+        if (attempt == 0 && _isLikelyAuthFailure(e)) {
+          await _reauthenticateForDrive();
+          continue;
+        }
+        rethrow;
+      }
+    }
+    throw Exception('Not signed in to Google Drive');
+  }
+
   // -------------------------------------------------------------------------
   // Drive API client
   // -------------------------------------------------------------------------
@@ -190,22 +271,20 @@ class GoogleDriveService {
     List<OpLogEntry> opLog = const [],
     List<AssetAttachment> attachmentManifest = const [],
   }) async {
-    final api = await _getDriveApi();
-    if (api == null) throw Exception('Not signed in to Google Drive');
-
-    final blob = _syncService.packSnapshotTOCiphertext(
-      assets,
-      customAssetTypes: customAssetTypes,
-      relations: relations,
-      tombstones: tombstones,
-      opLog: opLog,
-      attachmentManifest: attachmentManifest,
-    );
-    await _uploadFile(api, _snapshotFileName, blob);
-
-    if (kDebugMode) {
-      debugPrint('Pushed full E2EE snapshot to Google Drive appDataFolder.');
-    }
+    await _withFreshApiVoid((api) async {
+      final blob = _syncService.packSnapshotTOCiphertext(
+        assets,
+        customAssetTypes: customAssetTypes,
+        relations: relations,
+        tombstones: tombstones,
+        opLog: opLog,
+        attachmentManifest: attachmentManifest,
+      );
+      await _uploadFile(api, _snapshotFileName, blob);
+      if (kDebugMode) {
+        debugPrint('Pushed full E2EE snapshot to Google Drive appDataFolder.');
+      }
+    });
   }
 
   /// Downloads and decrypts the vault snapshot from Drive.
@@ -217,12 +296,11 @@ class GoogleDriveService {
 
   /// Downloads the raw encrypted snapshot bytes from Drive.
   Future<Uint8List?> readRawBytesFromDrive() async {
-    final api = await _getDriveApi();
-    if (api == null) throw Exception('Not signed in to Google Drive');
-
-    final fileId = await _getFileId(api, _snapshotFileName);
-    if (fileId == null) return null;
-    return _downloadFile(api, fileId);
+    return _withFreshApiNullable((api) async {
+      final fileId = await _getFileId(api, _snapshotFileName);
+      if (fileId == null) return null;
+      return _downloadFile(api, fileId);
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -239,40 +317,37 @@ class GoogleDriveService {
     List<AssetAttachment> attachmentManifest = const [],
   }) async {
     if (opLogEntries.isEmpty) return;
-    final api = await _getDriveApi();
-    if (api == null) throw Exception('Not signed in to Google Drive');
-
-    final maxSeq = opLogEntries.last.seq;
-    final fileName = 'octarq_delta_$maxSeq.enc';
-    final blob = _syncService.packDeltaToCiphertext(
-      opLogEntries: opLogEntries,
-      baseSeq: baseSeq,
-      attachmentManifest: attachmentManifest,
-    );
-    await _uploadFile(api, fileName, blob);
-
-    if (kDebugMode) {
-      debugPrint(
-        'Pushed delta (${opLogEntries.length} entries, seq $baseSeq→$maxSeq) '
-        'to Google Drive.',
+    await _withFreshApiVoid((api) async {
+      final maxSeq = opLogEntries.last.seq;
+      final fileName = 'octarq_delta_$maxSeq.enc';
+      final blob = _syncService.packDeltaToCiphertext(
+        opLogEntries: opLogEntries,
+        baseSeq: baseSeq,
+        attachmentManifest: attachmentManifest,
       );
-    }
+      await _uploadFile(api, fileName, blob);
+      if (kDebugMode) {
+        debugPrint(
+          'Pushed delta (${opLogEntries.length} entries, seq $baseSeq→$maxSeq) '
+          'to Google Drive.',
+        );
+      }
+    });
   }
 
   /// Lists all delta blob file names in appDataFolder.
   Future<List<String>> listDeltaFiles() async {
-    final api = await _getDriveApi();
-    if (api == null) throw Exception('Not signed in to Google Drive');
-
-    final fileList = await api.files.list(
-      spaces: 'appDataFolder',
-      q: "name contains 'octarq_delta_'",
-      $fields: 'files(id, name)',
-    );
-    return (fileList.files ?? [])
-        .map((f) => f.name ?? '')
-        .where((n) => n.isNotEmpty)
-        .toList();
+    return _withFreshApiList((api) async {
+      final fileList = await api.files.list(
+        spaces: 'appDataFolder',
+        q: "name contains 'octarq_delta_'",
+        $fields: 'files(id, name)',
+      );
+      return (fileList.files ?? [])
+          .map((f) => f.name ?? '')
+          .where((n) => n.isNotEmpty)
+          .toList();
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -286,37 +361,33 @@ class GoogleDriveService {
     AssetAttachment attachment,
     Uint8List encBytes,
   ) async {
-    final api = await _getDriveApi();
-    if (api == null) throw Exception('Not signed in to Google Drive');
-
-    final fileName = '$_attachmentFolder/${attachment.encFileName}';
-    await _uploadFile(api, fileName, encBytes);
-
-    if (kDebugMode) {
-      debugPrint('Uploaded attachment ${attachment.encFileName} to Drive.');
-    }
+    await _withFreshApiVoid((api) async {
+      final fileName = '$_attachmentFolder/${attachment.encFileName}';
+      await _uploadFile(api, fileName, encBytes);
+      if (kDebugMode) {
+        debugPrint('Uploaded attachment ${attachment.encFileName} to Drive.');
+      }
+    });
   }
 
   /// Downloads the raw encrypted blob for [attachment] from Drive.
   ///
   /// Returns `null` if the file does not exist on Drive yet.
   Future<Uint8List?> downloadAttachment(AssetAttachment attachment) async {
-    final api = await _getDriveApi();
-    if (api == null) throw Exception('Not signed in to Google Drive');
-
-    final fileName = '$_attachmentFolder/${attachment.encFileName}';
-    final fileId = await _getFileId(api, fileName);
-    if (fileId == null) return null;
-    return _downloadFile(api, fileId);
+    return _withFreshApiNullable((api) async {
+      final fileName = '$_attachmentFolder/${attachment.encFileName}';
+      final fileId = await _getFileId(api, fileName);
+      if (fileId == null) return null;
+      return _downloadFile(api, fileId);
+    });
   }
 
   /// Deletes the remote attachment blob from Drive.
   Future<void> deleteRemoteAttachment(AssetAttachment attachment) async {
-    final api = await _getDriveApi();
-    if (api == null) throw Exception('Not signed in to Google Drive');
-
-    final fileName = '$_attachmentFolder/${attachment.encFileName}';
-    final fileId = await _getFileId(api, fileName);
-    if (fileId != null) await api.files.delete(fileId);
+    await _withFreshApiVoid((api) async {
+      final fileName = '$_attachmentFolder/${attachment.encFileName}';
+      final fileId = await _getFileId(api, fileName);
+      if (fileId != null) await api.files.delete(fileId);
+    });
   }
 }

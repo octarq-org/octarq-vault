@@ -3,7 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/asset_type.dart';
+import '../services/e2ee_sync_service.dart';
 import '../utils/default_asset_types.dart';
+import 'auth_provider.dart';
 import 'locale_provider.dart';
 import 'service_providers.dart';
 
@@ -30,6 +32,12 @@ class AssetTypesNotifier extends Notifier<List<AssetType>> {
     ref.listen(localeProvider, (prev, next) {
       if (prev != next) Future.microtask(() => loadCustomTypes());
     });
+    ref.listen(authProvider, (previous, next) {
+      if (previous == AuthState.unlocked &&
+          (next == AuthState.locked || next == AuthState.unsetup)) {
+        state = [...getDefaultAssetTypes(locale)];
+      }
+    });
     return [...getDefaultAssetTypes(locale)];
   }
 
@@ -51,6 +59,7 @@ class AssetTypesNotifier extends Notifier<List<AssetType>> {
         'icon': type.icon,
         'field_schema': fieldSchemaJson,
         'is_built_in': type.isBuiltIn ? 1 : 0,
+        'updated_at': type.updatedAt,
       });
     }
   }
@@ -78,6 +87,7 @@ class AssetTypesNotifier extends Notifier<List<AssetType>> {
         icon: record['icon'] as String,
         isBuiltIn: (record['is_built_in'] as int) == 1,
         fieldSchema: fieldSchema,
+        updatedAt: (record['updated_at'] as int?) ?? 0,
       );
     }).toList();
 
@@ -98,7 +108,15 @@ class AssetTypesNotifier extends Notifier<List<AssetType>> {
         'icon': type.icon,
         'field_schema': fieldSchemaJson,
         'is_built_in': type.isBuiltIn ? 1 : 0,
+        'updated_at': type.updatedAt,
       });
+
+      // Record oplog entry for asset type upsert
+      await dbService.recordAssetTypeOperation(
+        type.id,
+        OpType.upsert,
+        payload: type.toJson(),
+      );
     }
 
     await loadCustomTypes();
@@ -109,6 +127,9 @@ class AssetTypesNotifier extends Notifier<List<AssetType>> {
       await _ensureTypesDb(ref);
       final dbService = ref.read(databaseServiceProvider);
       await dbService.deleteAssetType(id);
+
+      // Record oplog entry for asset type delete
+      await dbService.recordAssetTypeOperation(id, OpType.delete, payload: {});
     }
     await loadCustomTypes();
   }

@@ -85,6 +85,7 @@ void main() {
             icon: '🔑',
             fieldSchema: [],
             isBuiltIn: false,
+            updatedAt: 4242,
           ),
         ],
         relations: [
@@ -107,6 +108,7 @@ void main() {
       expect(restored.assets.first.name, 'Asset 1');
       expect(restored.customAssetTypes.length, 1);
       expect(restored.customAssetTypes.first.id, 'ct1');
+      expect(restored.customAssetTypes.first.updatedAt, 4242);
       expect(restored.relations.length, 1);
       expect(restored.relations.first['id'], 'r1');
       expect(restored.relations.first['relation_type'], 'depends_on');
@@ -509,13 +511,14 @@ void main() {
       expect(ids, containsAll(['r1', 'r2', 'r3']));
     });
 
-    test('custom asset types unioned, remote wins on conflict', () {
+    test('custom asset types LWW: remote wins when newer', () {
       final localType = AssetType(
         id: 'ct1',
         name: 'Local Version',
         icon: '📁',
         fieldSchema: [],
         isBuiltIn: false,
+        updatedAt: 100,
       );
       final remoteType = AssetType(
         id: 'ct1',
@@ -523,6 +526,7 @@ void main() {
         icon: '🔑',
         fieldSchema: [],
         isBuiltIn: false,
+        updatedAt: 200,
       );
       final uniqueType = AssetType(
         id: 'ct2',
@@ -530,6 +534,7 @@ void main() {
         icon: '🗝',
         fieldSchema: [],
         isBuiltIn: false,
+        updatedAt: 1,
       );
 
       final local = VaultSnapshot(
@@ -551,6 +556,40 @@ void main() {
       expect(merged.customAssetTypes.length, 2);
       final ct1 = merged.customAssetTypes.firstWhere((t) => t.id == 'ct1');
       expect(ct1.name, 'Remote Version');
+    });
+
+    test('custom asset types LWW: local wins when newer', () {
+      final localType = AssetType(
+        id: 'ct1',
+        name: 'Local Wins',
+        icon: '📁',
+        fieldSchema: [],
+        isBuiltIn: false,
+        updatedAt: 500,
+      );
+      final remoteType = AssetType(
+        id: 'ct1',
+        name: 'Remote Stale',
+        icon: '🔑',
+        fieldSchema: [],
+        isBuiltIn: false,
+        updatedAt: 100,
+      );
+
+      final merged = VaultSnapshot.mergeSnapshots(
+        local: VaultSnapshot(
+          version: 3,
+          assets: [],
+          customAssetTypes: [localType],
+        ),
+        remote: VaultSnapshot(
+          version: 3,
+          assets: [],
+          customAssetTypes: [remoteType],
+        ),
+      ).snapshot;
+
+      expect(merged.customAssetTypes.single.name, 'Local Wins');
     });
 
     test(

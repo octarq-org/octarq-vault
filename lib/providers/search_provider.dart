@@ -3,10 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/asset.dart';
 import 'assets_provider.dart';
 import 'asset_types_provider.dart';
+import 'auth_provider.dart';
 
 class SearchQueryNotifier extends Notifier<String> {
   @override
-  String build() => '';
+  String build() {
+    ref.listen(authProvider, (previous, next) {
+      if (previous == AuthState.unlocked &&
+          (next == AuthState.locked || next == AuthState.unsetup)) {
+        state = '';
+      }
+    });
+    return '';
+  }
 
   void updateQuery(String query) {
     state = query;
@@ -19,7 +28,15 @@ final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(() {
 
 class SearchOverlayVisibleNotifier extends Notifier<bool> {
   @override
-  bool build() => false;
+  bool build() {
+    ref.listen(authProvider, (previous, next) {
+      if (previous == AuthState.unlocked &&
+          (next == AuthState.locked || next == AuthState.unsetup)) {
+        state = false;
+      }
+    });
+    return false;
+  }
 
   void setVisible(bool value) => state = value;
 }

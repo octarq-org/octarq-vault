@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:sqflite_sqlcipher/sqflite.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/attachment.dart';
 import '../utils/platform_utils.dart';
@@ -18,7 +19,7 @@ class DatabaseService {
     _db = await openDatabase(
       dbPath,
       password: hexKey,
-      version: 3,
+      version: 4,
       onConfigure: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
       },
@@ -83,7 +84,8 @@ class DatabaseService {
             name TEXT NOT NULL,
             icon TEXT NOT NULL,
             field_schema TEXT NOT NULL,
-            is_built_in INTEGER DEFAULT 0
+            is_built_in INTEGER DEFAULT 0,
+            updated_at INTEGER NOT NULL DEFAULT 0
           )
         ''');
 
@@ -125,6 +127,11 @@ class DatabaseService {
         }
         if (oldVersion < 3) {
           await _createV3Tables(db);
+        }
+        if (oldVersion < 4) {
+          await db.execute('''
+            ALTER TABLE asset_types ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0
+          ''');
         }
       },
     );
@@ -322,6 +329,136 @@ class DatabaseService {
       payload: payload,
       seq: row['seq'] as int,
       createdAt: row['created_at'] as int,
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Convenient OpLog recording helpers for different entity types
+  // -------------------------------------------------------------------------
+
+  /// Records an asset operation (upsert or delete) in the oplog.
+  Future<OpLogEntry> recordAssetOperation(
+    String assetId,
+    OpType op, {
+    required Map<String, dynamic> payload,
+  }) async {
+    return appendOpLog(
+      OpLogEntry(
+        id: const Uuid().v4(),
+        op: op,
+        entityType: OpEntityType.asset,
+        entityId: assetId,
+        payload: op == OpType.upsert ? payload : null,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+
+  /// Records a tag operation in the oplog.
+  Future<OpLogEntry> recordTagOperation(
+    String tagId,
+    OpType op, {
+    required Map<String, dynamic> payload,
+  }) async {
+    return appendOpLog(
+      OpLogEntry(
+        id: const Uuid().v4(),
+        op: op,
+        entityType: OpEntityType.tag,
+        entityId: tagId,
+        payload: op == OpType.upsert ? payload : null,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+
+  /// Records an asset-tag relation operation in the oplog.
+  Future<OpLogEntry> recordAssetTagOperation(
+    String assetTagId,
+    OpType op, {
+    required Map<String, dynamic> payload,
+  }) async {
+    return appendOpLog(
+      OpLogEntry(
+        id: const Uuid().v4(),
+        op: op,
+        entityType: OpEntityType.assetTag,
+        entityId: assetTagId,
+        payload: op == OpType.upsert ? payload : null,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+
+  /// Records a reminder operation in the oplog.
+  Future<OpLogEntry> recordReminderOperation(
+    String reminderId,
+    OpType op, {
+    required Map<String, dynamic> payload,
+  }) async {
+    return appendOpLog(
+      OpLogEntry(
+        id: const Uuid().v4(),
+        op: op,
+        entityType: OpEntityType.reminder,
+        entityId: reminderId,
+        payload: op == OpType.upsert ? payload : null,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+
+  /// Records a relation operation in the oplog.
+  Future<OpLogEntry> recordRelationOperation(
+    String relationId,
+    OpType op, {
+    required Map<String, dynamic> payload,
+  }) async {
+    return appendOpLog(
+      OpLogEntry(
+        id: const Uuid().v4(),
+        op: op,
+        entityType: OpEntityType.relation,
+        entityId: relationId,
+        payload: op == OpType.upsert ? payload : null,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+
+  /// Records an attachment operation in the oplog.
+  Future<OpLogEntry> recordAttachmentOperation(
+    String attachmentId,
+    OpType op, {
+    required Map<String, dynamic> payload,
+  }) async {
+    return appendOpLog(
+      OpLogEntry(
+        id: const Uuid().v4(),
+        op: op,
+        entityType: OpEntityType.attachment,
+        entityId: attachmentId,
+        payload: op == OpType.upsert ? payload : null,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+
+  /// Records an asset type operation in the oplog.
+  Future<OpLogEntry> recordAssetTypeOperation(
+    String typeId,
+    OpType op, {
+    required Map<String, dynamic> payload,
+  }) async {
+    return appendOpLog(
+      OpLogEntry(
+        id: const Uuid().v4(),
+        op: op,
+        entityType: OpEntityType.assetType,
+        entityId: typeId,
+        payload: op == OpType.upsert ? payload : null,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+      ),
     );
   }
 

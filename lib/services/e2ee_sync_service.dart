@@ -30,7 +30,10 @@ enum OpEntityType {
   asset,
   assetType,
   relation,
-  attachment;
+  attachment,
+  tag,
+  assetTag,
+  reminder;
 
   String toJson() => name;
   static OpEntityType fromJson(String s) => values.byName(s);
@@ -166,7 +169,7 @@ class VaultSnapshot {
     this.attachmentManifest = const [],
   });
 
-  /// Returns the maximum updatedAt among all assets and tombstones.
+  /// Returns the maximum updatedAt among assets, tombstones, and custom types.
   int get updatedAt {
     int maxTs = 0;
     for (final a in assets) {
@@ -175,6 +178,9 @@ class VaultSnapshot {
     for (final t in tombstones) {
       final ts = t['deletedAt'] as int? ?? 0;
       if (ts > maxTs) maxTs = ts;
+    }
+    for (final ct in customAssetTypes) {
+      if (ct.updatedAt > maxTs) maxTs = ct.updatedAt;
     }
     return maxTs;
   }
@@ -241,7 +247,7 @@ class VaultSnapshot {
   ///   - Conflict detection: when local.updatedAt == remote.updatedAt but
   ///     content differs, the pair is returned in [conflicts].
   /// Relations: union by id (remote wins on conflict).
-  /// Custom asset types: union by id (remote wins on conflict).
+  /// Custom asset types: LWW by [AssetType.updatedAt] per id (tie keeps local).
   /// Tombstones: union by id, newest deletedAt wins.
   /// OpLog: union by entry id; entries are sorted by seq.
   /// AttachmentManifest: union by attachment id (remote wins on conflict).
@@ -302,12 +308,17 @@ class VaultSnapshot {
           tombstoneMap.containsKey(r['to_asset_id']),
     );
 
-    // --- Custom asset types: union by id, remote wins ---
+    // --- Custom asset types: LWW by updatedAt ---
     final Map<String, AssetType> mergedTypes = {
       for (final t in local.customAssetTypes) t.id: t,
     };
     for (final t in remote.customAssetTypes) {
-      mergedTypes[t.id] = t;
+      final localT = mergedTypes[t.id];
+      if (localT == null) {
+        mergedTypes[t.id] = t;
+      } else if (t.updatedAt > localT.updatedAt) {
+        mergedTypes[t.id] = t;
+      }
     }
 
     final mergedTombstones = tombstoneMap.entries

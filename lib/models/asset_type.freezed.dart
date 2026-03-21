@@ -301,7 +301,9 @@ as List<String>,
 /// @nodoc
 mixin _$AssetType {
 
- String get id; String get name; String get icon; List<AssetTypeFieldSchema> get fieldSchema; bool get isBuiltIn;
+ String get id; String get name; String get icon; List<AssetTypeFieldSchema> get fieldSchema; bool get isBuiltIn;/// Milliseconds since epoch; LWW merge for [VaultSnapshot.customAssetTypes].
+/// Built-in templates use 0.
+ int get updatedAt;
 /// Create a copy of AssetType
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -314,16 +316,16 @@ $AssetTypeCopyWith<AssetType> get copyWith => _$AssetTypeCopyWithImpl<AssetType>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AssetType&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&const DeepCollectionEquality().equals(other.fieldSchema, fieldSchema)&&(identical(other.isBuiltIn, isBuiltIn) || other.isBuiltIn == isBuiltIn));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AssetType&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&const DeepCollectionEquality().equals(other.fieldSchema, fieldSchema)&&(identical(other.isBuiltIn, isBuiltIn) || other.isBuiltIn == isBuiltIn)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,icon,const DeepCollectionEquality().hash(fieldSchema),isBuiltIn);
+int get hashCode => Object.hash(runtimeType,id,name,icon,const DeepCollectionEquality().hash(fieldSchema),isBuiltIn,updatedAt);
 
 @override
 String toString() {
-  return 'AssetType(id: $id, name: $name, icon: $icon, fieldSchema: $fieldSchema, isBuiltIn: $isBuiltIn)';
+  return 'AssetType(id: $id, name: $name, icon: $icon, fieldSchema: $fieldSchema, isBuiltIn: $isBuiltIn, updatedAt: $updatedAt)';
 }
 
 
@@ -334,7 +336,7 @@ abstract mixin class $AssetTypeCopyWith<$Res>  {
   factory $AssetTypeCopyWith(AssetType value, $Res Function(AssetType) _then) = _$AssetTypeCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String icon, List<AssetTypeFieldSchema> fieldSchema, bool isBuiltIn
+ String id, String name, String icon, List<AssetTypeFieldSchema> fieldSchema, bool isBuiltIn, int updatedAt
 });
 
 
@@ -351,14 +353,15 @@ class _$AssetTypeCopyWithImpl<$Res>
 
 /// Create a copy of AssetType
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? fieldSchema = null,Object? isBuiltIn = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? fieldSchema = null,Object? isBuiltIn = null,Object? updatedAt = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,icon: null == icon ? _self.icon : icon // ignore: cast_nullable_to_non_nullable
 as String,fieldSchema: null == fieldSchema ? _self.fieldSchema : fieldSchema // ignore: cast_nullable_to_non_nullable
 as List<AssetTypeFieldSchema>,isBuiltIn: null == isBuiltIn ? _self.isBuiltIn : isBuiltIn // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 
@@ -443,10 +446,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String icon,  List<AssetTypeFieldSchema> fieldSchema,  bool isBuiltIn)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String icon,  List<AssetTypeFieldSchema> fieldSchema,  bool isBuiltIn,  int updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AssetType() when $default != null:
-return $default(_that.id,_that.name,_that.icon,_that.fieldSchema,_that.isBuiltIn);case _:
+return $default(_that.id,_that.name,_that.icon,_that.fieldSchema,_that.isBuiltIn,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -464,10 +467,10 @@ return $default(_that.id,_that.name,_that.icon,_that.fieldSchema,_that.isBuiltIn
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String icon,  List<AssetTypeFieldSchema> fieldSchema,  bool isBuiltIn)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String icon,  List<AssetTypeFieldSchema> fieldSchema,  bool isBuiltIn,  int updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _AssetType():
-return $default(_that.id,_that.name,_that.icon,_that.fieldSchema,_that.isBuiltIn);case _:
+return $default(_that.id,_that.name,_that.icon,_that.fieldSchema,_that.isBuiltIn,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -484,10 +487,10 @@ return $default(_that.id,_that.name,_that.icon,_that.fieldSchema,_that.isBuiltIn
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String icon,  List<AssetTypeFieldSchema> fieldSchema,  bool isBuiltIn)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String icon,  List<AssetTypeFieldSchema> fieldSchema,  bool isBuiltIn,  int updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _AssetType() when $default != null:
-return $default(_that.id,_that.name,_that.icon,_that.fieldSchema,_that.isBuiltIn);case _:
+return $default(_that.id,_that.name,_that.icon,_that.fieldSchema,_that.isBuiltIn,_that.updatedAt);case _:
   return null;
 
 }
@@ -499,7 +502,7 @@ return $default(_that.id,_that.name,_that.icon,_that.fieldSchema,_that.isBuiltIn
 @JsonSerializable()
 
 class _AssetType implements AssetType {
-  const _AssetType({required this.id, required this.name, required this.icon, final  List<AssetTypeFieldSchema> fieldSchema = const [], this.isBuiltIn = false}): _fieldSchema = fieldSchema;
+  const _AssetType({required this.id, required this.name, required this.icon, final  List<AssetTypeFieldSchema> fieldSchema = const [], this.isBuiltIn = false, this.updatedAt = 0}): _fieldSchema = fieldSchema;
   factory _AssetType.fromJson(Map<String, dynamic> json) => _$AssetTypeFromJson(json);
 
 @override final  String id;
@@ -513,6 +516,9 @@ class _AssetType implements AssetType {
 }
 
 @override@JsonKey() final  bool isBuiltIn;
+/// Milliseconds since epoch; LWW merge for [VaultSnapshot.customAssetTypes].
+/// Built-in templates use 0.
+@override@JsonKey() final  int updatedAt;
 
 /// Create a copy of AssetType
 /// with the given fields replaced by the non-null parameter values.
@@ -527,16 +533,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AssetType&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&const DeepCollectionEquality().equals(other._fieldSchema, _fieldSchema)&&(identical(other.isBuiltIn, isBuiltIn) || other.isBuiltIn == isBuiltIn));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AssetType&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&const DeepCollectionEquality().equals(other._fieldSchema, _fieldSchema)&&(identical(other.isBuiltIn, isBuiltIn) || other.isBuiltIn == isBuiltIn)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,icon,const DeepCollectionEquality().hash(_fieldSchema),isBuiltIn);
+int get hashCode => Object.hash(runtimeType,id,name,icon,const DeepCollectionEquality().hash(_fieldSchema),isBuiltIn,updatedAt);
 
 @override
 String toString() {
-  return 'AssetType(id: $id, name: $name, icon: $icon, fieldSchema: $fieldSchema, isBuiltIn: $isBuiltIn)';
+  return 'AssetType(id: $id, name: $name, icon: $icon, fieldSchema: $fieldSchema, isBuiltIn: $isBuiltIn, updatedAt: $updatedAt)';
 }
 
 
@@ -547,7 +553,7 @@ abstract mixin class _$AssetTypeCopyWith<$Res> implements $AssetTypeCopyWith<$Re
   factory _$AssetTypeCopyWith(_AssetType value, $Res Function(_AssetType) _then) = __$AssetTypeCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, List<AssetTypeFieldSchema> fieldSchema, bool isBuiltIn
+ String id, String name, String icon, List<AssetTypeFieldSchema> fieldSchema, bool isBuiltIn, int updatedAt
 });
 
 
@@ -564,14 +570,15 @@ class __$AssetTypeCopyWithImpl<$Res>
 
 /// Create a copy of AssetType
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? fieldSchema = null,Object? isBuiltIn = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? fieldSchema = null,Object? isBuiltIn = null,Object? updatedAt = null,}) {
   return _then(_AssetType(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,icon: null == icon ? _self.icon : icon // ignore: cast_nullable_to_non_nullable
 as String,fieldSchema: null == fieldSchema ? _self._fieldSchema : fieldSchema // ignore: cast_nullable_to_non_nullable
 as List<AssetTypeFieldSchema>,isBuiltIn: null == isBuiltIn ? _self.isBuiltIn : isBuiltIn // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 

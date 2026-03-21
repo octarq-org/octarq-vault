@@ -153,6 +153,7 @@ void main() {
           'id': 'custom_server',
           'name': '自定义服务器',
           'icon': 'dns',
+          'updated_at': 777,
           'field_schema': jsonEncode([
             {
               'key': 'endpoint',
@@ -176,6 +177,7 @@ void main() {
         expect(customType.name, equals('自定义服务器'));
         expect(customType.isBuiltIn, isFalse);
         expect(customType.fieldSchema.single.key, equals('endpoint'));
+        expect(customType.updatedAt, equals(777));
         expect(
           types.length,
           equals(getDefaultAssetTypes(const Locale('zh')).length + 1),
@@ -206,6 +208,7 @@ void main() {
         (type) => type['id'] == 'custom_api',
       );
       expect(stored['name'], equals('自定义 API'));
+      expect(stored['updated_at'], equals(0));
 
       final types = container.read(assetTypesProvider);
       expect(types.any((type) => type.id == 'custom_api'), isTrue);
@@ -220,6 +223,7 @@ void main() {
           'icon': 'delete',
           'field_schema': jsonEncode(<Map<String, dynamic>>[]),
           'is_built_in': 0,
+          'updated_at': 0,
         });
 
         final notifier = container.read(assetTypesProvider.notifier);
@@ -253,6 +257,7 @@ void main() {
             'icon': 'old',
             'field_schema': jsonEncode(<Map<String, dynamic>>[]),
             'is_built_in': 0,
+            'updated_at': 0,
           },
           {
             'id': 'legacy_2',
@@ -260,6 +265,7 @@ void main() {
             'icon': 'old',
             'field_schema': jsonEncode(<Map<String, dynamic>>[]),
             'is_built_in': 0,
+            'updated_at': 0,
           },
         ]);
 
@@ -270,6 +276,7 @@ void main() {
             name: 'Snapshot Type',
             icon: 'snap',
             isBuiltIn: false,
+            updatedAt: 999,
             fieldSchema: [
               AssetTypeFieldSchema(key: 'url', label: 'URL', type: 'text'),
             ],
@@ -279,6 +286,7 @@ void main() {
         expect(mockDb.deleteAllCalled, isTrue);
         expect(mockDb.assetTypes, hasLength(1));
         expect(mockDb.assetTypes.single['id'], equals('snapshot_type'));
+        expect(mockDb.assetTypes.single['updated_at'], equals(999));
         expect(
           container
               .read(assetTypesProvider)
@@ -355,6 +363,21 @@ void main() {
       expect(restored.isBuiltIn, isFalse);
       expect(restored.fieldSchema.length, equals(2));
       expect(restored.fieldSchema[1].isEncrypted, isTrue);
+      expect(restored.updatedAt, equals(0));
+    });
+
+    test('JSON roundtrip preserves updatedAt', () {
+      const type = AssetType(
+        id: 'custom_1',
+        name: 'Custom Type',
+        icon: 'star',
+        isBuiltIn: false,
+        updatedAt: 12345,
+        fieldSchema: [],
+      );
+
+      final restored = AssetType.fromJson(type.toJson());
+      expect(restored.updatedAt, equals(12345));
     });
   });
 }
