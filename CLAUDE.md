@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**OctarqVault** is a cross-platform, offline-first, end-to-end encrypted personal asset manager built with Flutter. It stores credentials, crypto wallets, certificates, and other sensitive assets using SQLCipher (AES-256) with Argon2id key derivation.
+**OctarqVault** is a cross-platform, offline-first, E2EE personal asset manager built with Flutter. SQLCipher (AES-256) + Argon2id key derivation.
 
 ## Commands
 
@@ -44,42 +44,38 @@ Generated files (`*.freezed.dart`, `*.g.dart`) are committed to the repo.
 
 ## Architecture
 
-### State Management — Riverpod
+### Auth — `lib/providers/auth_provider.dart`
 
-All state lives in `lib/providers/`. Key providers:
-- `auth_provider` — auth lifecycle: `unsetup → locked → unlocked`
-- `assets_provider` — asset CRUD backed by `DatabaseService`
-- `service_providers` — singleton instances of all services (DB, crypto, sync, notifications)
+State machine: `initializing → unsetup → locked → unlocked`. A verification blob (`OCTARQ_VAULT_VERIFY_V1` AES-encrypted) is stored in secure storage to detect wrong passwords before opening SQLCipher. `AssetsNotifier` listens to `authProvider` and auto-loads/clears state on transitions.
 
-### Routing — go_router
+### Key providers (`lib/providers/`)
 
-`lib/router/app_router.dart` defines all routes. Auth state drives redirects:
-- Unsetup → `/setup`
-- Locked → `/lock`
-- Unlocked → `/` (dashboard)
+- `auth_provider` — auth lifecycle
+- `assets_provider` — asset CRUD + sync orchestration; on **web**, no SQLite: reads/writes an encrypted `VaultSnapshot` blob via `WebVaultStorage` (IndexedDB)
+- `asset_types_provider`, `relations_provider` / `relation_providers` — types and asset-to-asset relations
+- `sync_conflicts_provider` — surfaces `AssetConflict` pairs for UI resolution
+- `auto_lock_provider` — inactivity timer
+- `service_providers` — singleton service instances
 
-### Services (`lib/services/`)
+### Key services (`lib/services/`)
 
-| Service | Responsibility |
-|---|---|
-| `database_service.dart` | SQLCipher DB, all CRUD |
-| `encryption_service.dart` | AES-256-GCM field-level encryption |
-| `secure_storage_service.dart` | Keychain/Keystore for derived key |
-| `e2ee_sync_service.dart` | Orchestrates E2EE sync across backends |
-| `google_drive_service.dart` / `icloud_sync_service.dart` | Cloud sync backends |
-| `notification_service.dart` | Local notifications for asset expiry |
+- `database_service.dart` — SQLCipher DB schema v4; tables: `assets`, `asset_fields`, `tags`, `asset_tags`, `reminders`, `asset_types`, `asset_relations`, `op_log`, `asset_attachments`
+- `e2ee_sync_service.dart` — `VaultSnapshot` pack/unpack, LWW merge by `updatedAt`, conflict detection
+- `attachment_service.dart` — encrypted blobs on disk (`<ApplicationSupport>/octarq_attachments/<uuid>.enc`); metadata only in DB; conditional import (native only)
+- `encryption_service.dart` — AES-256-GCM + Argon2id
+- `secure_storage_service.dart` — Keychain/Keystore for key, salt, verify blob
+- `google_drive_service.dart`, `webdav_service.dart`, `icloud_sync_service.dart` — sync backends
 
-### Models (`lib/models/`)
+### Sync: AVV3 + Delta
 
-Core models are immutable (freezed):
-- `Asset` — central entity with typed `fields`, `tags`, `reminders`
-- `AssetType` — template defining field schema for an asset category
-- `Field` — typed key-value with optional encryption flag
+Wire format: `[magic(4)] [salt_len(2)] [salt] [type(1)=0x00 full|0x01 delta] [IV(12)] [Ciphertext+MAC]`
+
+`VaultSnapshot` has `payloadType` (`'full'`/`'delta'`), `baseSeq`, `opLog`, `attachmentManifest`. Delta payloads carry only oplog entries since `baseSeq`. Soft deletes use `TombstoneRegistry` (LWW: `deletedAt > updatedAt` wins; pruned after 30 days).
 
 ### Platform Divergence
 
-Some files have platform-specific variants (e.g., `local_file_sync_io.dart` vs `local_file_sync_web.dart`, `google_sign_in_button_web.dart` vs `google_sign_in_button_stub.dart`). These are resolved via conditional imports.
+Conditional imports resolve `_io` / `_web` / `_stub` variants for: `attachment_service`, `icloud_sync_service`, `local_file_sync_service`, `platform_utils`, `web_vault_storage`, `google_sign_in_button`.
 
 ### i18n
 
-Translations are in `lib/l10n/` (English + Simplified Chinese). Running `flutter gen-l10n` (or `flutter pub get`) regenerates `lib/l10n/app_localizations*.dart`. Add new strings to both ARB files before using them.
+`lib/l10n/` — English, Simplified Chinese, Spanish. Add new strings to all ARB files; `flutter pub get` regenerates `app_localizations*.dart`.
