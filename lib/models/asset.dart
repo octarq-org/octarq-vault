@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'field.dart';
 import 'tag.dart';
 import 'reminder.dart';
+import 'attachment.dart';
 
 part 'asset.freezed.dart';
 part 'asset.g.dart';
@@ -19,6 +20,7 @@ abstract class Asset with _$Asset {
     @Default([]) List<AssetField> fields,
     @Default([]) List<Tag> tags,
     @Default([]) List<Reminder> reminders,
+    @Default([]) List<AssetAttachment> attachments,
   }) = _Asset;
 
   factory Asset.fromJson(Map<String, dynamic> json) => _$AssetFromJson(json);

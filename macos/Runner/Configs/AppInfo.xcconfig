@@ -12,3 +12,6 @@ PRODUCT_BUNDLE_IDENTIFIER = org.octarq.vault
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 Octarq. All rights reserved.
+
+// Local only: DEVELOPMENT_TEAM = XXXXXXXXXX (see Signing.local.xcconfig.example)
+#include? "Signing.local.xcconfig"

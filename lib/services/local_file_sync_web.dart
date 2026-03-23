@@ -7,6 +7,7 @@ import 'package:web/web.dart' as web;
 import 'e2ee_sync_service.dart';
 import '../models/asset.dart';
 import '../models/asset_type.dart';
+import '../models/attachment.dart';
 
 final localFileSyncServiceProvider = Provider<LocalFileSyncService>((ref) {
   return LocalFileSyncService(ref.read(e2eeSyncServiceProvider));
@@ -40,7 +41,9 @@ extension FileSystemWritableFileStreamExtension
   external JSPromise<JSAny> close();
 }
 
-/// Manages native local file reading and writing on Web via File System Access API.
+/// Manages native local file reading and writing on Web via File System Access
+/// API. Attachments are not stored on-device on the web platform; their
+/// metadata is included in the exported snapshot for cross-device discovery.
 class LocalFileSyncService {
   final E2EESyncService _syncService;
 
@@ -59,7 +62,8 @@ class LocalFileSyncService {
 
     if (!isSupported) {
       throw Exception(
-        "File System Access API is not supported in this browser or environment. Please use the Import/Export fallback buttons.",
+        "File System Access API is not supported in this browser or environment. "
+        "Please use the Import/Export fallback buttons.",
       );
     }
 
@@ -81,7 +85,8 @@ class LocalFileSyncService {
       if (e.toString().contains('not a function') ||
           e.toString().contains('NoSuchMethodError')) {
         throw Exception(
-          "File System Access API is not supported in this browser or environment. Please use the Import/Export fallback buttons.",
+          "File System Access API is not supported in this browser or environment. "
+          "Please use the Import/Export fallback buttons.",
         );
       }
       if (kDebugMode) {
@@ -91,11 +96,18 @@ class LocalFileSyncService {
     }
   }
 
-  /// Write current assets to the linked file handle securely.
+  // -------------------------------------------------------------------------
+  // Full snapshot sync
+  // -------------------------------------------------------------------------
+
+  /// Encrypts the vault state and writes it to the linked file handle.
   Future<void> syncToLocal(
     List<Asset> assets, {
     List<AssetType> customAssetTypes = const [],
     List<Map<String, dynamic>> tombstones = const [],
+    List<Map<String, dynamic>> relations = const [],
+    List<OpLogEntry> opLog = const [],
+    List<AssetAttachment> attachmentManifest = const [],
   }) async {
     if (!kIsWeb || _currentFileHandle == null) return;
 
@@ -104,6 +116,9 @@ class LocalFileSyncService {
         assets,
         customAssetTypes: customAssetTypes,
         tombstones: tombstones,
+        relations: relations,
+        opLog: opLog,
+        attachmentManifest: attachmentManifest,
       );
 
       final writableStream = await _currentFileHandle!.createWritable().toDart;
@@ -114,14 +129,12 @@ class LocalFileSyncService {
         debugPrint("Successfully synced E2EE snapshot to local file.");
       }
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('Error syncing to local file: $e');
-      }
+      if (kDebugMode) debugPrint('Error syncing to local file: $e');
       rethrow;
     }
   }
 
-  /// Read the linked file into raw bytes for Cold Start recovery.
+  /// Reads and returns raw encrypted bytes from the linked file.
   Future<Uint8List?> readRawBytesFromLocal() async {
     if (!kIsWeb || _currentFileHandle == null) return null;
 
@@ -129,29 +142,60 @@ class LocalFileSyncService {
       final file = await _currentFileHandle!.getFile().toDart;
       final arrayBuffer = await file.arrayBuffer().toDart;
       final uint8List = arrayBuffer.toDart.asUint8List();
-
-      if (uint8List.isEmpty) return null;
-      return uint8List;
+      return uint8List.isEmpty ? null : uint8List;
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('Error reading from local file: $e');
-      }
+      if (kDebugMode) debugPrint('Error reading from local file: $e');
       rethrow;
     }
   }
 
-  /// Read the linked file and decrypt it into a Snapshot.
+  /// Reads and decrypts the linked file into a [VaultSnapshot].
   Future<VaultSnapshot?> readFromLocal() async {
     final uint8List = await readRawBytesFromLocal();
     if (uint8List == null) return null;
     return _syncService.unpackCiphertextToSnapshot(uint8List);
   }
 
-  /// Fallback: Force download of the encrypted snapshot (For Safari/Firefox)
+  // -------------------------------------------------------------------------
+  // Delta sync (web — file-handle variant)
+  // -------------------------------------------------------------------------
+
+  /// Writes a delta blob to the linked file handle.
+  ///
+  /// Note: overwrites the file. On web, full-snapshot and delta blobs share
+  /// the same linked file; the receiver distinguishes them via
+  /// [VaultSnapshot.payloadType].
+  Future<void> syncDeltaToLocal({
+    required List<OpLogEntry> opLogEntries,
+    required int baseSeq,
+    List<AssetAttachment> attachmentManifest = const [],
+  }) async {
+    if (!kIsWeb || _currentFileHandle == null) return;
+    if (opLogEntries.isEmpty) return;
+
+    final blob = _syncService.packDeltaToCiphertext(
+      opLogEntries: opLogEntries,
+      baseSeq: baseSeq,
+      attachmentManifest: attachmentManifest,
+    );
+
+    final writableStream = await _currentFileHandle!.createWritable().toDart;
+    await writableStream.write(blob.toJS).toDart;
+    await writableStream.close().toDart;
+  }
+
+  // -------------------------------------------------------------------------
+  // Fallback: browser download / upload (Safari / Firefox)
+  // -------------------------------------------------------------------------
+
+  /// Forces a browser download of the encrypted snapshot.
   void exportToDownload(
     List<Asset> assets, {
     List<AssetType> customAssetTypes = const [],
     List<Map<String, dynamic>> tombstones = const [],
+    List<Map<String, dynamic>> relations = const [],
+    List<OpLogEntry> opLog = const [],
+    List<AssetAttachment> attachmentManifest = const [],
   }) {
     if (!kIsWeb) return;
 
@@ -159,6 +203,9 @@ class LocalFileSyncService {
       assets,
       customAssetTypes: customAssetTypes,
       tombstones: tombstones,
+      relations: relations,
+      opLog: opLog,
+      attachmentManifest: attachmentManifest,
     );
 
     final parts = [encryptedBlob.toJS].toJS;
@@ -178,7 +225,7 @@ class LocalFileSyncService {
     web.URL.revokeObjectURL(url);
   }
 
-  /// Fallback: Prompt user to upload a file and return raw bytes
+  /// Prompts the user to upload a file and returns raw encrypted bytes.
   Future<Uint8List?> importRawBytesFromUpload() async {
     if (!kIsWeb) return null;
 
@@ -195,7 +242,7 @@ class LocalFileSyncService {
     return null;
   }
 
-  /// Fallback: Prompt user to upload a file (For Safari/Firefox)
+  /// Prompts the user to upload a file and decrypts it into a [VaultSnapshot].
   Future<VaultSnapshot?> importFromUpload() async {
     final uint8List = await importRawBytesFromUpload();
     if (uint8List != null && uint8List.isNotEmpty) {
@@ -216,10 +263,7 @@ class LocalFileSyncService {
       }
     });
 
-    // We can't easily detect cancellation reliably across all browsers for input[type=file],
-    // so we just trigger click.
     input.click();
-
     return completer.future;
   }
 }

@@ -114,12 +114,14 @@ class _AssetTypeFormScreenState extends ConsumerState<AssetTypeFormScreen> {
   void _save() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final now = DateTime.now().millisecondsSinceEpoch;
     final newType = AssetType(
       id: const Uuid().v4(),
       name: _nameController.text.trim(),
       icon: _selectedIcon,
       isBuiltIn: false,
       fieldSchema: _fields,
+      updatedAt: now,
     );
 
     await ref.read(assetTypesProvider.notifier).addCustomType(newType);

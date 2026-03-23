@@ -40,6 +40,7 @@ _AssetType _$AssetTypeFromJson(Map<String, dynamic> json) => _AssetType(
           .toList() ??
       const [],
   isBuiltIn: json['isBuiltIn'] as bool? ?? false,
+  updatedAt: (json['updatedAt'] as num?)?.toInt() ?? 0,
 );
 
 Map<String, dynamic> _$AssetTypeToJson(_AssetType instance) =>
@@ -49,4 +50,5 @@ Map<String, dynamic> _$AssetTypeToJson(_AssetType instance) =>
       'icon': instance.icon,
       'fieldSchema': instance.fieldSchema,
       'isBuiltIn': instance.isBuiltIn,
+      'updatedAt': instance.updatedAt,
     };

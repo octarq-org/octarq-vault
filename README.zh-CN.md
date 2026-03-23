@@ -12,7 +12,7 @@ OctarqVault 是一款为技术从业者（开发者、站长、加密货币用�
 2. **多重加密安全架构**：基于主密码和盐（Salt）利用 `Argon2id` 导出 AES-256 主密钥。结合手机底层安全区（Keychain / Keystore）+ 本地生物识别（Face ID / Touch ID）保护。数据库级密文存储基于 `SQLCipher`，关键字段运用 `AES-256-GCM` 额外套壳。
 3. **离线与本地优先**：所有数据存放于设备本地独立运行。
 4. **智能追踪提示**：本地调度系统级别定时/过期推送预警。
-5. **导出与同步**：剪贴板导出；**E2EE `.enc` 快照** — 移动端/桌面 **WebDAV**；Web 端 **Google Drive** + **本地文件**（Chromium 文件句柄或下载降级）。
+5. **导出与同步**：剪贴板导出；**E2EE `.enc` 快照** — 移动端/桌面 **WebDAV**；Web 端 **Google Drive** + **本地文件**（Chromium 文件句柄或下载降级）。支持 **增量同步**（OpLog）对所有 CRUD 操作做差量加密同步。
 6. **国际化**：中 / 英界面。
 
 ## 🛠️ 技术栈
@@ -91,4 +91,4 @@ flutter build web
 *构建产物输出于: `build/web/`，该目录下的文件可直接部署至任何静态服务器（如 Vercel, NGINX 等）*
 
 ## 📄 协议许可
-MIT License. All rights reserved.
+Apache License 2.0 — 详见 [LICENSE](LICENSE)。

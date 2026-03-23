@@ -48,8 +48,25 @@ class TombstoneRegistry {
       .map((e) => {'id': e.key, 'deletedAt': e.value})
       .toList();
 
+  /// Same as [toList] but drops tombstones whose [deletedAt] is older than
+  /// [retention] before [nowMs] (default: wall clock), so sync payloads do not
+  /// grow forever. In-memory registry is unchanged.
+  List<Map<String, dynamic>> toListForSync({
+    Duration retention = const Duration(days: 30),
+    int? nowMs,
+  }) {
+    final now = nowMs ?? DateTime.now().millisecondsSinceEpoch;
+    final cutoff = now - retention.inMilliseconds;
+    return _tombstones.entries
+        .where((e) => e.value >= cutoff)
+        .map((e) => {'id': e.key, 'deletedAt': e.value})
+        .toList();
+  }
+
   /// The number of tombstones currently held.
   int get length => _tombstones.length;
 
   bool get isEmpty => _tombstones.isEmpty;
+
+  void clear() => _tombstones.clear();
 }

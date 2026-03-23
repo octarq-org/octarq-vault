@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../utils/platform_utils.dart';
+import 'relation_providers.dart';
 import 'service_providers.dart';
-import 'assets_provider.dart';
 import '../services/e2ee_sync_service.dart';
 
 enum AuthState { initializing, unsetup, locked, unlocked }
@@ -310,9 +310,11 @@ class AuthNotifier extends Notifier<AuthState> {
     if (!kIsWeb) {
       await ref.read(databaseServiceProvider).close();
     }
-    // Clear all in-memory asset data so sensitive information is not retained
-    // while the vault is locked.
-    ref.invalidate(assetsProvider);
+    // Do not ref.invalidate(assetsProvider): AssetsNotifier listens to authProvider
+    // and clears state on locked — invalidating here creates a circular dependency
+    // (assetsProvider → authProvider) while lock() is updating auth.
+    ref.read(webVaultRelationsProvider.notifier).replace([]);
+    ref.invalidate(assetRelationsProvider);
     state = AuthState.locked;
   }
 

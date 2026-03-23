@@ -81,6 +81,9 @@ class MockDatabaseService extends DatabaseService {
   Object initError = Exception('SQLCipher not available');
 
   @override
+  bool get isOpen => true;
+
+  @override
   Future<void> init(Uint8List masterKeyBytes) async {
     initCalled = true;
     if (shouldThrowOnInit) {
@@ -119,7 +122,7 @@ Future<void> _waitForAuthInit(ProviderContainer container) async {
 Uint8List _externalPayloadWithSalt(String saltBase64) {
   final salt = saltBase64.codeUnits;
   return Uint8List.fromList([
-    ...'AVV2'.codeUnits,
+    ...'AVV3'.codeUnits,
     (salt.length >> 8) & 0xFF,
     salt.length & 0xFF,
     ...salt,

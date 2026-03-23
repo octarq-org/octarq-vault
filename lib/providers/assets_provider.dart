@@ -16,7 +16,7 @@ import 'sync_settings_provider.dart';
 import 'sync_conflicts_provider.dart';
 import 'auth_provider.dart';
 import 'asset_types_provider.dart';
-import 'relations_provider.dart';
+import 'relation_providers.dart';
 import '../utils/tombstone_registry.dart';
 
 class AssetsNotifier extends Notifier<List<Asset>> {
@@ -24,12 +24,23 @@ class AssetsNotifier extends Notifier<List<Asset>> {
   /// Persisted through snapshots via the tombstones field in VaultSnapshot.
   final _tombstones = TombstoneRegistry();
 
+  Future<Database> _vaultDb() async {
+    final dbSvc = ref.read(databaseServiceProvider);
+    if (dbSvc.isOpen) return dbSvc.db;
+    final key = ref.read(encryptionServiceProvider).masterKey;
+    return dbSvc.ensureOpen(key);
+  }
+
   @override
   List<Asset> build() {
-    // Security: Clear in-memory assets when vault is locked
+    // Security: Clear in-memory assets when vault is locked; reload from DB
+    // when unlocking (build()'s microtask only runs once for the notifier).
     ref.listen(authProvider, (previous, next) {
       if (next == AuthState.locked || next == AuthState.unsetup) {
         state = [];
+        _tombstones.clear();
+      } else if (next == AuthState.unlocked && previous != AuthState.unlocked) {
+        Future.microtask(() => loadAssets());
       }
     });
 
@@ -81,6 +92,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
                     localSnapshot.assets,
                     customAssetTypes: localSnapshot.customAssetTypes,
                     relations: localSnapshot.relations,
+                    tombstones: localSnapshot.tombstones,
                   );
                   await storage.writeEncrypted(mergedBlob);
                 }
@@ -94,6 +106,9 @@ class AssetsNotifier extends Notifier<List<Asset>> {
         if (localSnapshot == null) return;
         state = localSnapshot.assets;
         _tombstones.loadFromList(localSnapshot.tombstones);
+        ref
+            .read(webVaultRelationsProvider.notifier)
+            .replace(localSnapshot.relations);
         await ref
             .read(assetTypesProvider.notifier)
             .setCustomTypesFromSnapshot(localSnapshot.customAssetTypes);
@@ -105,8 +120,8 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       return;
     }
     try {
+      final db = await _vaultDb();
       final dbService = ref.read(databaseServiceProvider);
-      final db = dbService.db;
       final List<Map<String, dynamic>> assetMaps = await db.query('assets');
 
       final List<Asset> assets = [];
@@ -271,7 +286,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
 
   Future<void> addAsset(Asset asset) async {
     if (!kIsWeb) {
-      final db = ref.read(databaseServiceProvider).db;
+      final db = await _vaultDb();
       await db.transaction((txn) async {
         await txn.insert('assets', {
           'id': asset.id,
@@ -304,7 +319,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
   Future<void> batchAddAssets(List<Asset> assets) async {
     if (assets.isEmpty) return;
     if (!kIsWeb) {
-      final db = ref.read(databaseServiceProvider).db;
+      final db = await _vaultDb();
       for (final asset in assets) {
         await db.transaction((txn) async {
           await txn.insert('assets', {
@@ -337,7 +352,10 @@ class AssetsNotifier extends Notifier<List<Asset>> {
 
   Future<void> updateAsset(Asset updatedAsset) async {
     if (!kIsWeb) {
-      final db = ref.read(databaseServiceProvider).db;
+      final db = await _vaultDb();
+      final dbService = ref.read(databaseServiceProvider);
+      final now = DateTime.now().millisecondsSinceEpoch;
+
       await db.transaction((txn) async {
         await txn.update(
           'assets',
@@ -345,7 +363,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
             'type_id': updatedAsset.typeId,
             'name': updatedAsset.name,
             'expire_at': updatedAsset.expireAt,
-            'updated_at': DateTime.now().millisecondsSinceEpoch,
+            'updated_at': now,
             'is_archived': updatedAsset.isArchived ? 1 : 0,
           },
           where: 'id = ?',
@@ -369,6 +387,13 @@ class AssetsNotifier extends Notifier<List<Asset>> {
         await _persistTags(txn, updatedAsset);
         await _persistReminders(txn, updatedAsset);
       });
+
+      // Record oplog entry for asset upsert
+      await dbService.recordAssetOperation(
+        updatedAsset.id,
+        OpType.upsert,
+        payload: {...updatedAsset.toJson(), 'updated_at': now},
+      );
     }
     state = [
       for (final asset in state)
@@ -378,13 +403,22 @@ class AssetsNotifier extends Notifier<List<Asset>> {
   }
 
   Future<void> deleteAsset(String id) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+
     if (!kIsWeb) {
-      final db = ref.read(databaseServiceProvider).db;
-      await db.delete('assets', where: 'id = ?', whereArgs: [id]);
+      final db = await _vaultDb();
+      final dbService = ref.read(databaseServiceProvider);
+
+      await db.transaction((txn) async {
+        await txn.delete('assets', where: 'id = ?', whereArgs: [id]);
+      });
+
+      // Record oplog entry for asset delete
+      await dbService.recordAssetOperation(id, OpType.delete, payload: {});
     }
     state = state.where((a) => a.id != id).toList();
     // Record tombstone so deletions propagate across devices via LWW merge
-    _tombstones.record(id, DateTime.now().millisecondsSinceEpoch);
+    _tombstones.record(id, now);
     await _triggerSync();
   }
 
@@ -425,10 +459,17 @@ class AssetsNotifier extends Notifier<List<Asset>> {
     }
   }
 
+  /// Write IndexedDB / cloud snapshot on Web (e.g. after relation edits).
+  Future<void> flushWebVaultToStorage() async {
+    if (!kIsWeb) return;
+    await _triggerSync();
+  }
+
   /// Clear all assets (and related data). Used before JSON import to replace vault.
   Future<void> clearAll() async {
     state = [];
     if (kIsWeb) {
+      ref.read(webVaultRelationsProvider.notifier).replace([]);
       final syncService = ref.read(e2eeSyncServiceProvider);
       final blob = syncService.packSnapshotTOCiphertext(
         [],
@@ -439,10 +480,10 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       );
       await ref.read(webVaultStorageProvider).writeEncrypted(blob);
     } else {
-      final dbService = ref.read(databaseServiceProvider);
-      final db = dbService.db;
+      final db = await _vaultDb();
       await db.delete('relations');
       await db.delete('assets');
+      final dbService = ref.read(databaseServiceProvider);
       await dbService.deleteAllTags();
       await dbService.deleteAllAssetTypes();
     }
@@ -456,6 +497,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
     state = snapshot.assets;
     _tombstones.loadFromList(snapshot.tombstones);
     if (kIsWeb) {
+      ref.read(webVaultRelationsProvider.notifier).replace(snapshot.relations);
       await ref
           .read(assetTypesProvider.notifier)
           .setCustomTypesFromSnapshot(snapshot.customAssetTypes);
@@ -464,7 +506,9 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       }
     } else {
       final dbService = ref.read(databaseServiceProvider);
-      final db = dbService.db;
+      final db = await dbService.ensureOpen(
+        ref.read(encryptionServiceProvider).masterKey,
+      );
       await db.delete('assets');
       await dbService.deleteAllTags();
       await dbService.deleteAllAssetTypes();
@@ -517,6 +561,9 @@ class AssetsNotifier extends Notifier<List<Asset>> {
 
   List<Map<String, dynamic>> get _tombstoneList => _tombstones.toList();
 
+  List<Map<String, dynamic>> get _tombstoneListForSync =>
+      _tombstones.toListForSync();
+
   Future<void> _triggerSync() async {
     final methods = ref.read(syncSettingsProvider);
     final customTypes = ref
@@ -524,15 +571,19 @@ class AssetsNotifier extends Notifier<List<Asset>> {
         .where((t) => !t.isBuiltIn)
         .toList();
 
-    // Fetch current relations for native platforms.
+    // Fetch current relations: native from DB, web from in-memory mirror.
     List<Map<String, dynamic>> relations = [];
-    if (!kIsWeb) {
+    if (kIsWeb) {
+      relations = ref.read(webVaultRelationsProvider);
+    } else {
       try {
-        relations = await ref.read(databaseServiceProvider).getAllRelations();
+        final dbSvc = ref.read(databaseServiceProvider);
+        await dbSvc.ensureOpen(ref.read(encryptionServiceProvider).masterKey);
+        relations = await dbSvc.getAllRelations();
       } catch (_) {}
     }
 
-    final tombstones = _tombstoneList;
+    final tombstones = _tombstoneListForSync;
     bool synced = false;
 
     // 1. Always update local cache/IndexedDB
@@ -595,6 +646,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
               state,
               customAssetTypes: customTypes,
               tombstones: tombstones,
+              relations: relations,
             );
             synced = true;
           }

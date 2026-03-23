@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Asset {
 
- String get id; String get typeId; String get name; int? get expireAt; int get createdAt; int get updatedAt; bool get isArchived; List<AssetField> get fields; List<Tag> get tags; List<Reminder> get reminders;
+ String get id; String get typeId; String get name; int? get expireAt; int get createdAt; int get updatedAt; bool get isArchived; List<AssetField> get fields; List<Tag> get tags; List<Reminder> get reminders; List<AssetAttachment> get attachments;
 /// Create a copy of Asset
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $AssetCopyWith<Asset> get copyWith => _$AssetCopyWithImpl<Asset>(this as Asset, 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Asset&&(identical(other.id, id) || other.id == id)&&(identical(other.typeId, typeId) || other.typeId == typeId)&&(identical(other.name, name) || other.name == name)&&(identical(other.expireAt, expireAt) || other.expireAt == expireAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isArchived, isArchived) || other.isArchived == isArchived)&&const DeepCollectionEquality().equals(other.fields, fields)&&const DeepCollectionEquality().equals(other.tags, tags)&&const DeepCollectionEquality().equals(other.reminders, reminders));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Asset&&(identical(other.id, id) || other.id == id)&&(identical(other.typeId, typeId) || other.typeId == typeId)&&(identical(other.name, name) || other.name == name)&&(identical(other.expireAt, expireAt) || other.expireAt == expireAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isArchived, isArchived) || other.isArchived == isArchived)&&const DeepCollectionEquality().equals(other.fields, fields)&&const DeepCollectionEquality().equals(other.tags, tags)&&const DeepCollectionEquality().equals(other.reminders, reminders)&&const DeepCollectionEquality().equals(other.attachments, attachments));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,typeId,name,expireAt,createdAt,updatedAt,isArchived,const DeepCollectionEquality().hash(fields),const DeepCollectionEquality().hash(tags),const DeepCollectionEquality().hash(reminders));
+int get hashCode => Object.hash(runtimeType,id,typeId,name,expireAt,createdAt,updatedAt,isArchived,const DeepCollectionEquality().hash(fields),const DeepCollectionEquality().hash(tags),const DeepCollectionEquality().hash(reminders),const DeepCollectionEquality().hash(attachments));
 
 @override
 String toString() {
-  return 'Asset(id: $id, typeId: $typeId, name: $name, expireAt: $expireAt, createdAt: $createdAt, updatedAt: $updatedAt, isArchived: $isArchived, fields: $fields, tags: $tags, reminders: $reminders)';
+  return 'Asset(id: $id, typeId: $typeId, name: $name, expireAt: $expireAt, createdAt: $createdAt, updatedAt: $updatedAt, isArchived: $isArchived, fields: $fields, tags: $tags, reminders: $reminders, attachments: $attachments)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $AssetCopyWith<$Res>  {
   factory $AssetCopyWith(Asset value, $Res Function(Asset) _then) = _$AssetCopyWithImpl;
 @useResult
 $Res call({
- String id, String typeId, String name, int? expireAt, int createdAt, int updatedAt, bool isArchived, List<AssetField> fields, List<Tag> tags, List<Reminder> reminders
+ String id, String typeId, String name, int? expireAt, int createdAt, int updatedAt, bool isArchived, List<AssetField> fields, List<Tag> tags, List<Reminder> reminders, List<AssetAttachment> attachments
 });
 
 
@@ -65,7 +65,7 @@ class _$AssetCopyWithImpl<$Res>
 
 /// Create a copy of Asset
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? typeId = null,Object? name = null,Object? expireAt = freezed,Object? createdAt = null,Object? updatedAt = null,Object? isArchived = null,Object? fields = null,Object? tags = null,Object? reminders = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? typeId = null,Object? name = null,Object? expireAt = freezed,Object? createdAt = null,Object? updatedAt = null,Object? isArchived = null,Object? fields = null,Object? tags = null,Object? reminders = null,Object? attachments = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,typeId: null == typeId ? _self.typeId : typeId // ignore: cast_nullable_to_non_nullable
@@ -77,7 +77,8 @@ as int,isArchived: null == isArchived ? _self.isArchived : isArchived // ignore:
 as bool,fields: null == fields ? _self.fields : fields // ignore: cast_nullable_to_non_nullable
 as List<AssetField>,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
 as List<Tag>,reminders: null == reminders ? _self.reminders : reminders // ignore: cast_nullable_to_non_nullable
-as List<Reminder>,
+as List<Reminder>,attachments: null == attachments ? _self.attachments : attachments // ignore: cast_nullable_to_non_nullable
+as List<AssetAttachment>,
   ));
 }
 
@@ -162,10 +163,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String typeId,  String name,  int? expireAt,  int createdAt,  int updatedAt,  bool isArchived,  List<AssetField> fields,  List<Tag> tags,  List<Reminder> reminders)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String typeId,  String name,  int? expireAt,  int createdAt,  int updatedAt,  bool isArchived,  List<AssetField> fields,  List<Tag> tags,  List<Reminder> reminders,  List<AssetAttachment> attachments)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Asset() when $default != null:
-return $default(_that.id,_that.typeId,_that.name,_that.expireAt,_that.createdAt,_that.updatedAt,_that.isArchived,_that.fields,_that.tags,_that.reminders);case _:
+return $default(_that.id,_that.typeId,_that.name,_that.expireAt,_that.createdAt,_that.updatedAt,_that.isArchived,_that.fields,_that.tags,_that.reminders,_that.attachments);case _:
   return orElse();
 
 }
@@ -183,10 +184,10 @@ return $default(_that.id,_that.typeId,_that.name,_that.expireAt,_that.createdAt,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String typeId,  String name,  int? expireAt,  int createdAt,  int updatedAt,  bool isArchived,  List<AssetField> fields,  List<Tag> tags,  List<Reminder> reminders)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String typeId,  String name,  int? expireAt,  int createdAt,  int updatedAt,  bool isArchived,  List<AssetField> fields,  List<Tag> tags,  List<Reminder> reminders,  List<AssetAttachment> attachments)  $default,) {final _that = this;
 switch (_that) {
 case _Asset():
-return $default(_that.id,_that.typeId,_that.name,_that.expireAt,_that.createdAt,_that.updatedAt,_that.isArchived,_that.fields,_that.tags,_that.reminders);case _:
+return $default(_that.id,_that.typeId,_that.name,_that.expireAt,_that.createdAt,_that.updatedAt,_that.isArchived,_that.fields,_that.tags,_that.reminders,_that.attachments);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -203,10 +204,10 @@ return $default(_that.id,_that.typeId,_that.name,_that.expireAt,_that.createdAt,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String typeId,  String name,  int? expireAt,  int createdAt,  int updatedAt,  bool isArchived,  List<AssetField> fields,  List<Tag> tags,  List<Reminder> reminders)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String typeId,  String name,  int? expireAt,  int createdAt,  int updatedAt,  bool isArchived,  List<AssetField> fields,  List<Tag> tags,  List<Reminder> reminders,  List<AssetAttachment> attachments)?  $default,) {final _that = this;
 switch (_that) {
 case _Asset() when $default != null:
-return $default(_that.id,_that.typeId,_that.name,_that.expireAt,_that.createdAt,_that.updatedAt,_that.isArchived,_that.fields,_that.tags,_that.reminders);case _:
+return $default(_that.id,_that.typeId,_that.name,_that.expireAt,_that.createdAt,_that.updatedAt,_that.isArchived,_that.fields,_that.tags,_that.reminders,_that.attachments);case _:
   return null;
 
 }
@@ -218,7 +219,7 @@ return $default(_that.id,_that.typeId,_that.name,_that.expireAt,_that.createdAt,
 @JsonSerializable()
 
 class _Asset implements Asset {
-  const _Asset({required this.id, required this.typeId, required this.name, this.expireAt, required this.createdAt, required this.updatedAt, this.isArchived = false, final  List<AssetField> fields = const [], final  List<Tag> tags = const [], final  List<Reminder> reminders = const []}): _fields = fields,_tags = tags,_reminders = reminders;
+  const _Asset({required this.id, required this.typeId, required this.name, this.expireAt, required this.createdAt, required this.updatedAt, this.isArchived = false, final  List<AssetField> fields = const [], final  List<Tag> tags = const [], final  List<Reminder> reminders = const [], final  List<AssetAttachment> attachments = const []}): _fields = fields,_tags = tags,_reminders = reminders,_attachments = attachments;
   factory _Asset.fromJson(Map<String, dynamic> json) => _$AssetFromJson(json);
 
 @override final  String id;
@@ -249,6 +250,13 @@ class _Asset implements Asset {
   return EqualUnmodifiableListView(_reminders);
 }
 
+ final  List<AssetAttachment> _attachments;
+@override@JsonKey() List<AssetAttachment> get attachments {
+  if (_attachments is EqualUnmodifiableListView) return _attachments;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_attachments);
+}
+
 
 /// Create a copy of Asset
 /// with the given fields replaced by the non-null parameter values.
@@ -263,16 +271,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Asset&&(identical(other.id, id) || other.id == id)&&(identical(other.typeId, typeId) || other.typeId == typeId)&&(identical(other.name, name) || other.name == name)&&(identical(other.expireAt, expireAt) || other.expireAt == expireAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isArchived, isArchived) || other.isArchived == isArchived)&&const DeepCollectionEquality().equals(other._fields, _fields)&&const DeepCollectionEquality().equals(other._tags, _tags)&&const DeepCollectionEquality().equals(other._reminders, _reminders));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Asset&&(identical(other.id, id) || other.id == id)&&(identical(other.typeId, typeId) || other.typeId == typeId)&&(identical(other.name, name) || other.name == name)&&(identical(other.expireAt, expireAt) || other.expireAt == expireAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.isArchived, isArchived) || other.isArchived == isArchived)&&const DeepCollectionEquality().equals(other._fields, _fields)&&const DeepCollectionEquality().equals(other._tags, _tags)&&const DeepCollectionEquality().equals(other._reminders, _reminders)&&const DeepCollectionEquality().equals(other._attachments, _attachments));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,typeId,name,expireAt,createdAt,updatedAt,isArchived,const DeepCollectionEquality().hash(_fields),const DeepCollectionEquality().hash(_tags),const DeepCollectionEquality().hash(_reminders));
+int get hashCode => Object.hash(runtimeType,id,typeId,name,expireAt,createdAt,updatedAt,isArchived,const DeepCollectionEquality().hash(_fields),const DeepCollectionEquality().hash(_tags),const DeepCollectionEquality().hash(_reminders),const DeepCollectionEquality().hash(_attachments));
 
 @override
 String toString() {
-  return 'Asset(id: $id, typeId: $typeId, name: $name, expireAt: $expireAt, createdAt: $createdAt, updatedAt: $updatedAt, isArchived: $isArchived, fields: $fields, tags: $tags, reminders: $reminders)';
+  return 'Asset(id: $id, typeId: $typeId, name: $name, expireAt: $expireAt, createdAt: $createdAt, updatedAt: $updatedAt, isArchived: $isArchived, fields: $fields, tags: $tags, reminders: $reminders, attachments: $attachments)';
 }
 
 
@@ -283,7 +291,7 @@ abstract mixin class _$AssetCopyWith<$Res> implements $AssetCopyWith<$Res> {
   factory _$AssetCopyWith(_Asset value, $Res Function(_Asset) _then) = __$AssetCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String typeId, String name, int? expireAt, int createdAt, int updatedAt, bool isArchived, List<AssetField> fields, List<Tag> tags, List<Reminder> reminders
+ String id, String typeId, String name, int? expireAt, int createdAt, int updatedAt, bool isArchived, List<AssetField> fields, List<Tag> tags, List<Reminder> reminders, List<AssetAttachment> attachments
 });
 
 
@@ -300,7 +308,7 @@ class __$AssetCopyWithImpl<$Res>
 
 /// Create a copy of Asset
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? typeId = null,Object? name = null,Object? expireAt = freezed,Object? createdAt = null,Object? updatedAt = null,Object? isArchived = null,Object? fields = null,Object? tags = null,Object? reminders = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? typeId = null,Object? name = null,Object? expireAt = freezed,Object? createdAt = null,Object? updatedAt = null,Object? isArchived = null,Object? fields = null,Object? tags = null,Object? reminders = null,Object? attachments = null,}) {
   return _then(_Asset(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,typeId: null == typeId ? _self.typeId : typeId // ignore: cast_nullable_to_non_nullable
@@ -312,7 +320,8 @@ as int,isArchived: null == isArchived ? _self.isArchived : isArchived // ignore:
 as bool,fields: null == fields ? _self._fields : fields // ignore: cast_nullable_to_non_nullable
 as List<AssetField>,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
 as List<Tag>,reminders: null == reminders ? _self._reminders : reminders // ignore: cast_nullable_to_non_nullable
-as List<Reminder>,
+as List<Reminder>,attachments: null == attachments ? _self._attachments : attachments // ignore: cast_nullable_to_non_nullable
+as List<AssetAttachment>,
   ));
 }
 

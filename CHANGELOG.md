@@ -1,4 +1,24 @@
 
+## [1.4.0] - 2026-03-21
+
+### 🚀 Features
+
+- Delta sync (OpLog): incremental E2EE sync for all CRUD operations — assets, relations, custom asset types, and attachments
+- Attachment encryption: attachments are now encrypted at rest with AES-256-GCM before writing to disk
+- AVV3 binary format: adds `PayloadType` byte (`0x00` full / `0x01` delta) to the E2EE blob header
+
+### 🐛 Bug Fixes
+
+- Fix test mocks missing `appendOpLog` override after OpLog integration (4 provider tests now pass)
+
+### 📄 License
+
+- Switch from MIT to Apache-2.0
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to v1.4.0
+
 ## [1.3.2] - 2026-03-20
 
 ### 🚀 Features
@@ -62,4 +82,3 @@
 - Bump version 1.1.1+1
 - Mvp 1.1.0+1
 - MVP 1.0.0+1
-

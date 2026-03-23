@@ -15,7 +15,7 @@ OctarqVault is a digital asset manager built for technical practitioners (develo
 2. **Layered encryption**: Master key derived from master password + salt via Argon2id; AES-256. Protected by device secure enclave (Keychain / Keystore) and local biometrics (Face ID / Touch ID). DB-level cipher storage with SQLCipher; critical fields wrapped with AES-256-GCM.
 3. **Offline & local-first**: All data stays on device and runs independently.
 4. **Smart reminders**: Local scheduler for system-level scheduled and expiry notifications.
-5. **Export & sync**: Clipboard export; **E2EE `.enc` snapshot** — WebDAV (mobile/desktop), **Google Drive** + **local file** (Web, Chromium File System API or download fallback).
+5. **Export & sync**: Clipboard export; **E2EE `.enc` snapshot** — WebDAV (mobile/desktop), **Google Drive** + **local file** (Web, Chromium File System API or download fallback). **Delta sync** (OpLog) enables incremental sync for all CRUD operations.
 6. **i18n**: English / 中文.
 
 ## Tech stack
@@ -46,16 +46,20 @@ SQLCipher DB Key           Field Encryption
                            Stored: {valueEnc, iv}
 ```
 
-**Sync Flow (E2EE Snapshot):**
+**Sync Flow (E2EE Snapshot + Delta):**
 ```
 Local Vault State
         │
-        ▼ packSnapshotToCiphertext()
-  JSON Snapshot → AES-256-GCM encrypt
+        ├─ Full sync ──▶ packSnapshotToCiphertext()
+        │                JSON Snapshot → AES-256-GCM encrypt
         │
-  AVV2 Payload: [magic(4)] [salt_len(2)] [salt] [IV(12)] [Ciphertext+MAC]
-        │
-   ┌────┼────────────┐
+        └─ Delta sync ─▶ OpLog entries → AES-256-GCM encrypt
+                         (assets / relations / types / attachments)
+
+  AVV3 Payload: [magic(4)] [salt_len(2)] [salt] [type(1)] [IV(12)] [Ciphertext+MAC]
+                                                  0x00=full  0x01=delta
+
+   ┌────┬────────────┐
    ▼    ▼            ▼
 WebDAV  Google Drive  Local File
         │
@@ -157,4 +161,4 @@ location / {
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full nginx server block and Google Cloud Console OAuth setup.
 
 ## License
-MIT License. All rights reserved.
+Apache License 2.0 — see [LICENSE](LICENSE) for details.

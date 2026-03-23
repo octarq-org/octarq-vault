@@ -26,6 +26,10 @@ abstract class AssetType with _$AssetType {
     required String icon,
     @Default([]) List<AssetTypeFieldSchema> fieldSchema,
     @Default(false) bool isBuiltIn,
+
+    /// Milliseconds since epoch; LWW merge for [VaultSnapshot.customAssetTypes].
+    /// Built-in templates use 0.
+    @Default(0) int updatedAt,
   }) = _AssetType;
 
   factory AssetType.fromJson(Map<String, dynamic> json) =>
