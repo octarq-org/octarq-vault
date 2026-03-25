@@ -176,6 +176,37 @@ The pre-push hook enforces this format.
 
 ---
 
+## i18n (Internationalization)
+
+OctarqVault supports English, Simplified Chinese, and Spanish. When adding any user-visible string, add it to **all three** ARB files before using it in code:
+- `lib/l10n/app_en.arb`
+- `lib/l10n/app_zh.arb`
+- `lib/l10n/app_es.arb`
+
+After editing ARB files, run `flutter pub get` to regenerate `lib/l10n/app_localizations*.dart`. Do not add strings to only one ARB file — the analyzer will catch missing translations.
+
+---
+
+## Platform-Specific Code
+
+Services that diverge by platform use conditional imports with three variants:
+
+| Suffix | Platform | Example |
+|--------|----------|---------|
+| `_io.dart` | iOS / macOS / Android / desktop | `attachment_service_io.dart` |
+| `_web.dart` | Flutter Web | `attachment_service_web.dart` (or stub) |
+| `_stub.dart` | Throws `UnsupportedError` | fallback for unsupported platforms |
+
+The platform-neutral file (e.g., `attachment_service.dart`) exports the correct variant via `export ... if (dart.library.io) '..._io.dart' if (dart.library.html) '..._stub.dart'`. Follow this pattern when adding any service that has platform-specific behavior.
+
+---
+
+## Security Disclosure
+
+**Do not open a public GitHub issue for security vulnerabilities.** Use the private disclosure process described in [SECURITY.md](./SECURITY.md). This ensures vulnerabilities can be assessed and patched before public disclosure.
+
+---
+
 ## Google Cloud Console Setup (OAuth for Google Drive Sync)
 
 If you are working on the Google Drive sync feature, you will need to configure an OAuth 2.0 client:

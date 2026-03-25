@@ -38,3 +38,23 @@ jobs:
 
       - name: Smoke build (Web)
         run: flutter build web
+
+  check-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Code Generation (Build Runner)
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Test
+        run: flutter test

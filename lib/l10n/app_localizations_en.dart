@@ -39,6 +39,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lockVault => 'Lock Vault';
 
   @override
+  String get changeMasterPassword => 'Change Master Password';
+
+  @override
+  String get currentPassword => 'Current Password';
+
+  @override
+  String get newPassword => 'New Password';
+
+  @override
+  String get confirmNewPassword => 'Confirm New Password';
+
+  @override
+  String get changePasswordAction => 'Change Password';
+
+  @override
+  String get passwordChangedSuccessfully => 'Password changed successfully';
+
+  @override
+  String get passwordTooWeak => 'Too weak';
+
+  @override
+  String get attachmentAdded => 'Attachment added';
+
+  @override
+  String get attachmentsTitle => 'Attachments';
+
+  @override
+  String get attachAction => 'Attach';
+
+  @override
   String get biometricUnlock => 'Biometric Unlock';
 
   @override
@@ -675,6 +705,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get restoreFromWebdav => 'Restore from WebDAV';
+
+  @override
+  String get restoreFromIcloud => 'Restore from iCloud';
 
   @override
   String get disconnectClearCredentials => 'Disconnect & Clear Credentials';

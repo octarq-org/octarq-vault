@@ -160,6 +160,66 @@ abstract class AppLocalizations {
   /// **'Lock Vault'**
   String get lockVault;
 
+  /// No description provided for @changeMasterPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Master Password'**
+  String get changeMasterPassword;
+
+  /// No description provided for @currentPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Current Password'**
+  String get currentPassword;
+
+  /// No description provided for @newPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'New Password'**
+  String get newPassword;
+
+  /// No description provided for @confirmNewPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm New Password'**
+  String get confirmNewPassword;
+
+  /// No description provided for @changePasswordAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Password'**
+  String get changePasswordAction;
+
+  /// No description provided for @passwordChangedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Password changed successfully'**
+  String get passwordChangedSuccessfully;
+
+  /// No description provided for @passwordTooWeak.
+  ///
+  /// In en, this message translates to:
+  /// **'Too weak'**
+  String get passwordTooWeak;
+
+  /// No description provided for @attachmentAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment added'**
+  String get attachmentAdded;
+
+  /// No description provided for @attachmentsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachments'**
+  String get attachmentsTitle;
+
+  /// No description provided for @attachAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach'**
+  String get attachAction;
+
   /// No description provided for @biometricUnlock.
   ///
   /// In en, this message translates to:
@@ -1311,6 +1371,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restore from WebDAV'**
   String get restoreFromWebdav;
+
+  /// No description provided for @restoreFromIcloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore from iCloud'**
+  String get restoreFromIcloud;
 
   /// No description provided for @disconnectClearCredentials.
   ///

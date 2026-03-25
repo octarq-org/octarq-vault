@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import '../models/asset.dart';
+import '../models/asset_type.dart';
 import '../models/field.dart';
 import '../models/tag.dart';
 import '../models/reminder.dart';
@@ -12,6 +13,7 @@ import '../services/webdav_service.dart';
 import '../services/e2ee_sync_service.dart';
 import 'service_providers.dart';
 import '../models/sync_settings.dart';
+import '../models/attachment.dart';
 import 'sync_settings_provider.dart';
 import 'sync_conflicts_provider.dart';
 import 'auth_provider.dart';
@@ -212,18 +214,16 @@ class AssetsNotifier extends Notifier<List<Asset>> {
                   .where((t) => !t.isBuiltIn)
                   .toList();
               final relations = await dbService.getAllRelations();
-              final localSnapshot = VaultSnapshot(
-                version: 2,
-                assets: state,
+              final localSnapshot = await buildNativeLocalSnapshotForMerge(
                 customAssetTypes: customTypes,
                 relations: relations,
-                tombstones: _tombstoneList,
               );
 
               final result = VaultSnapshot.mergeSnapshots(
                 local: localSnapshot,
                 remote: remoteSnapshot,
               );
+              await pullSync(result.snapshot);
 
               if (result.conflicts.isNotEmpty) {
                 ref
@@ -465,6 +465,113 @@ class AssetsNotifier extends Notifier<List<Asset>> {
     await _triggerSync();
   }
 
+  /// Push local encrypted attachment blobs to enabled remote providers.
+  ///
+  /// Missing local blobs are skipped; existing blobs are uploaded.
+  /// Upload failures are isolated per provider/attachment and do not throw.
+  Future<void> pushSync({required List<AssetAttachment> attachments}) async {
+    if (kIsWeb || attachments.isEmpty) return;
+    final methods = ref.read(syncSettingsProvider);
+    final attachmentService = ref.read(attachmentServiceProvider);
+
+    for (final attachment in attachments) {
+      try {
+        if (!await attachmentService.attachmentExists(attachment)) {
+          continue;
+        }
+        final encBytes = await attachmentService.loadEncryptedBytes(attachment);
+
+        for (final method in methods) {
+          try {
+            if (method == SyncMethod.googleDrive) {
+              final drive = ref.read(googleDriveServiceProvider);
+              if (await drive.hasCredentials()) {
+                await drive.uploadAttachment(attachment, encBytes);
+              }
+            } else if (method == SyncMethod.webdav) {
+              final webdav = ref.read(webDavServiceProvider);
+              if (await webdav.hasCredentials()) {
+                await webdav.uploadAttachment(attachment, encBytes);
+              }
+            } else if (method == SyncMethod.icloud && !kIsWeb) {
+              final icloud = ref.read(iCloudSyncServiceProvider);
+              if (icloud.isSupported) {
+                await icloud.backupAttachment(attachment, encBytes);
+              }
+            }
+          } catch (e) {
+            if (kDebugMode) {
+              debugPrint('Attachment push failed ($method): $e');
+            }
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) debugPrint('Attachment push skipped: $e');
+      }
+    }
+  }
+
+  /// Pull missing encrypted attachment blobs from enabled remote providers.
+  ///
+  /// Attachments marked as deleted in remote op-log are ignored.
+  /// Download/save failures are isolated per attachment and do not throw.
+  Future<void> pullSync(VaultSnapshot snapshot) async {
+    if (kIsWeb || snapshot.attachmentManifest.isEmpty) return;
+    final methods = ref.read(syncSettingsProvider);
+    final attachmentService = ref.read(attachmentServiceProvider);
+    final deletedIds = snapshot.opLog
+        .where(
+          (op) =>
+              op.op == OpType.delete &&
+              op.entityType == OpEntityType.attachment,
+        )
+        .map((op) => op.entityId)
+        .toSet();
+
+    for (final attachment in snapshot.attachmentManifest) {
+      if (deletedIds.contains(attachment.id)) continue;
+
+      try {
+        if (await attachmentService.attachmentExists(attachment)) {
+          continue;
+        }
+      } catch (_) {
+        // Continue with remote fetch if local existence check fails.
+      }
+
+      for (final method in methods) {
+        try {
+          Uint8List? encBytes;
+          if (method == SyncMethod.googleDrive) {
+            final drive = ref.read(googleDriveServiceProvider);
+            if (await drive.hasCredentials()) {
+              encBytes = await drive.downloadAttachment(attachment);
+            }
+          } else if (method == SyncMethod.webdav) {
+            final webdav = ref.read(webDavServiceProvider);
+            if (await webdav.hasCredentials()) {
+              encBytes = await webdav.downloadAttachment(attachment);
+            }
+          } else if (method == SyncMethod.icloud && !kIsWeb) {
+            final icloud = ref.read(iCloudSyncServiceProvider);
+            if (icloud.isSupported) {
+              encBytes = await icloud.restoreAttachment(attachment);
+            }
+          }
+
+          if (encBytes != null) {
+            await attachmentService.saveEncryptedBytes(attachment, encBytes);
+            break;
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint('Attachment pull failed ($method): $e');
+          }
+        }
+      }
+    }
+  }
+
   /// Clear all assets (and related data). Used before JSON import to replace vault.
   Future<void> clearAll() async {
     state = [];
@@ -506,13 +613,36 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       }
     } else {
       final dbService = ref.read(databaseServiceProvider);
+      final attachmentService = ref.read(attachmentServiceProvider);
       final db = await dbService.ensureOpen(
         ref.read(encryptionServiceProvider).masterKey,
       );
+      final deletedAttachmentIds = snapshot.opLog
+          .where(
+            (op) =>
+                op.op == OpType.delete &&
+                op.entityType == OpEntityType.attachment,
+          )
+          .map((op) => op.entityId)
+          .toSet();
+      final existingAttachments = await dbService.getAllAttachments();
+      final keepEncFileNames = snapshot.attachmentManifest
+          .where((a) => !deletedAttachmentIds.contains(a.id))
+          .map((a) => a.encFileName)
+          .toSet();
+      for (final attachment in existingAttachments) {
+        if (!keepEncFileNames.contains(attachment.encFileName)) {
+          try {
+            await attachmentService.deleteAttachmentFile(attachment);
+          } catch (_) {}
+        }
+      }
       await db.delete('assets');
       await dbService.deleteAllTags();
       await dbService.deleteAllAssetTypes();
       await dbService.deleteAllRelations();
+      await db.delete('asset_attachments');
+      await dbService.replaceOpLog(snapshot.opLog);
       for (final a in snapshot.assets) {
         await _insertOneAssetRaw(db, a);
       }
@@ -528,9 +658,46 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       await ref
           .read(assetTypesProvider.notifier)
           .setCustomTypesFromSnapshot(snapshot.customAssetTypes);
+      for (final attachment in snapshot.attachmentManifest) {
+        if (deletedAttachmentIds.contains(attachment.id)) continue;
+        await dbService.insertAttachment(attachment);
+      }
       ref.invalidate(assetRelationsProvider);
+      await pullSync(snapshot);
     }
     await _triggerSync();
+  }
+
+  /// Deletes [attachment] blob from all enabled remote providers.
+  ///
+  /// Errors are isolated per provider and intentionally swallowed.
+  Future<void> deleteRemoteAttachment(AssetAttachment attachment) async {
+    if (kIsWeb) return;
+    final methods = ref.read(syncSettingsProvider);
+    for (final method in methods) {
+      try {
+        if (method == SyncMethod.googleDrive) {
+          final drive = ref.read(googleDriveServiceProvider);
+          if (await drive.hasCredentials()) {
+            await drive.deleteRemoteAttachment(attachment);
+          }
+        } else if (method == SyncMethod.webdav) {
+          final webdav = ref.read(webDavServiceProvider);
+          if (await webdav.hasCredentials()) {
+            await webdav.deleteRemoteAttachment(attachment);
+          }
+        } else if (method == SyncMethod.icloud) {
+          final icloud = ref.read(iCloudSyncServiceProvider);
+          if (icloud.isSupported) {
+            await icloud.deleteAttachmentBackup(attachment);
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('Remote attachment delete failed ($method): $e');
+        }
+      }
+    }
   }
 
   Future<void> _insertOneAssetRaw(Database db, Asset asset) async {
@@ -584,6 +751,8 @@ class AssetsNotifier extends Notifier<List<Asset>> {
     }
 
     final tombstones = _tombstoneListForSync;
+    List<OpLogEntry> opLog = const [];
+    List<AssetAttachment> attachmentManifest = const [];
     bool synced = false;
 
     // 1. Always update local cache/IndexedDB
@@ -594,9 +763,18 @@ class AssetsNotifier extends Notifier<List<Asset>> {
         customAssetTypes: customTypes,
         relations: relations,
         tombstones: tombstones,
+        opLog: opLog,
+        attachmentManifest: attachmentManifest,
       );
       await ref.read(webVaultStorageProvider).writeEncrypted(blob);
       synced = true;
+    } else {
+      try {
+        final dbSvc = ref.read(databaseServiceProvider);
+        await dbSvc.ensureOpen(ref.read(encryptionServiceProvider).masterKey);
+        opLog = await dbSvc.getAllOpLog();
+        attachmentManifest = await dbSvc.getAllAttachments();
+      } catch (_) {}
     }
 
     // 2. Dispatch to enabled cloud/file providers
@@ -610,6 +788,8 @@ class AssetsNotifier extends Notifier<List<Asset>> {
               customAssetTypes: customTypes,
               relations: relations,
               tombstones: tombstones,
+              opLog: opLog,
+              attachmentManifest: attachmentManifest,
             );
             synced = true;
           }
@@ -622,6 +802,8 @@ class AssetsNotifier extends Notifier<List<Asset>> {
               customAssetTypes: customTypes,
               relations: relations,
               tombstones: tombstones,
+              opLog: opLog,
+              attachmentManifest: attachmentManifest,
             );
             await webDav.backupEncrypted(blob);
             synced = true;
@@ -635,6 +817,8 @@ class AssetsNotifier extends Notifier<List<Asset>> {
               customAssetTypes: customTypes,
               relations: relations,
               tombstones: tombstones,
+              opLog: opLog,
+              attachmentManifest: attachmentManifest,
             );
             await icloud.backup(blob);
             synced = true;
@@ -647,6 +831,8 @@ class AssetsNotifier extends Notifier<List<Asset>> {
               customAssetTypes: customTypes,
               tombstones: tombstones,
               relations: relations,
+              opLog: opLog,
+              attachmentManifest: attachmentManifest,
             );
             synced = true;
           }
@@ -659,6 +845,32 @@ class AssetsNotifier extends Notifier<List<Asset>> {
     if (synced) {
       await ref.read(lastSyncAtProvider.notifier).recordSync();
     }
+  }
+
+  /// Public hook for screens that changed non-asset entities (e.g. attachments)
+  /// and need to push a fresh full snapshot through the regular sync pipeline.
+  Future<void> syncNow() => _triggerSync();
+
+  /// Builds the native local snapshot used during cold-start merge.
+  ///
+  /// Includes attachment manifest and op-log to avoid dropping local-only
+  /// attachment metadata/history when merging with a remote snapshot.
+  Future<VaultSnapshot> buildNativeLocalSnapshotForMerge({
+    required List<AssetType> customAssetTypes,
+    required List<Map<String, dynamic>> relations,
+  }) async {
+    final dbService = ref.read(databaseServiceProvider);
+    final opLog = await dbService.getAllOpLog();
+    final attachmentManifest = await dbService.getAllAttachments();
+    return VaultSnapshot(
+      version: 3,
+      assets: state,
+      customAssetTypes: customAssetTypes,
+      relations: relations,
+      tombstones: _tombstoneList,
+      opLog: opLog,
+      attachmentManifest: attachmentManifest,
+    );
   }
 }
 

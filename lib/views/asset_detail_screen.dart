@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,12 +8,16 @@ import 'package:uuid/uuid.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/asset.dart';
+import '../models/attachment.dart';
 import '../utils/relation_type_label.dart';
 import '../models/field.dart';
 import '../providers/assets_provider.dart';
 import '../providers/asset_types_provider.dart';
+import '../providers/attachments_provider.dart';
 import '../providers/service_providers.dart';
 import '../providers/relations_provider.dart';
+import '../services/e2ee_sync_service.dart';
+import '../services/file_picker_service.dart';
 import '../utils/icon_helper.dart';
 import '../main.dart';
 
@@ -26,6 +31,126 @@ class AssetDetailScreen extends ConsumerStatefulWidget {
 
 class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
   bool _showSecrets = false;
+
+  String _formatAttachmentSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    final kb = bytes / 1024;
+    if (kb < 1024) return '${kb.toStringAsFixed(1)} KB';
+    final mb = kb / 1024;
+    return '${mb.toStringAsFixed(1)} MB';
+  }
+
+  Future<void> _addAttachment() async {
+    final l10n = AppLocalizations.of(context)!;
+    final picked = await ref.read(filePickerServiceProvider).pickSingleFile();
+    if (picked == null) return;
+    try {
+      final attachmentService = ref.read(attachmentServiceProvider);
+      final dbSvc = ref.read(databaseServiceProvider);
+      if (!dbSvc.isOpen) {
+        final key = ref.read(encryptionServiceProvider).masterKey;
+        await dbSvc.ensureOpen(key);
+      }
+
+      final attachment = await attachmentService.saveAttachment(
+        assetId: widget.assetId,
+        name: picked.name,
+        mimeType: picked.mimeType,
+        bytes: picked.bytes,
+      );
+      await dbSvc.insertAttachment(attachment);
+      await dbSvc.recordAttachmentOperation(
+        attachment.id,
+        OpType.upsert,
+        payload: attachment.toJson(),
+      );
+
+      ref.invalidate(attachmentsProvider(widget.assetId));
+      await ref
+          .read(assetsProvider.notifier)
+          .pushSync(attachments: [attachment]);
+      await ref.read(assetsProvider.notifier).syncNow();
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.attachmentAdded)));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.errorGeneric(e.toString()))),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteAttachment(AssetAttachment attachment) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: kSurfaceColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Text(l10n.delete),
+        content: Text(
+          attachment.name,
+          style: const TextStyle(color: kTextMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              l10n.delete,
+              style: const TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      if (!kIsWeb) {
+        final dbSvc = ref.read(databaseServiceProvider);
+        if (!dbSvc.isOpen) {
+          final key = ref.read(encryptionServiceProvider).masterKey;
+          await dbSvc.ensureOpen(key);
+        }
+        await dbSvc.deleteAttachment(attachment.id);
+        await dbSvc.recordAttachmentOperation(
+          attachment.id,
+          OpType.delete,
+          payload: const {},
+        );
+      }
+      try {
+        await ref
+            .read(attachmentServiceProvider)
+            .deleteAttachmentFile(attachment);
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint(
+            'deleteAttachmentFile failed, continue syncing delete op: $e',
+          );
+        }
+      }
+      ref.invalidate(attachmentsProvider(widget.assetId));
+      await ref.read(assetsProvider.notifier).syncNow();
+      await ref
+          .read(assetsProvider.notifier)
+          .deleteRemoteAttachment(attachment);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.errorGeneric(e.toString()))),
+        );
+      }
+    }
+  }
 
   void _deleteAsset() async {
     final l10n = AppLocalizations.of(context)!;
@@ -115,6 +240,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
     );
     final encryptionService = ref.read(encryptionServiceProvider);
     final relationsAsync = ref.watch(assetRelationsProvider(widget.assetId));
+    final attachmentsAsync = ref.watch(attachmentsProvider(widget.assetId));
     final typeColor = getTypeColor(assetType.id);
     final typeIcon = getIconData(assetType.icon);
 
@@ -162,6 +288,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
             onPressed: () => setState(() => _showSecrets = !_showSecrets),
           ),
           IconButton(
+            key: const Key('asset_delete_button'),
             icon: const Icon(
               Icons.delete_outline,
               size: 20,
@@ -268,6 +395,101 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
             ),
             const SizedBox(height: 24),
           ],
+
+          // ── Attachments ───────────────────────────────────────────
+          attachmentsAsync.when(
+            data: (attachments) {
+              return Column(
+                key: const Key('attachments_section'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.attachmentsTitle,
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: kTextMuted,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: _addAttachment,
+                        icon: const Icon(Icons.attach_file, size: 18),
+                        tooltip: l10n.attachAction,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  if (attachments.isNotEmpty)
+                    _DetailCard(
+                      children: attachments
+                          .map(
+                            (attachment) => Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.insert_drive_file_outlined,
+                                    size: 16,
+                                    color: kTextMuted,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          attachment.name,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          _formatAttachmentSize(
+                                            attachment.size,
+                                          ),
+                                          style: const TextStyle(
+                                            color: kTextMuted,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    key: Key(
+                                      'attachment_delete_${attachment.id}',
+                                    ),
+                                    onPressed: () =>
+                                        _confirmDeleteAttachment(attachment),
+                                    icon: const Icon(
+                                      Icons.delete_outline,
+                                      size: 18,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  const SizedBox(height: 24),
+                ],
+              );
+            },
+            loading: () => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
+          ),
 
           // ── Linked Assets ────────────────────────────────────────
           Row(

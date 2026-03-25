@@ -1,0 +1,77 @@
+name: Bug Report
+description: Report a bug or unexpected behaviour in OctarqVault
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Android
+        - iOS
+        - macOS
+        - Web
+        - Windows
+        - Linux
+    validations:
+      required: true
+
+  - type: input
+    id: app_version
+    attributes:
+      label: App Version
+      placeholder: "e.g. 1.4.0+1"
+    validations:
+      required: true
+
+  - type: input
+    id: flutter_version
+    attributes:
+      label: Flutter Version
+      description: Output of `flutter --version`
+      placeholder: "e.g. Flutter 3.27.4"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: sync_method
+    attributes:
+      label: Sync Method
+      options:
+        - None
+        - WebDAV
+        - Google Drive
+        - iCloud
+        - Local File
+    validations:
+      required: false
+
+  - type: textarea
+    id: steps_to_reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Numbered steps that reliably reproduce the issue
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected Behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: Actual Behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: crash_log
+    attributes:
+      label: Crash Log / Stack Trace (optional)
+      render: text
+    validations:
+      required: false

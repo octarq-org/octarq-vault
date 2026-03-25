@@ -11,6 +11,7 @@ import '../providers/assets_provider.dart';
 import '../providers/locale_preference_provider.dart';
 import '../providers/sync_settings_provider.dart';
 import '../providers/sync_conflicts_provider.dart';
+import '../providers/change_password_provider.dart';
 import '../models/asset.dart';
 import '../models/sync_settings.dart';
 import '../main.dart';
@@ -100,6 +101,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('biometric_enabled', value);
     setState(() => _biometricEnabled = value);
+  }
+
+  void _showChangePasswordDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => const _ChangePasswordDialog(),
+    );
   }
 
   void _showAutoLockPicker() {
@@ -483,9 +491,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   .map(
                     (m) => CheckboxListTile(
                       value: current.contains(m),
-                      onChanged: (_) => ref
-                          .read(syncSettingsProvider.notifier)
-                          .toggleSyncMethod(m),
+                      onChanged: (_) async {
+                        if (m == SyncMethod.icloud && !current.contains(m)) {
+                          final icloud = ref.read(iCloudSyncServiceProvider);
+                          final available =
+                              icloud.isSupported && await icloud.isAvailable;
+                          if (!available) {
+                            if (ctx.mounted) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                SnackBar(
+                                  content: Text(l10n.icloudNotAvailable),
+                                ),
+                              );
+                            }
+                            return;
+                          }
+                        }
+                        await ref
+                            .read(syncSettingsProvider.notifier)
+                            .toggleSyncMethod(m);
+                      },
                       title: Text(_syncMethodLabel(l10n, m)),
                       activeColor: kPrimaryGreen,
                       controlAffinity: ListTileControlAffinity.leading,
@@ -676,6 +701,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onChanged: _toggleBiometric,
             ),
           ListTile(
+            leading: const Icon(Icons.lock_reset_outlined),
+            title: Text(l10n.changeMasterPassword),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: _showChangePasswordDialog,
+          ),
+          ListTile(
             leading: const Icon(Icons.timer_outlined),
             title: Text(l10n.autoLockTimeout),
             subtitle: Text(l10n.lockAfterMinutes(autoLockMinutes)),
@@ -822,6 +853,154 @@ class _WebSecurityBanner extends StatefulWidget {
 
   @override
   State<_WebSecurityBanner> createState() => _WebSecurityBannerState();
+}
+
+class _ChangePasswordDialog extends ConsumerStatefulWidget {
+  const _ChangePasswordDialog();
+
+  @override
+  ConsumerState<_ChangePasswordDialog> createState() =>
+      _ChangePasswordDialogState();
+}
+
+class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
+  final _currentController = TextEditingController();
+  final _newController = TextEditingController();
+  final _confirmController = TextEditingController();
+
+  @override
+  void dispose() {
+    _currentController.dispose();
+    _newController.dispose();
+    _confirmController.dispose();
+    super.dispose();
+  }
+
+  bool get _isWeak =>
+      _newController.text.isNotEmpty && _newController.text.length < 12;
+  bool get _mismatch =>
+      _confirmController.text.isNotEmpty &&
+      _confirmController.text != _newController.text;
+
+  bool get _canSubmit =>
+      _currentController.text.isNotEmpty &&
+      _newController.text.length >= 12 &&
+      _confirmController.text == _newController.text;
+
+  Future<void> _submit() async {
+    if (!_canSubmit) return;
+    await ref
+        .read(changePasswordProvider.notifier)
+        .changePassword(_currentController.text, _newController.text);
+
+    if (!mounted) return;
+    final nextState = ref.read(changePasswordProvider);
+    if (nextState.isSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.passwordChangedSuccessfully,
+          ),
+        ),
+      );
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(changePasswordProvider);
+    final submitEnabled = _canSubmit && !state.isLoading;
+
+    return AlertDialog(
+      backgroundColor: kSurfaceColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      title: Text(AppLocalizations.of(context)!.changeMasterPassword),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _currentController,
+            obscureText: true,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context)!.currentPassword,
+              border: const OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _newController,
+            obscureText: true,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context)!.newPassword,
+              border: const OutlineInputBorder(),
+            ),
+          ),
+          if (_isWeak)
+            Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text(
+                AppLocalizations.of(context)!.passwordTooWeak,
+                style: const TextStyle(
+                  color: Colors.orangeAccent,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _confirmController,
+            obscureText: true,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context)!.confirmNewPassword,
+              border: const OutlineInputBorder(),
+            ),
+          ),
+          if (_mismatch)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                AppLocalizations.of(context)!.passwordsDoNotMatch,
+                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+              ),
+            ),
+          if (state.hasError)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                state.errorMessage!,
+                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+              ),
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: state.isLoading ? null : () => Navigator.of(context).pop(),
+          child: Text(AppLocalizations.of(context)!.cancel),
+        ),
+        FilledButton(
+          onPressed: submitEnabled ? _submit : null,
+          style: FilledButton.styleFrom(
+            backgroundColor: kPrimaryGreen,
+            foregroundColor: Colors.black,
+            disabledBackgroundColor: kBorderColor,
+          ),
+          child: state.isLoading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(AppLocalizations.of(context)!.changePasswordAction),
+        ),
+      ],
+    );
+  }
 }
 
 class _WebSecurityBannerState extends State<_WebSecurityBanner> {

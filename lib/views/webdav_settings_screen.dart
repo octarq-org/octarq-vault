@@ -524,7 +524,7 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
                     OutlinedButton.icon(
                       onPressed: _handleICloudRestore,
                       icon: const Icon(Icons.restore),
-                      label: Text(l10n.restoreFromWebdav),
+                      label: Text(l10n.restoreFromIcloud),
                     ),
                   ],
                 ],

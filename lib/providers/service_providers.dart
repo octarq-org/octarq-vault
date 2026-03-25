@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../services/attachment_service.dart';
 import '../services/database_service.dart';
 import '../services/encryption_service.dart';
 import '../services/secure_storage_service.dart';
@@ -24,4 +25,7 @@ final webVaultStorageProvider = Provider<WebVaultStorage>(
 );
 final iCloudSyncServiceProvider = Provider<ICloudSyncService>(
   (ref) => ICloudSyncService(),
+);
+final attachmentServiceProvider = Provider<AttachmentService>(
+  (ref) => AttachmentService(ref.read(encryptionServiceProvider)),
 );

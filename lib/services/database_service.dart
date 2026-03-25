@@ -1,12 +1,13 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/attachment.dart';
 import '../utils/platform_utils.dart';
 import 'e2ee_sync_service.dart';
+import 'encryption_service.dart';
 
 class DatabaseService {
   Database? _db;
@@ -180,6 +181,10 @@ class DatabaseService {
   /// True when [init]/[ensureOpen] has assigned a live [Database] handle.
   bool get isOpen => _db != null;
 
+  /// Injects an already-open [Database] — for testing only.
+  @visibleForTesting
+  set testDb(Database db) => _db = db;
+
   /// Opens SQLCipher when [init] has not finished or was never called for this
   /// process (e.g. race right after first `setupMasterPassword` / unlock).
   Future<Database> ensureOpen(Uint8List masterKeyBytes) async {
@@ -312,6 +317,30 @@ class DatabaseService {
     final cutoff = maxSeq - keepCount;
     if (cutoff > 0) {
       await db.delete('op_log', where: 'seq <= ?', whereArgs: [cutoff]);
+    }
+  }
+
+  /// Deletes all entries from the op-log table.
+  Future<void> deleteAllOpLog() async {
+    await db.delete('op_log');
+  }
+
+  /// Replaces local op-log with [entries].
+  ///
+  /// Sequence numbers are re-assigned by SQLite AUTOINCREMENT.
+  Future<void> replaceOpLog(List<OpLogEntry> entries) async {
+    await db.delete('op_log');
+    for (final entry in entries) {
+      await appendOpLog(
+        OpLogEntry(
+          id: entry.id,
+          op: entry.op,
+          entityType: entry.entityType,
+          entityId: entry.entityId,
+          payload: entry.payload,
+          createdAt: entry.createdAt,
+        ),
+      );
     }
   }
 
@@ -516,4 +545,44 @@ class DatabaseService {
     createdAt: row['created_at'] as int,
     updatedAt: row['updated_at'] as int,
   );
+
+  // -------------------------------------------------------------------------
+  // Key management
+  // -------------------------------------------------------------------------
+
+  /// Re-keys the SQLCipher database to [newKey] in-place.
+  ///
+  /// Flushes the WAL first to ensure the checkpoint is clean, then issues
+  /// `PRAGMA rekey`. Propagates any SQLCipher exception to the caller.
+  Future<void> rekeyDatabase(Uint8List newKey) async {
+    final hexKey = _bytesToHex(newKey);
+    await db.execute('PRAGMA wal_checkpoint(TRUNCATE)');
+    await db.execute("PRAGMA rekey = '$hexKey'");
+  }
+
+  /// Re-encrypts every row in `asset_fields` from [oldEnc] to [newEnc].
+  ///
+  /// Runs inside a single database transaction so that a failure mid-way
+  /// leaves all rows untouched (SQLite rolls back automatically on throw).
+  Future<void> reEncryptAllFields(
+    EncryptionService oldEnc,
+    EncryptionService newEnc,
+  ) async {
+    final rows = await db.query('asset_fields');
+    await db.transaction((txn) async {
+      for (final row in rows) {
+        final plaintext = oldEnc.decryptField(
+          row['value_enc'] as String,
+          row['iv'] as String,
+        );
+        final reEncrypted = newEnc.encryptField(plaintext);
+        await txn.update(
+          'asset_fields',
+          {'value_enc': reEncrypted['valueEnc']!, 'iv': reEncrypted['iv']!},
+          where: 'id = ?',
+          whereArgs: [row['id']],
+        );
+      }
+    });
+  }
 }

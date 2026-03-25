@@ -39,6 +39,36 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lockVault => '锁定保险库';
 
   @override
+  String get changeMasterPassword => '修改主密码';
+
+  @override
+  String get currentPassword => '当前密码';
+
+  @override
+  String get newPassword => '新密码';
+
+  @override
+  String get confirmNewPassword => '确认新密码';
+
+  @override
+  String get changePasswordAction => '修改密码';
+
+  @override
+  String get passwordChangedSuccessfully => '密码修改成功';
+
+  @override
+  String get passwordTooWeak => '密码强度过弱';
+
+  @override
+  String get attachmentAdded => '附件已添加';
+
+  @override
+  String get attachmentsTitle => '附件';
+
+  @override
+  String get attachAction => '添加附件';
+
+  @override
   String get biometricUnlock => '生物识别解锁';
 
   @override
@@ -661,6 +691,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get restoreFromWebdav => '从 WebDAV 恢复';
+
+  @override
+  String get restoreFromIcloud => '从 iCloud 恢复';
 
   @override
   String get disconnectClearCredentials => '断开并清除凭据';

@@ -21,6 +21,7 @@
 .claude-flow/
 .cursor/
 .swarm/
+.agent
 
 # Flutter/Dart related
 **/doc/api/

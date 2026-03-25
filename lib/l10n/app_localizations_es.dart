@@ -39,6 +39,36 @@ class AppLocalizationsEs extends AppLocalizations {
   String get lockVault => 'Bloquear bóveda';
 
   @override
+  String get changeMasterPassword => 'Cambiar contraseña maestra';
+
+  @override
+  String get currentPassword => 'Contraseña actual';
+
+  @override
+  String get newPassword => 'Nueva contraseña';
+
+  @override
+  String get confirmNewPassword => 'Confirmar nueva contraseña';
+
+  @override
+  String get changePasswordAction => 'Cambiar contraseña';
+
+  @override
+  String get passwordChangedSuccessfully => 'Contraseña cambiada correctamente';
+
+  @override
+  String get passwordTooWeak => 'Demasiado débil';
+
+  @override
+  String get attachmentAdded => 'Adjunto agregado';
+
+  @override
+  String get attachmentsTitle => 'Adjuntos';
+
+  @override
+  String get attachAction => 'Adjuntar';
+
+  @override
   String get biometricUnlock => 'Desbloqueo biométrico';
 
   @override
@@ -684,6 +714,9 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get restoreFromWebdav => 'Restaurar desde WebDAV';
+
+  @override
+  String get restoreFromIcloud => 'Restaurar desde iCloud';
 
   @override
   String get disconnectClearCredentials => 'Desconectar y borrar credenciales';
