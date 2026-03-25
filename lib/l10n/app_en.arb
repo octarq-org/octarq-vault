@@ -20,6 +20,7 @@
   "attachmentAdded": "Attachment added",
   "attachmentsTitle": "Attachments",
   "attachAction": "Attach",
+  "attachmentPreview": "Open / preview",
   "biometricUnlock": "Biometric Unlock",
   "biometricUnlockSubtitle": "Use Face ID / fingerprint to unlock",
   "autoLockTimeout": "Auto-Lock Timeout",

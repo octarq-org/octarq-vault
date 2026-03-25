@@ -20,6 +20,7 @@
   "attachmentAdded": "Adjunto agregado",
   "attachmentsTitle": "Adjuntos",
   "attachAction": "Adjuntar",
+  "attachmentPreview": "Abrir / previsualizar",
   "biometricUnlock": "Desbloqueo biométrico",
   "biometricUnlockSubtitle": "Usar Face ID / huella para desbloquear",
   "autoLockTimeout": "Tiempo de bloqueo automático",

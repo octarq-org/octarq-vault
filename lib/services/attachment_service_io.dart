@@ -10,6 +10,7 @@ import 'package:uuid/uuid.dart';
 
 import '../models/attachment.dart';
 import 'encryption_service.dart';
+import 'web_vault_storage.dart';
 
 const _dirName = 'octarq_attachments';
 const _uuid = Uuid();
@@ -17,7 +18,8 @@ const _uuid = Uuid();
 class AttachmentService {
   final EncryptionService _enc;
 
-  AttachmentService(this._enc);
+  /// Optional [WebVaultStorage] is unused on IO; required on web via [service_providers].
+  AttachmentService(this._enc, [WebVaultStorage? _]);
 
   Future<Directory> _dir() async {
     final base = await getApplicationSupportDirectory();

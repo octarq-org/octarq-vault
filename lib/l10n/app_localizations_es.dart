@@ -69,6 +69,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get attachAction => 'Adjuntar';
 
   @override
+  String get attachmentPreview => 'Abrir / previsualizar';
+
+  @override
   String get biometricUnlock => 'Desbloqueo biométrico';
 
   @override

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sqflite_sqlcipher/sqflite.dart';
+import 'package:uuid/uuid.dart';
 import '../models/asset.dart';
 import '../models/asset_type.dart';
 import '../models/field.dart';
@@ -26,6 +27,66 @@ class AssetsNotifier extends Notifier<List<Asset>> {
   /// Persisted through snapshots via the tombstones field in VaultSnapshot.
   final _tombstones = TombstoneRegistry();
 
+  /// Web: attachment metadata and op-log (native uses SQLCipher).
+  final List<AssetAttachment> _webAttachments = [];
+  final List<OpLogEntry> _webOpLog = [];
+  int _webNextOpSeq = 1;
+
+  void _recomputeWebNextOpSeq() {
+    if (_webOpLog.isEmpty) {
+      _webNextOpSeq = 1;
+    } else {
+      var maxSeq = 0;
+      for (final e in _webOpLog) {
+        if (e.seq > maxSeq) maxSeq = e.seq;
+      }
+      _webNextOpSeq = maxSeq + 1;
+    }
+  }
+
+  /// Web-only: attachments for [assetId] from in-memory manifest.
+  List<AssetAttachment> webAttachmentsFor(String assetId) {
+    return _webAttachments
+        .where((a) => a.assetId == assetId)
+        .toList(growable: false);
+  }
+
+  Future<void> recordWebAttachmentUpsert(AssetAttachment attachment) async {
+    if (!kIsWeb) return;
+    _webAttachments.removeWhere((a) => a.id == attachment.id);
+    _webAttachments.add(attachment);
+    _webOpLog.add(
+      OpLogEntry(
+        id: const Uuid().v4(),
+        op: OpType.upsert,
+        entityType: OpEntityType.attachment,
+        entityId: attachment.id,
+        payload: attachment.toJson(),
+        seq: _webNextOpSeq++,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+
+  Future<void> recordWebAttachmentDelete(AssetAttachment attachment) async {
+    if (!kIsWeb) return;
+    _webAttachments.removeWhere((a) => a.id == attachment.id);
+    _webOpLog.add(
+      OpLogEntry(
+        id: const Uuid().v4(),
+        op: OpType.delete,
+        entityType: OpEntityType.attachment,
+        entityId: attachment.id,
+        payload: null,
+        seq: _webNextOpSeq++,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+    await ref
+        .read(webVaultStorageProvider)
+        .deleteAttachmentBlob(attachment.encFileName);
+  }
+
   Future<Database> _vaultDb() async {
     final dbSvc = ref.read(databaseServiceProvider);
     if (dbSvc.isOpen) return dbSvc.db;
@@ -41,6 +102,9 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       if (next == AuthState.locked || next == AuthState.unsetup) {
         state = [];
         _tombstones.clear();
+        _webAttachments.clear();
+        _webOpLog.clear();
+        _webNextOpSeq = 1;
       } else if (next == AuthState.unlocked && previous != AuthState.unlocked) {
         Future.microtask(() => loadAssets());
       }
@@ -95,6 +159,8 @@ class AssetsNotifier extends Notifier<List<Asset>> {
                     customAssetTypes: localSnapshot.customAssetTypes,
                     relations: localSnapshot.relations,
                     tombstones: localSnapshot.tombstones,
+                    opLog: localSnapshot.opLog,
+                    attachmentManifest: localSnapshot.attachmentManifest,
                   );
                   await storage.writeEncrypted(mergedBlob);
                 }
@@ -105,9 +171,21 @@ class AssetsNotifier extends Notifier<List<Asset>> {
           }
         }
 
-        if (localSnapshot == null) return;
+        if (localSnapshot == null) {
+          _webAttachments.clear();
+          _webOpLog.clear();
+          _webNextOpSeq = 1;
+          return;
+        }
         state = localSnapshot.assets;
         _tombstones.loadFromList(localSnapshot.tombstones);
+        _webAttachments
+          ..clear()
+          ..addAll(localSnapshot.attachmentManifest);
+        _webOpLog
+          ..clear()
+          ..addAll(localSnapshot.opLog);
+        _recomputeWebNextOpSeq();
         ref
             .read(webVaultRelationsProvider.notifier)
             .replace(localSnapshot.relations);
@@ -405,7 +483,25 @@ class AssetsNotifier extends Notifier<List<Asset>> {
   Future<void> deleteAsset(String id) async {
     final now = DateTime.now().millisecondsSinceEpoch;
 
-    if (!kIsWeb) {
+    if (kIsWeb) {
+      final storage = ref.read(webVaultStorageProvider);
+      final removed = _webAttachments.where((a) => a.assetId == id).toList();
+      for (final a in removed) {
+        _webAttachments.removeWhere((x) => x.id == a.id);
+        await storage.deleteAttachmentBlob(a.encFileName);
+        _webOpLog.add(
+          OpLogEntry(
+            id: const Uuid().v4(),
+            op: OpType.delete,
+            entityType: OpEntityType.attachment,
+            entityId: a.id,
+            payload: null,
+            seq: _webNextOpSeq++,
+            createdAt: now,
+          ),
+        );
+      }
+    } else {
       final db = await _vaultDb();
       final dbService = ref.read(databaseServiceProvider);
 
@@ -576,6 +672,13 @@ class AssetsNotifier extends Notifier<List<Asset>> {
   Future<void> clearAll() async {
     state = [];
     if (kIsWeb) {
+      final storage = ref.read(webVaultStorageProvider);
+      for (final a in _webAttachments) {
+        await storage.deleteAttachmentBlob(a.encFileName);
+      }
+      _webAttachments.clear();
+      _webOpLog.clear();
+      _webNextOpSeq = 1;
       ref.read(webVaultRelationsProvider.notifier).replace([]);
       final syncService = ref.read(e2eeSyncServiceProvider);
       final blob = syncService.packSnapshotTOCiphertext(
@@ -604,6 +707,22 @@ class AssetsNotifier extends Notifier<List<Asset>> {
     state = snapshot.assets;
     _tombstones.loadFromList(snapshot.tombstones);
     if (kIsWeb) {
+      final storage = ref.read(webVaultStorageProvider);
+      final keepEnc = snapshot.attachmentManifest
+          .map((a) => a.encFileName)
+          .toSet();
+      for (final a in _webAttachments) {
+        if (!keepEnc.contains(a.encFileName)) {
+          await storage.deleteAttachmentBlob(a.encFileName);
+        }
+      }
+      _webAttachments
+        ..clear()
+        ..addAll(snapshot.attachmentManifest);
+      _webOpLog
+        ..clear()
+        ..addAll(snapshot.opLog);
+      _recomputeWebNextOpSeq();
       ref.read(webVaultRelationsProvider.notifier).replace(snapshot.relations);
       await ref
           .read(assetTypesProvider.notifier)
@@ -757,6 +876,8 @@ class AssetsNotifier extends Notifier<List<Asset>> {
 
     // 1. Always update local cache/IndexedDB
     if (kIsWeb) {
+      opLog = List<OpLogEntry>.from(_webOpLog);
+      attachmentManifest = List<AssetAttachment>.from(_webAttachments);
       final syncService = ref.read(e2eeSyncServiceProvider);
       final blob = syncService.packSnapshotTOCiphertext(
         state,

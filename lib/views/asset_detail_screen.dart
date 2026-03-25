@@ -18,6 +18,7 @@ import '../providers/service_providers.dart';
 import '../providers/relations_provider.dart';
 import '../services/e2ee_sync_service.dart';
 import '../services/file_picker_service.dart';
+import '../utils/attachment_preview.dart';
 import '../utils/icon_helper.dart';
 import '../main.dart';
 
@@ -31,6 +32,28 @@ class AssetDetailScreen extends ConsumerStatefulWidget {
 
 class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
   bool _showSecrets = false;
+
+  Future<void> _previewAttachment(AssetAttachment attachment) async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final bytes = await ref
+          .read(attachmentServiceProvider)
+          .loadAttachmentBytes(attachment);
+      if (!mounted) return;
+      await previewDecryptedAttachment(
+        context: context,
+        bytes: bytes,
+        mimeType: attachment.mimeType,
+        suggestedName: attachment.name,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.errorGeneric(e.toString()))),
+        );
+      }
+    }
+  }
 
   String _formatAttachmentSize(int bytes) {
     if (bytes < 1024) return '$bytes B';
@@ -46,29 +69,35 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
     if (picked == null) return;
     try {
       final attachmentService = ref.read(attachmentServiceProvider);
-      final dbSvc = ref.read(databaseServiceProvider);
-      if (!dbSvc.isOpen) {
-        final key = ref.read(encryptionServiceProvider).masterKey;
-        await dbSvc.ensureOpen(key);
-      }
-
       final attachment = await attachmentService.saveAttachment(
         assetId: widget.assetId,
         name: picked.name,
         mimeType: picked.mimeType,
         bytes: picked.bytes,
       );
-      await dbSvc.insertAttachment(attachment);
-      await dbSvc.recordAttachmentOperation(
-        attachment.id,
-        OpType.upsert,
-        payload: attachment.toJson(),
-      );
+
+      if (kIsWeb) {
+        await ref
+            .read(assetsProvider.notifier)
+            .recordWebAttachmentUpsert(attachment);
+      } else {
+        final dbSvc = ref.read(databaseServiceProvider);
+        if (!dbSvc.isOpen) {
+          final key = ref.read(encryptionServiceProvider).masterKey;
+          await dbSvc.ensureOpen(key);
+        }
+        await dbSvc.insertAttachment(attachment);
+        await dbSvc.recordAttachmentOperation(
+          attachment.id,
+          OpType.upsert,
+          payload: attachment.toJson(),
+        );
+        await ref
+            .read(assetsProvider.notifier)
+            .pushSync(attachments: [attachment]);
+      }
 
       ref.invalidate(attachmentsProvider(widget.assetId));
-      await ref
-          .read(assetsProvider.notifier)
-          .pushSync(attachments: [attachment]);
       await ref.read(assetsProvider.notifier).syncNow();
 
       if (mounted) {
@@ -114,7 +143,11 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
     );
     if (confirmed != true) return;
     try {
-      if (!kIsWeb) {
+      if (kIsWeb) {
+        await ref
+            .read(assetsProvider.notifier)
+            .recordWebAttachmentDelete(attachment);
+      } else {
         final dbSvc = ref.read(databaseServiceProvider);
         if (!dbSvc.isOpen) {
           final key = ref.read(encryptionServiceProvider).masterKey;
@@ -126,16 +159,16 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
           OpType.delete,
           payload: const {},
         );
-      }
-      try {
-        await ref
-            .read(attachmentServiceProvider)
-            .deleteAttachmentFile(attachment);
-      } catch (e) {
-        if (kDebugMode) {
-          debugPrint(
-            'deleteAttachmentFile failed, continue syncing delete op: $e',
-          );
+        try {
+          await ref
+              .read(attachmentServiceProvider)
+              .deleteAttachmentFile(attachment);
+        } catch (e) {
+          if (kDebugMode) {
+            debugPrint(
+              'deleteAttachmentFile failed, continue syncing delete op: $e',
+            );
+          }
         }
       }
       ref.invalidate(attachmentsProvider(widget.assetId));
@@ -442,28 +475,50 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                                   ),
                                   const SizedBox(width: 10),
                                   Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          attachment.name,
-                                          style: GoogleFonts.inter(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        onTap: () =>
+                                            _previewAttachment(attachment),
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 4,
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                attachment.name,
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                _formatAttachmentSize(
+                                                  attachment.size,
+                                                ),
+                                                style: const TextStyle(
+                                                  color: kTextMuted,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          _formatAttachmentSize(
-                                            attachment.size,
-                                          ),
-                                          style: const TextStyle(
-                                            color: kTextMuted,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    tooltip: l10n.attachmentPreview,
+                                    onPressed: () =>
+                                        _previewAttachment(attachment),
+                                    icon: const Icon(
+                                      Icons.open_in_new_outlined,
+                                      size: 18,
                                     ),
                                   ),
                                   IconButton(

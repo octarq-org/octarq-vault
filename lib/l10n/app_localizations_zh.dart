@@ -69,6 +69,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get attachAction => '添加附件';
 
   @override
+  String get attachmentPreview => '打开 / 预览';
+
+  @override
   String get biometricUnlock => '生物识别解锁';
 
   @override

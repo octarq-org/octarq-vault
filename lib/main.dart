@@ -11,6 +11,7 @@ import 'router/app_router.dart';
 import 'providers/auto_lock_provider.dart';
 import 'providers/auth_provider.dart';
 import 'utils/auto_lock.dart';
+import 'utils/web_visibility_listener.dart';
 
 // ─── Design Tokens ──────────────────────────────────────────────────────────
 const kPrimaryGreen = Color(0xFF00C896);
@@ -49,10 +50,34 @@ class _OctarqVaultAppState extends ConsumerState<OctarqVaultApp>
     with WidgetsBindingObserver {
   DateTime? _pausedAt;
 
+  void _maybeLockAfterBackgroundInterval() {
+    if (_pausedAt == null) return;
+    final paused = _pausedAt!;
+    _pausedAt = null;
+    if (!mounted) return;
+    if (ref.read(authProvider) != AuthState.unlocked) return;
+    final waitMinutes = ref.read(autoLockMinutesProvider);
+    if (shouldLockAfterBackground(
+      pausedAt: paused,
+      now: DateTime.now(),
+      limitMinutes: waitMinutes,
+    )) {
+      ref.read(authProvider.notifier).lock();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (kIsWeb) {
+      listenWebDocumentVisibility(
+        onBecameHidden: () {
+          _pausedAt = DateTime.now();
+        },
+        onBecameVisible: _maybeLockAfterBackgroundInterval,
+      );
+    }
   }
 
   @override
@@ -66,18 +91,7 @@ class _OctarqVaultAppState extends ConsumerState<OctarqVaultApp>
     if (state == AppLifecycleState.paused) {
       _pausedAt = DateTime.now();
     } else if (state == AppLifecycleState.resumed) {
-      if (_pausedAt != null) {
-        final waitMinutes = ref.read(autoLockMinutesProvider);
-        final paused = _pausedAt!;
-        if (shouldLockAfterBackground(
-          pausedAt: paused,
-          now: DateTime.now(),
-          limitMinutes: waitMinutes,
-        )) {
-          ref.read(authProvider.notifier).lock();
-        }
-        _pausedAt = null;
-      }
+      _maybeLockAfterBackgroundInterval();
     }
   }
 

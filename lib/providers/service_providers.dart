@@ -27,5 +27,8 @@ final iCloudSyncServiceProvider = Provider<ICloudSyncService>(
   (ref) => ICloudSyncService(),
 );
 final attachmentServiceProvider = Provider<AttachmentService>(
-  (ref) => AttachmentService(ref.read(encryptionServiceProvider)),
+  (ref) => AttachmentService(
+    ref.read(encryptionServiceProvider),
+    ref.read(webVaultStorageProvider),
+  ),
 );

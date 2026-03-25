@@ -220,6 +220,12 @@ abstract class AppLocalizations {
   /// **'Attach'**
   String get attachAction;
 
+  /// No description provided for @attachmentPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Open / preview'**
+  String get attachmentPreview;
+
   /// No description provided for @biometricUnlock.
   ///
   /// In en, this message translates to:

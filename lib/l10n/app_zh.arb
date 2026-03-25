@@ -20,6 +20,7 @@
   "attachmentAdded": "附件已添加",
   "attachmentsTitle": "附件",
   "attachAction": "添加附件",
+  "attachmentPreview": "打开 / 预览",
   "biometricUnlock": "生物识别解锁",
   "biometricUnlockSubtitle": "使用面容 ID / 指纹解锁",
   "autoLockTimeout": "自动锁定超时",
