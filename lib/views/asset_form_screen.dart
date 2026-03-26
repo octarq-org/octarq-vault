@@ -17,6 +17,17 @@ import '../providers/relations_provider.dart';
 import '../providers/service_providers.dart';
 import '../main.dart';
 
+const _commonDomainRegistrars = <String>[
+  'Namecheap',
+  'GoDaddy',
+  'Cloudflare',
+  'Dynadot',
+  'NameSilo',
+  'Alibaba Cloud',
+  'Tencent Cloud',
+  'West.cn',
+];
+
 class AssetFormScreen extends ConsumerStatefulWidget {
   final Asset? editingAsset;
   final String? defaultTypeId;
@@ -1046,6 +1057,46 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
   }
 
   Widget _buildFieldWidget(AssetTypeFieldSchema schema) {
+    final isDomainRegistrar =
+        _selectedType?.id == 'type_domain' && schema.key == 'registrar';
+    if (isDomainRegistrar) {
+      final controller = _fieldControllers[schema.key]!;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _commonDomainRegistrars
+                .map(
+                  (registrar) => ActionChip(
+                    label: Text(registrar),
+                    onPressed: () {
+                      setState(() {
+                        controller.text = registrar;
+                      });
+                    },
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: controller,
+            decoration: InputDecoration(
+              labelText: schema.label + (schema.isRequired ? ' *' : ''),
+            ),
+            validator: (val) {
+              if (schema.isRequired && (val == null || val.isEmpty)) {
+                return AppLocalizations.of(context)!.required;
+              }
+              return null;
+            },
+          ),
+        ],
+      );
+    }
+
     if (schema.type == 'select') {
       return DropdownButtonFormField<String>(
         decoration: InputDecoration(

@@ -1,2 +1,3 @@
 #include "../../Flutter/Flutter-Debug.xcconfig"
 #include "Warnings.xcconfig"
+PRODUCT_BUNDLE_IDENTIFIER = org.octarq.vault.debug
