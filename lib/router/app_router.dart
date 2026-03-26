@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../providers/assets_provider.dart';
+import '../providers/asset_types_provider.dart';
 import '../views/splash_screen.dart';
 import '../views/setup_screen.dart';
 import '../views/lock_screen.dart';
@@ -141,6 +142,16 @@ final routerProvider = Provider<GoRouter>((ref) {
                     const NoTransitionPage(child: AssetTypeFormScreen()),
               ),
               GoRoute(
+                path: 'asset-types/:id/edit',
+                parentNavigatorKey: shellNavigatorKey,
+                pageBuilder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return NoTransitionPage(
+                    child: _EditAssetTypeWrapper(typeId: id),
+                  );
+                },
+              ),
+              GoRoute(
                 path: 'tags',
                 parentNavigatorKey: shellNavigatorKey,
                 pageBuilder: (context, state) =>
@@ -174,5 +185,23 @@ class _EditAssetWrapper extends ConsumerWidget {
       );
     }
     return AssetFormScreen(editingAsset: asset);
+  }
+}
+
+class _EditAssetTypeWrapper extends ConsumerWidget {
+  final String typeId;
+  const _EditAssetTypeWrapper({required this.typeId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    Future.microtask(
+      () => ref.read(assetTypesProvider.notifier).loadCustomTypes(),
+    );
+    final types = ref.watch(assetTypesProvider);
+    final type = types.where((t) => t.id == typeId && !t.isBuiltIn).firstOrNull;
+    if (type == null) {
+      return Scaffold(body: const Center(child: CircularProgressIndicator()));
+    }
+    return AssetTypeFormScreen(editingType: type);
   }
 }

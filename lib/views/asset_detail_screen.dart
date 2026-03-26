@@ -33,6 +33,25 @@ class AssetDetailScreen extends ConsumerStatefulWidget {
 class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
   bool _showSecrets = false;
 
+  String _humanizeFieldKey(String key) {
+    final normalized = key
+        .replaceAll('-', '_')
+        .split('_')
+        .where((s) => s.isNotEmpty)
+        .map((s) => s[0].toUpperCase() + s.substring(1))
+        .join(' ');
+    return normalized.isEmpty ? key : normalized;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Ensure custom type schemas are loaded so detail can resolve field labels.
+    Future.microtask(
+      () => ref.read(assetTypesProvider.notifier).loadCustomTypes(),
+    );
+  }
+
   Future<void> _previewAttachment(AssetAttachment attachment) async {
     final l10n = AppLocalizations.of(context)!;
     try {
@@ -269,13 +288,100 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
 
     final assetType = assetTypes.firstWhere(
       (t) => t.id == asset.typeId,
-      orElse: () => assetTypes.first,
+      orElse: () =>
+          assetTypes.where((t) => t.isBuiltIn).firstOrNull ?? assetTypes.first,
     );
     final encryptionService = ref.read(encryptionServiceProvider);
     final relationsAsync = ref.watch(assetRelationsProvider(widget.assetId));
     final attachmentsAsync = ref.watch(attachmentsProvider(widget.assetId));
-    final typeColor = getTypeColor(assetType.id);
+    final typeColor = getTypeColor(asset.typeId);
     final typeIcon = getIconData(assetType.icon);
+
+    String displayFieldValue(AssetField fieldData) {
+      String displayValue = '••••••••';
+      if (fieldData.isSensitive && _showSecrets) {
+        try {
+          displayValue = encryptionService.decryptField(
+            fieldData.valueEnc,
+            fieldData.iv,
+          );
+        } catch (_) {
+          displayValue = l10n.errorDecrypting;
+        }
+      } else if (!fieldData.isSensitive) {
+        displayValue = fieldData.valueEnc;
+      }
+      return displayValue;
+    }
+
+    final schemaByKey = {for (final s in assetType.fieldSchema) s.key: s};
+    final displayedFieldRows = <Widget>[];
+    final renderedKeys = <String>{};
+    final genericSchemaLabels = assetType.fieldSchema
+        .map((s) => s.label)
+        .toList();
+    final usedGenericLabels = <String>{};
+
+    for (final schema in assetType.fieldSchema) {
+      final fieldData = asset.fields
+          .where((f) => f.key == schema.key)
+          .firstOrNull;
+      if (fieldData == null) continue;
+      renderedKeys.add(fieldData.key);
+      displayedFieldRows.add(
+        _FieldRow(
+          label: schema.label,
+          value: displayFieldValue(fieldData),
+          isSecret: fieldData.isSensitive,
+          onCopy: !fieldData.isSensitive
+              ? () {
+                  Clipboard.setData(ClipboardData(text: fieldData.valueEnc));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(l10n.fieldCopied(schema.label)),
+                      duration: const Duration(seconds: 1),
+                      backgroundColor: kSurfaceColor,
+                    ),
+                  );
+                }
+              : null,
+        ),
+      );
+    }
+
+    for (final fieldData in asset.fields) {
+      if (renderedKeys.contains(fieldData.key)) continue;
+      String fallbackLabel =
+          schemaByKey[fieldData.key]?.label ?? _humanizeFieldKey(fieldData.key);
+      if (fieldData.key.startsWith('field_')) {
+        final candidate = genericSchemaLabels
+            .where((label) => !usedGenericLabels.contains(label))
+            .firstOrNull;
+        if (candidate != null && candidate.trim().isNotEmpty) {
+          fallbackLabel = candidate;
+          usedGenericLabels.add(candidate);
+        }
+      }
+      displayedFieldRows.add(
+        _FieldRow(
+          label: fallbackLabel,
+          value: displayFieldValue(fieldData),
+          isSecret: fieldData.isSensitive,
+          onCopy: !fieldData.isSensitive
+              ? () {
+                  Clipboard.setData(ClipboardData(text: fieldData.valueEnc));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(l10n.fieldCopied(fallbackLabel)),
+                      duration: const Duration(seconds: 1),
+                      backgroundColor: kSurfaceColor,
+                    ),
+                  );
+                }
+              : null,
+        ),
+      );
+    }
 
     final now = DateTime.now();
     bool isExpiring = false;
@@ -352,7 +458,9 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
             children: [
               _DetailRow(
                 label: l10n.type,
-                value: assetType.name,
+                value: assetType.id == asset.typeId
+                    ? assetType.name
+                    : asset.typeId,
                 icon: typeIcon,
                 iconColor: typeColor,
               ),
@@ -379,53 +487,10 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
           const SizedBox(height: 24),
 
           // ── Fields ───────────────────────────────────────────────
-          if (assetType.fieldSchema.isNotEmpty) ...[
+          if (displayedFieldRows.isNotEmpty) ...[
             _SectionTitle(l10n.fields),
             const SizedBox(height: 10),
-            _DetailCard(
-              children: assetType.fieldSchema.map((schema) {
-                final AssetField? fieldData = asset.fields
-                    .where((f) => f.key == schema.key)
-                    .cast<AssetField?>()
-                    .firstOrNull;
-
-                if (fieldData == null) return const SizedBox.shrink();
-
-                String displayValue = '••••••••';
-                if (fieldData.isSensitive && _showSecrets) {
-                  try {
-                    displayValue = encryptionService.decryptField(
-                      fieldData.valueEnc,
-                      fieldData.iv,
-                    );
-                  } catch (_) {
-                    displayValue = l10n.errorDecrypting;
-                  }
-                } else if (!fieldData.isSensitive) {
-                  displayValue = fieldData.valueEnc;
-                }
-
-                return _FieldRow(
-                  label: schema.label,
-                  value: displayValue,
-                  isSecret: fieldData.isSensitive,
-                  onCopy: !fieldData.isSensitive
-                      ? () {
-                          Clipboard.setData(
-                            ClipboardData(text: fieldData.valueEnc),
-                          );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(l10n.fieldCopied(schema.label)),
-                              duration: const Duration(seconds: 1),
-                              backgroundColor: kSurfaceColor,
-                            ),
-                          );
-                        }
-                      : null,
-                );
-              }).toList(),
-            ),
+            _DetailCard(children: displayedFieldRows),
             const SizedBox(height: 24),
           ],
 

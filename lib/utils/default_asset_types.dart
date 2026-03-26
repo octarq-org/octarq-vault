@@ -9,6 +9,41 @@ const _cardTypeOptions = ['Debit', 'Credit', 'Prepaid'];
 const _kycOptions = ['None', 'Level 1', 'Level 2', 'Level 3'];
 const _tfaOptions = ['Disabled', 'TOTP', 'SMS', 'Hardware Key'];
 const _subscriptionLevelOptions = ['Free', 'Pro', 'Team', 'Enterprise'];
+const _commonRegistrarOptions = [
+  'Namecheap',
+  'GoDaddy',
+  'Cloudflare',
+  'Dynadot',
+  'NameSilo',
+  'Alibaba Cloud',
+  'Tencent Cloud',
+  'West.cn',
+];
+const _commonVpsProviderOptions = [
+  'Vultr',
+  'DigitalOcean',
+  'Linode',
+  'AWS',
+  'Google Cloud',
+  'Azure',
+  'Alibaba Cloud',
+  'Tencent Cloud',
+  'Hetzner',
+];
+const _commonEmailProviderOptions = [
+  'Gmail',
+  'Outlook',
+  'Yahoo Mail',
+  'iCloud Mail',
+  'Proton Mail',
+  'Zoho Mail',
+  'QQ Mail',
+  '163 Mail',
+  '126 Mail',
+  'Sina Mail',
+  'Aliyun Mail',
+  'Foxmail',
+];
 
 /// 按系统语言返回内置分类，zh 用中文，其余用英文。
 List<AssetType> getDefaultAssetTypes(Locale locale) {
@@ -28,6 +63,7 @@ final List<AssetType> defaultAssetTypesZh = [
         label: '注册商',
         type: 'text',
         isRequired: true,
+        options: _commonRegistrarOptions,
       ),
       AssetTypeFieldSchema(key: 'dns', label: 'DNS 配置', type: 'text'),
       AssetTypeFieldSchema(
@@ -84,6 +120,7 @@ final List<AssetType> defaultAssetTypesZh = [
         label: '服务商',
         type: 'text',
         isRequired: true,
+        options: _commonVpsProviderOptions,
       ),
       AssetTypeFieldSchema(key: 'ip', label: 'IP 地址', type: 'text'),
       AssetTypeFieldSchema(key: 'specs', label: '配置规格', type: 'text'),
@@ -107,13 +144,19 @@ final List<AssetType> defaultAssetTypesZh = [
         label: '服务商',
         type: 'text',
         isRequired: true,
+        options: _commonEmailProviderOptions,
       ),
       AssetTypeFieldSchema(
         key: 'password',
         label: '密码',
         type: 'password',
         isEncrypted: true,
-        isRequired: true,
+        isRequired: false,
+      ),
+      AssetTypeFieldSchema(
+        key: 'email_aliases',
+        label: '邮箱别名（多个用逗号分隔）',
+        type: 'text',
       ),
       AssetTypeFieldSchema(key: 'recovery_email', label: '恢复邮箱', type: 'text'),
       AssetTypeFieldSchema(key: 'phone_bind', label: '绑定手机', type: 'text'),

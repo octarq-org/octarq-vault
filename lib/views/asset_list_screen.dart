@@ -32,6 +32,9 @@ class _AssetListScreenState extends ConsumerState<AssetListScreen> {
   @override
   void initState() {
     super.initState();
+    Future.microtask(
+      () => ref.read(assetTypesProvider.notifier).loadCustomTypes(),
+    );
     if (widget.filterExpiringSoon) {
       _sortMode = 'expiry';
       _expiryFilter = 'expiring-soon';

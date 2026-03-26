@@ -250,6 +250,11 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       return;
     }
     try {
+      // Ensure custom asset types are loaded from DB before native sync merge.
+      // Otherwise cold-start merge may treat local custom types as empty and
+      // accidentally overwrite them with an empty set.
+      await ref.read(assetTypesProvider.notifier).loadCustomTypes();
+
       final db = await _vaultDb();
       final dbService = ref.read(databaseServiceProvider);
       final List<Map<String, dynamic>> assetMaps = await db.query('assets');

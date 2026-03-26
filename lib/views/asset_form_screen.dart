@@ -17,17 +17,6 @@ import '../providers/relations_provider.dart';
 import '../providers/service_providers.dart';
 import '../main.dart';
 
-const _commonDomainRegistrars = <String>[
-  'Namecheap',
-  'GoDaddy',
-  'Cloudflare',
-  'Dynadot',
-  'NameSilo',
-  'Alibaba Cloud',
-  'Tencent Cloud',
-  'West.cn',
-];
-
 class AssetFormScreen extends ConsumerStatefulWidget {
   final Asset? editingAsset;
   final String? defaultTypeId;
@@ -41,6 +30,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _tagInputController = TextEditingController();
+  final _aliasInputController = TextEditingController();
 
   AssetType? _selectedType;
   DateTime? _expireAt;
@@ -48,6 +38,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
 
   final Map<String, TextEditingController> _fieldControllers = {};
   final Map<String, String?> _selectValues = {};
+  final Map<String, List<String>> _multiValues = {};
   final List<Tag> _selectedTags = [];
   final List<Reminder> _reminders = [];
   final List<({String assetId, String relationType})> _pendingLinks = [];
@@ -57,6 +48,10 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
   @override
   void initState() {
     super.initState();
+    // Preload custom types to avoid first-open schema mismatches.
+    Future.microtask(
+      () => ref.read(assetTypesProvider.notifier).loadCustomTypes(),
+    );
     if (widget.editingAsset != null) {
       _initForEditing();
     } else if (widget.defaultTypeId != null) {
@@ -72,33 +67,113 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
     if (asset.expireAt != null) {
       _expireAt = DateTime.fromMillisecondsSinceEpoch(asset.expireAt!);
     }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await ref.read(assetTypesProvider.notifier).loadCustomTypes();
       final assetTypes = ref.read(assetTypesProvider);
-      final type = assetTypes.firstWhere(
-        (t) => t.id == asset.typeId,
-        orElse: () => assetTypes.first,
-      );
-      _onTypeChanged(type);
+      final type = assetTypes.where((t) => t.id == asset.typeId).firstOrNull;
+      final resolvedType =
+          type ??
+          AssetType(
+            id: asset.typeId,
+            name: asset.typeId,
+            icon: 'widgets',
+            isBuiltIn: false,
+            fieldSchema: asset.fields
+                .map(
+                  (f) => AssetTypeFieldSchema(
+                    key: f.key,
+                    label: f.key,
+                    type: f.isSensitive ? 'password' : 'text',
+                    isEncrypted: f.isSensitive,
+                  ),
+                )
+                .toList(),
+          );
+      _onTypeChanged(resolvedType);
       final encryptionService = ref.read(encryptionServiceProvider);
+      final exactMatchedKeys = <String>{};
+      final unresolved = <({AssetField field, String value})>[];
       for (final field in asset.fields) {
+        String value;
         if (field.isSensitive) {
           try {
-            final plaintext = encryptionService.decryptField(
-              field.valueEnc,
-              field.iv,
-            );
-            if (_fieldControllers.containsKey(field.key)) {
-              _fieldControllers[field.key]!.text = plaintext;
-            } else if (_selectValues.containsKey(field.key)) {
-              _selectValues[field.key] = plaintext;
-            }
-          } catch (_) {}
-        } else {
-          if (_fieldControllers.containsKey(field.key)) {
-            _fieldControllers[field.key]!.text = field.valueEnc;
-          } else if (_selectValues.containsKey(field.key)) {
-            _selectValues[field.key] = field.valueEnc;
+            value = encryptionService.decryptField(field.valueEnc, field.iv);
+          } catch (_) {
+            continue;
           }
+        } else {
+          value = field.valueEnc;
+        }
+
+        if (_multiValues.containsKey(field.key)) {
+          exactMatchedKeys.add(field.key);
+          _multiValues[field.key] = value
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        } else if (_fieldControllers.containsKey(field.key)) {
+          exactMatchedKeys.add(field.key);
+          _fieldControllers[field.key]!.text = value;
+        } else if (_selectValues.containsKey(field.key)) {
+          exactMatchedKeys.add(field.key);
+          _selectValues[field.key] = value;
+        } else {
+          unresolved.add((field: field, value: value));
+        }
+      }
+
+      // Backward compatibility: if schema keys changed, map unresolved values
+      // into first available fields so users can still see and recover data.
+      final unmatchedTextKeys = resolvedType.fieldSchema
+          .where(
+            (s) =>
+                s.type != 'select' &&
+                s.key != 'email_aliases' &&
+                _fieldControllers.containsKey(s.key) &&
+                !exactMatchedKeys.contains(s.key),
+          )
+          .map((s) => s.key)
+          .toList();
+      final unmatchedSelectKeys = resolvedType.fieldSchema
+          .where(
+            (s) =>
+                s.type == 'select' &&
+                _selectValues.containsKey(s.key) &&
+                !exactMatchedKeys.contains(s.key),
+          )
+          .map((s) => s.key)
+          .toList();
+      final unmatchedMultiKeys = resolvedType.fieldSchema
+          .where(
+            (s) =>
+                s.key == 'email_aliases' &&
+                _multiValues.containsKey(s.key) &&
+                !exactMatchedKeys.contains(s.key),
+          )
+          .map((s) => s.key)
+          .toList();
+
+      var textIdx = 0;
+      var selectIdx = 0;
+      var multiIdx = 0;
+      for (final item in unresolved) {
+        if (item.value.contains(',') && multiIdx < unmatchedMultiKeys.length) {
+          final key = unmatchedMultiKeys[multiIdx++];
+          _multiValues[key] = item.value
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+          continue;
+        }
+        if (textIdx < unmatchedTextKeys.length) {
+          _fieldControllers[unmatchedTextKeys[textIdx++]]!.text = item.value;
+          continue;
+        }
+        if (selectIdx < unmatchedSelectKeys.length) {
+          _selectValues[unmatchedSelectKeys[selectIdx++]] = item.value;
+          continue;
         }
       }
       setState(() {});
@@ -106,7 +181,8 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
   }
 
   void _initWithDefaultType() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await ref.read(assetTypesProvider.notifier).loadCustomTypes();
       final assetTypes = ref.read(assetTypesProvider);
       final type = assetTypes.firstWhere(
         (t) => t.id == widget.defaultTypeId,
@@ -121,6 +197,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
   void dispose() {
     _nameController.dispose();
     _tagInputController.dispose();
+    _aliasInputController.dispose();
     for (var c in _fieldControllers.values) {
       c.dispose();
     }
@@ -133,9 +210,12 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
       _selectedType = newType;
       _fieldControllers.clear();
       _selectValues.clear();
+      _multiValues.clear();
       for (final schema in newType.fieldSchema) {
         if (schema.type == 'select') {
           _selectValues[schema.key] = null;
+        } else if (schema.key == 'email_aliases') {
+          _multiValues[schema.key] = <String>[];
         } else {
           _fieldControllers[schema.key] = TextEditingController();
         }
@@ -270,6 +350,9 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
         final String value;
         if (schema.type == 'select') {
           value = _selectValues[schema.key] ?? '';
+        } else if (schema.key == 'email_aliases') {
+          final aliases = _multiValues[schema.key] ?? const <String>[];
+          value = aliases.join(', ');
         } else {
           value = _fieldControllers[schema.key]?.text ?? '';
         }
@@ -1057,9 +1140,88 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
   }
 
   Widget _buildFieldWidget(AssetTypeFieldSchema schema) {
-    final isDomainRegistrar =
-        _selectedType?.id == 'type_domain' && schema.key == 'registrar';
-    if (isDomainRegistrar) {
+    if (schema.key == 'email_aliases') {
+      final aliases = _multiValues[schema.key] ?? <String>[];
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _aliasInputController,
+                  decoration: InputDecoration(
+                    labelText: schema.label + (schema.isRequired ? ' *' : ''),
+                  ),
+                  onFieldSubmitted: (value) {
+                    final trimmed = value.trim();
+                    if (trimmed.isEmpty) return;
+                    if (aliases.contains(trimmed)) {
+                      _aliasInputController.clear();
+                      return;
+                    }
+                    setState(() {
+                      aliases.add(trimmed);
+                      _multiValues[schema.key] = aliases;
+                      _aliasInputController.clear();
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: () {
+                  final trimmed = _aliasInputController.text.trim();
+                  if (trimmed.isEmpty) return;
+                  if (aliases.contains(trimmed)) {
+                    _aliasInputController.clear();
+                    return;
+                  }
+                  setState(() {
+                    aliases.add(trimmed);
+                    _multiValues[schema.key] = aliases;
+                    _aliasInputController.clear();
+                  });
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: kPrimaryGreen,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                ),
+                child: const Icon(Icons.add, size: 16),
+              ),
+            ],
+          ),
+          if (aliases.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: aliases
+                  .map(
+                    (alias) => Chip(
+                      label: Text(alias),
+                      onDeleted: () {
+                        setState(() {
+                          aliases.remove(alias);
+                          _multiValues[schema.key] = aliases;
+                        });
+                      },
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+        ],
+      );
+    }
+
+    final hasSuggestedOptions =
+        schema.type != 'select' && schema.options.isNotEmpty;
+    if (hasSuggestedOptions) {
       final controller = _fieldControllers[schema.key]!;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1067,13 +1229,13 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _commonDomainRegistrars
+            children: schema.options
                 .map(
-                  (registrar) => ActionChip(
-                    label: Text(registrar),
+                  (option) => ActionChip(
+                    label: Text(option),
                     onPressed: () {
                       setState(() {
-                        controller.text = registrar;
+                        controller.text = option;
                       });
                     },
                   ),

@@ -422,7 +422,12 @@ class _Sidebar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final assetTypes = ref.watch(assetTypesProvider);
+    final assets = ref.watch(assetsProvider);
     final location = GoRouterState.of(context).matchedLocation;
+    final typeCounts = <String, int>{};
+    for (final a in assets) {
+      typeCounts[a.typeId] = (typeCounts[a.typeId] ?? 0) + 1;
+    }
 
     return Container(
       width: 260,
@@ -501,6 +506,7 @@ class _Sidebar extends ConsumerWidget {
                 return _SidebarItem(
                   icon: getIconData(type.icon),
                   label: type.name,
+                  count: typeCounts[type.id] ?? 0,
                   iconColor: getTypeColor(type.id),
                   isSelected: location == targetPath,
                   onTap: () => context.go(targetPath),
@@ -641,6 +647,7 @@ class _SidebarItem extends StatelessWidget {
   const _SidebarItem({
     required this.icon,
     required this.label,
+    this.count,
     this.iconColor,
     required this.isSelected,
     required this.onTap,
@@ -648,6 +655,7 @@ class _SidebarItem extends StatelessWidget {
 
   final IconData icon;
   final String label;
+  final int? count;
   final Color? iconColor;
   final bool isSelected;
   final VoidCallback onTap;
@@ -689,6 +697,17 @@ class _SidebarItem extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (count != null)
+                  Text(
+                    '$count',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected
+                          ? (iconColor ?? kPrimaryGreen)
+                          : kTextMuted,
+                    ),
+                  ),
               ],
             ),
           ),

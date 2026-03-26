@@ -488,6 +488,11 @@ class _AssetRow extends StatelessWidget {
                       fontSize: 14,
                     ),
                   ),
+                  const SizedBox(height: 2),
+                  Text(
+                    assetType.name,
+                    style: const TextStyle(fontSize: 12, color: kTextMuted),
+                  ),
                   if (asset.tags.isNotEmpty) const SizedBox(height: 4),
                   if (asset.tags.isNotEmpty)
                     Wrap(

@@ -45,35 +45,46 @@ class _AssetTypeManagerScreenState
             ),
             trailing: type.isBuiltIn
                 ? null
-                : IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () async {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: Text(l10n.deleteCustomType),
-                          content: Text(l10n.deleteCustomTypeConfirmation),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, false),
-                              child: Text(l10n.cancel),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, true),
-                              child: Text(
-                                l10n.delete,
-                                style: const TextStyle(color: Colors.red),
-                              ),
-                            ),
-                          ],
+                : Wrap(
+                    spacing: 4,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit_outlined),
+                        onPressed: () => context.push(
+                          '/settings/asset-types/${type.id}/edit',
                         ),
-                      );
-                      if (confirm == true) {
-                        await ref
-                            .read(assetTypesProvider.notifier)
-                            .deleteCustomType(type.id);
-                      }
-                    },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: Text(l10n.deleteCustomType),
+                              content: Text(l10n.deleteCustomTypeConfirmation),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: Text(l10n.cancel),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: Text(
+                                    l10n.delete,
+                                    style: const TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm == true) {
+                            await ref
+                                .read(assetTypesProvider.notifier)
+                                .deleteCustomType(type.id);
+                          }
+                        },
+                      ),
+                    ],
                   ),
           );
         },
@@ -83,7 +94,8 @@ class _AssetTypeManagerScreenState
 }
 
 class AssetTypeFormScreen extends ConsumerStatefulWidget {
-  const AssetTypeFormScreen({super.key});
+  final AssetType? editingType;
+  const AssetTypeFormScreen({super.key, this.editingType});
 
   @override
   ConsumerState<AssetTypeFormScreen> createState() =>
@@ -96,6 +108,34 @@ class _AssetTypeFormScreenState extends ConsumerState<AssetTypeFormScreen> {
   String _selectedIcon = 'widgets';
 
   final List<AssetTypeFieldSchema> _fields = [];
+  bool get _isEditing => widget.editingType != null;
+  String? _loadedEditingTypeId;
+
+  @override
+  void initState() {
+    super.initState();
+    _applyEditingType(widget.editingType);
+  }
+
+  @override
+  void didUpdateWidget(covariant AssetTypeFormScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.editingType?.id != widget.editingType?.id ||
+        oldWidget.editingType?.updatedAt != widget.editingType?.updatedAt) {
+      _applyEditingType(widget.editingType);
+    }
+  }
+
+  void _applyEditingType(AssetType? type) {
+    if (type == null) return;
+    if (_loadedEditingTypeId == type.id && _fields.isNotEmpty) return;
+    _nameController.text = type.name;
+    _selectedIcon = type.icon;
+    _fields
+      ..clear()
+      ..addAll(type.fieldSchema.map((f) => f.copyWith()));
+    _loadedEditingTypeId = type.id;
+  }
 
   void _addField() {
     setState(() {
@@ -116,7 +156,7 @@ class _AssetTypeFormScreenState extends ConsumerState<AssetTypeFormScreen> {
 
     final now = DateTime.now().millisecondsSinceEpoch;
     final newType = AssetType(
-      id: const Uuid().v4(),
+      id: widget.editingType?.id ?? const Uuid().v4(),
       name: _nameController.text.trim(),
       icon: _selectedIcon,
       isBuiltIn: false,
@@ -124,7 +164,11 @@ class _AssetTypeFormScreenState extends ConsumerState<AssetTypeFormScreen> {
       updatedAt: now,
     );
 
-    await ref.read(assetTypesProvider.notifier).addCustomType(newType);
+    if (_isEditing) {
+      await ref.read(assetTypesProvider.notifier).updateCustomType(newType);
+    } else {
+      await ref.read(assetTypesProvider.notifier).addCustomType(newType);
+    }
     if (mounted) context.go('/settings/asset-types');
   }
 
@@ -133,7 +177,7 @@ class _AssetTypeFormScreenState extends ConsumerState<AssetTypeFormScreen> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.newAssetType),
+        title: Text(_isEditing ? l10n.editAsset : l10n.newAssetType),
         actions: [IconButton(icon: const Icon(Icons.check), onPressed: _save)],
       ),
       body: Form(
@@ -214,10 +258,8 @@ class _AssetTypeFormScreenState extends ConsumerState<AssetTypeFormScreen> {
                               decoration: InputDecoration(
                                 labelText: l10n.fieldLabelHint,
                               ),
-                              onChanged: (v) => _fields[idx] = field.copyWith(
-                                label: v,
-                                key: v.toLowerCase().replaceAll(' ', '_'),
-                              ),
+                              onChanged: (v) =>
+                                  _fields[idx] = field.copyWith(label: v),
                             ),
                           ),
                           IconButton(
@@ -236,20 +278,45 @@ class _AssetTypeFormScreenState extends ConsumerState<AssetTypeFormScreen> {
                                 labelText: l10n.dataType,
                               ),
                               initialValue: field.type,
-                              items: ['text', 'password', 'number', 'date']
-                                  .map(
-                                    (t) => DropdownMenuItem(
-                                      value: t,
-                                      child: Text(t.toUpperCase()),
-                                    ),
-                                  )
-                                  .toList(),
+                              items:
+                                  [
+                                        'text',
+                                        'password',
+                                        'number',
+                                        'date',
+                                        'select',
+                                      ]
+                                      .map(
+                                        (t) => DropdownMenuItem(
+                                          value: t,
+                                          child: Text(t.toUpperCase()),
+                                        ),
+                                      )
+                                      .toList(),
                               onChanged: (v) =>
                                   _fields[idx] = field.copyWith(type: v!),
                             ),
                           ),
                         ],
                       ),
+                      if (field.type == 'text' || field.type == 'select') ...[
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          initialValue: field.options.join(', '),
+                          decoration: const InputDecoration(
+                            labelText: 'Common options (comma separated)',
+                            hintText: 'e.g. Cloudflare, Namecheap, GoDaddy',
+                          ),
+                          onChanged: (v) {
+                            final parsed = v
+                                .split(',')
+                                .map((e) => e.trim())
+                                .where((e) => e.isNotEmpty)
+                                .toList();
+                            _fields[idx] = field.copyWith(options: parsed);
+                          },
+                        ),
+                      ],
                       SwitchListTile(
                         title: Text(l10n.aesEncrypted),
                         subtitle: Text(l10n.aesEncryptedSubtitle),

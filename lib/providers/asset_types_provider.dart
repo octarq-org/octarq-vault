@@ -25,19 +25,30 @@ final assetTypesProvider =
 class AssetTypesNotifier extends Notifier<List<AssetType>> {
   List<AssetType> _defaultsForCurrentLocale() =>
       getDefaultAssetTypes(ref.read(localeProvider));
+  bool _didLoadAfterUnlock = false;
 
   @override
   List<AssetType> build() {
     final locale = ref.watch(localeProvider);
+    final authState = ref.watch(authProvider);
     ref.listen(localeProvider, (prev, next) {
       if (prev != next) Future.microtask(() => loadCustomTypes());
     });
     ref.listen(authProvider, (previous, next) {
+      if (previous != AuthState.unlocked && next == AuthState.unlocked) {
+        _didLoadAfterUnlock = true;
+        Future.microtask(() => loadCustomTypes());
+      }
       if (previous == AuthState.unlocked &&
           (next == AuthState.locked || next == AuthState.unsetup)) {
+        _didLoadAfterUnlock = false;
         state = [...getDefaultAssetTypes(locale)];
       }
     });
+    if (authState == AuthState.unlocked && !_didLoadAfterUnlock) {
+      _didLoadAfterUnlock = true;
+      Future.microtask(() => loadCustomTypes());
+    }
     return [...getDefaultAssetTypes(locale)];
   }
 
@@ -112,6 +123,33 @@ class AssetTypesNotifier extends Notifier<List<AssetType>> {
       });
 
       // Record oplog entry for asset type upsert
+      await dbService.recordAssetTypeOperation(
+        type.id,
+        OpType.upsert,
+        payload: type.toJson(),
+      );
+    }
+
+    await loadCustomTypes();
+  }
+
+  Future<void> updateCustomType(AssetType type) async {
+    if (!kIsWeb) {
+      await _ensureTypesDb(ref);
+      final dbService = ref.read(databaseServiceProvider);
+      final fieldSchemaJson = jsonEncode(
+        type.fieldSchema.map((e) => e.toJson()).toList(),
+      );
+
+      await dbService.insertAssetType({
+        'id': type.id,
+        'name': type.name,
+        'icon': type.icon,
+        'field_schema': fieldSchemaJson,
+        'is_built_in': type.isBuiltIn ? 1 : 0,
+        'updated_at': type.updatedAt,
+      });
+
       await dbService.recordAssetTypeOperation(
         type.id,
         OpType.upsert,

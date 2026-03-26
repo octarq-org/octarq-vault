@@ -6,6 +6,41 @@ const _cardTypeOptions = ['Debit', 'Credit', 'Prepaid'];
 const _kycOptions = ['None', 'Level 1', 'Level 2', 'Level 3'];
 const _tfaOptions = ['Disabled', 'TOTP', 'SMS', 'Hardware Key'];
 const _subscriptionLevelOptions = ['Free', 'Pro', 'Team', 'Enterprise'];
+const _commonRegistrarOptions = [
+  'Namecheap',
+  'GoDaddy',
+  'Cloudflare',
+  'Dynadot',
+  'NameSilo',
+  'Alibaba Cloud',
+  'Tencent Cloud',
+  'West.cn',
+];
+const _commonVpsProviderOptions = [
+  'Vultr',
+  'DigitalOcean',
+  'Linode',
+  'AWS',
+  'Google Cloud',
+  'Azure',
+  'Alibaba Cloud',
+  'Tencent Cloud',
+  'Hetzner',
+];
+const _commonEmailProviderOptions = [
+  'Gmail',
+  'Outlook',
+  'Yahoo Mail',
+  'iCloud Mail',
+  'Proton Mail',
+  'Zoho Mail',
+  'QQ Mail',
+  '163 Mail',
+  '126 Mail',
+  'Sina Mail',
+  'Aliyun Mail',
+  'Foxmail',
+];
 
 List<AssetType> get defaultAssetTypesEn => [
   const AssetType(
@@ -19,6 +54,7 @@ List<AssetType> get defaultAssetTypesEn => [
         label: 'Registrar',
         type: 'text',
         isRequired: true,
+        options: _commonRegistrarOptions,
       ),
       AssetTypeFieldSchema(key: 'dns', label: 'DNS', type: 'text'),
       AssetTypeFieldSchema(
@@ -75,6 +111,7 @@ List<AssetType> get defaultAssetTypesEn => [
         label: 'Provider',
         type: 'text',
         isRequired: true,
+        options: _commonVpsProviderOptions,
       ),
       AssetTypeFieldSchema(key: 'ip', label: 'IP Address', type: 'text'),
       AssetTypeFieldSchema(key: 'specs', label: 'Specs', type: 'text'),
@@ -98,13 +135,19 @@ List<AssetType> get defaultAssetTypesEn => [
         label: 'Provider',
         type: 'text',
         isRequired: true,
+        options: _commonEmailProviderOptions,
       ),
       AssetTypeFieldSchema(
         key: 'password',
         label: 'Password',
         type: 'password',
         isEncrypted: true,
-        isRequired: true,
+        isRequired: false,
+      ),
+      AssetTypeFieldSchema(
+        key: 'email_aliases',
+        label: 'Email Aliases (comma separated)',
+        type: 'text',
       ),
       AssetTypeFieldSchema(
         key: 'recovery_email',
