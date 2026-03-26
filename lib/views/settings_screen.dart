@@ -474,7 +474,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       SyncMethod.webdav,
       SyncMethod.googleDrive,
       SyncMethod.localFile,
-      SyncMethod.icloud,
     ];
     showDialog(
       context: context,

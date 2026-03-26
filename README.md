@@ -82,6 +82,16 @@ WebDAV  Google Drive  Local File
 
 ---
 
+## Roadmap
+
+- **Near term (current cycle)**
+  - Improve macOS stability and release workflow.
+  - Harden cross-platform sync reliability and conflict handling.
+  - Continue incremental UX polish for settings and backup flows.
+- **Temporary testing policy**
+  - iCloud sync is **temporarily disabled** in app settings to simplify current macOS validation.
+  - Existing users with historical iCloud sync flags will be auto-filtered from active sync methods during this phase.
+
 ## Run locally
 
 ### Requirements

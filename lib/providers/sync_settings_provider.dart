@@ -8,6 +8,11 @@ import '../models/sync_settings.dart';
 const _keySyncMethods = 'sync_methods';
 const _keyLastSyncAt = 'last_sync_at';
 
+List<SyncMethod> _withoutDisabledMethods(List<SyncMethod> methods) {
+  // Temporary policy: iCloud sync is paused for macOS testing.
+  return methods.where((m) => m != SyncMethod.icloud).toList();
+}
+
 class SyncSettingsNotifier extends Notifier<List<SyncMethod>> {
   @override
   List<SyncMethod> build() {
@@ -21,12 +26,12 @@ class SyncSettingsNotifier extends Notifier<List<SyncMethod>> {
     if (raw != null) {
       try {
         final list = jsonDecode(raw) as List<dynamic>?;
-        state = SyncMethodX.listFromStrings(list);
+        state = _withoutDisabledMethods(SyncMethodX.listFromStrings(list));
       } catch (_) {
         final v = prefs.getString('sync_method');
         if (v != null) {
           final m = SyncMethodX.fromString(v);
-          state = m == SyncMethod.none ? [] : [m];
+          state = m == SyncMethod.none ? [] : _withoutDisabledMethods([m]);
         }
       }
     }
@@ -45,12 +50,13 @@ class SyncSettingsNotifier extends Notifier<List<SyncMethod>> {
   }
 
   Future<void> _save(List<SyncMethod> methods) async {
+    final sanitized = _withoutDisabledMethods(methods);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       _keySyncMethods,
-      jsonEncode(methods.map((m) => m.value).toList()),
+      jsonEncode(sanitized.map((m) => m.value).toList()),
     );
-    state = methods;
+    state = sanitized;
   }
 
   bool hasSyncMethod(SyncMethod method) => state.contains(method);
@@ -63,7 +69,9 @@ class SyncSettingsNotifier extends Notifier<List<SyncMethod>> {
   }
 
   Future<void> importSettings(SyncSettingsExport data) async {
-    state = SyncMethodX.listFromStrings(data.syncMethods);
+    state = _withoutDisabledMethods(
+      SyncMethodX.listFromStrings(data.syncMethods),
+    );
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       _keySyncMethods,

@@ -76,7 +76,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('cannot enable iCloud sync when unavailable', (tester) async {
+  testWidgets('sync method picker hides iCloud option', (tester) async {
     await tester.pumpWidget(_wrap(_baseOverrides()));
     await tester.pumpAndSettle();
 
@@ -84,16 +84,6 @@ void main() {
     await tester.pumpAndSettle();
 
     final tileFinder = find.widgetWithText(CheckboxListTile, 'iCloud Backup');
-    expect(tileFinder, findsOneWidget);
-    expect(tester.widget<CheckboxListTile>(tileFinder).value, isFalse);
-
-    await tester.tap(tileFinder);
-    await tester.pumpAndSettle();
-
-    expect(
-      find.text('iCloud is not available on this device.'),
-      findsOneWidget,
-    );
-    expect(tester.widget<CheckboxListTile>(tileFinder).value, isFalse);
+    expect(tileFinder, findsNothing);
   });
 }

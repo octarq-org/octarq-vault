@@ -106,10 +106,7 @@ void main() {
             syncMethods: ['none', 'icloud', 'unknown', 'icloud'],
           ),
         );
-        expect(
-          container.read(syncSettingsProvider),
-          equals([SyncMethod.icloud]),
-        );
+        expect(container.read(syncSettingsProvider), isEmpty);
       },
     );
 
