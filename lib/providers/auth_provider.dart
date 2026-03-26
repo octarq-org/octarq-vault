@@ -15,6 +15,13 @@ class AuthNotifier extends Notifier<AuthState> {
   String? _lastError;
   String? get lastError => _lastError;
 
+  VaultSnapshot? _lastExternalSnapshot;
+  VaultSnapshot? consumeLastExternalSnapshot() {
+    final s = _lastExternalSnapshot;
+    _lastExternalSnapshot = null;
+    return s;
+  }
+
   @override
   AuthState build() {
     _init();
@@ -234,9 +241,10 @@ class AuthNotifier extends Notifier<AuthState> {
 
       // Try decrypting to verify password is correct
       try {
-        syncService.unpackCiphertextToSnapshot(payload);
+        _lastExternalSnapshot = syncService.unpackCiphertextToSnapshot(payload);
       } catch (e) {
         _lastError = 'Incorrect password or corrupted file.';
+        _lastExternalSnapshot = null;
         encryption.wipeKey();
         return false;
       }

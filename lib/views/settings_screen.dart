@@ -19,7 +19,6 @@ import '../providers/service_providers.dart';
 import '../providers/relations_provider.dart';
 import '../l10n/app_localizations.dart';
 import '../services/enc_file_io.dart';
-import '../services/e2ee_sync_service.dart';
 import '../providers/auto_lock_provider.dart';
 
 /// Returns error message if invalid; null if OK. Does not modify any data.
@@ -391,19 +390,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       return;
     }
     try {
-      final syncService = ref.read(e2eeSyncServiceProvider);
-      final snapshot = syncService.unpackCiphertextToSnapshot(bytes);
+      final snapshot = ref
+          .read(authProvider.notifier)
+          .consumeLastExternalSnapshot();
+      if (snapshot == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(l10n.wrongPassword)));
+        }
+        return;
+      }
       await ref
           .read(assetsProvider.notifier)
           .replaceFromSnapshot(snapshot, encryptedBlob: bytes);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              AppLocalizations.of(
-                context,
-              )!.importedEncCount(snapshot.assets.length),
-            ),
+            content: Text(l10n.importedEncCount(snapshot.assets.length)),
           ),
         );
       }

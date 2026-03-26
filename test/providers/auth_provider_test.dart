@@ -1,7 +1,10 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'package:octarq_vault/providers/auth_provider.dart';
 import 'package:octarq_vault/providers/service_providers.dart';
@@ -112,6 +115,33 @@ class MockE2EESyncService extends E2EESyncService {
   }
 }
 
+class _FakePathProvider
+    with MockPlatformInterfaceMixin
+    implements PathProviderPlatform {
+  final String _path;
+  _FakePathProvider(this._path);
+  @override
+  Future<String?> getApplicationSupportPath() async => _path;
+  @override
+  Future<String?> getApplicationDocumentsPath() async => _path;
+  @override
+  Future<String?> getTemporaryPath() async => _path;
+  @override
+  Future<String?> getLibraryPath() async => null;
+  @override
+  Future<String?> getApplicationCachePath() async => _path;
+  @override
+  Future<String?> getExternalStoragePath() async => null;
+  @override
+  Future<List<String>?> getExternalCachePaths() async => null;
+  @override
+  Future<List<String>?> getExternalStoragePaths({
+    StorageDirectory? type,
+  }) async => null;
+  @override
+  Future<String?> getDownloadsPath() async => null;
+}
+
 Future<void> _waitForAuthInit(ProviderContainer container) async {
   for (int i = 0; i < 50; i++) {
     await Future<void>.delayed(Duration.zero);
@@ -143,7 +173,12 @@ void main() {
   late MockE2EESyncService mockSync;
   late ProviderContainer container;
 
+  late Directory tmpDir;
+
   setUp(() {
+    tmpDir = Directory.systemTemp.createTempSync('auth_test_');
+    PathProviderPlatform.instance = _FakePathProvider(tmpDir.path);
+
     mockEncryption = MockEncryptionService();
     mockStorage = MockSecureStorageService();
     mockDb = MockDatabaseService();
@@ -161,6 +196,7 @@ void main() {
 
   tearDown(() {
     container.dispose();
+    tmpDir.deleteSync(recursive: true);
   });
 
   group('AuthNotifier initialization', () {
@@ -183,6 +219,8 @@ void main() {
     test('transitions to locked when key exists', () async {
       // Pre-store a key
       await mockStorage.storeMasterKey(Uint8List(32), 'salt');
+      // Create a dummy DB file so _init doesn't think the key is orphaned
+      File('${tmpDir.path}/octarq_vault.db').createSync();
 
       // Create a new container to re-trigger init
       final container2 = ProviderContainer(
@@ -324,6 +362,45 @@ void main() {
         expect(mockStorage.storeCalled, isFalse);
       },
     );
+
+    test(
+      'consumeLastExternalSnapshot returns cached snapshot on success',
+      () async {
+        await _waitForAuthInit(container);
+        final expected = VaultSnapshot(
+          version: 3,
+          assets: const [],
+          customAssetTypes: const [],
+        );
+        mockSync.snapshotToReturn = expected;
+
+        final notifier = container.read(authProvider.notifier);
+        final result = await notifier.unlockWithExternalPayload(
+          'password',
+          _externalPayloadWithSalt('c2FsdA=='),
+        );
+
+        expect(result, isTrue);
+        final snapshot = notifier.consumeLastExternalSnapshot();
+        expect(snapshot, isNotNull);
+        expect(snapshot!.version, 3);
+        // Second call returns null (consumed)
+        expect(notifier.consumeLastExternalSnapshot(), isNull);
+      },
+    );
+
+    test('consumeLastExternalSnapshot is null after failed unlock', () async {
+      await _waitForAuthInit(container);
+      mockSync.unpackError = Exception('bad');
+
+      final notifier = container.read(authProvider.notifier);
+      await notifier.unlockWithExternalPayload(
+        'password',
+        _externalPayloadWithSalt('c2FsdA=='),
+      );
+
+      expect(notifier.consumeLastExternalSnapshot(), isNull);
+    });
   });
 
   group('unlockWithBiometrics', () {

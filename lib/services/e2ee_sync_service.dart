@@ -542,15 +542,10 @@ class E2EESyncService {
   /// Inspect [VaultSnapshot.payloadType] to determine whether the result is
   /// a full snapshot (`'full'`) or a delta (`'delta'`).
   VaultSnapshot unpackCiphertextToSnapshot(Uint8List encryptedPayload) {
-    try {
-      final stripped = stripHeader(encryptedPayload);
-      final plainBytes = _encryptionService.decryptBytes(stripped.encrypted);
-      final jsonString = utf8.decode(plainBytes);
-      final dynamic jsonMap = jsonDecode(jsonString);
-      return VaultSnapshot.fromJson(jsonMap as Map<String, dynamic>);
-    } catch (e) {
-      if (kDebugMode) debugPrint('unpackCiphertextToSnapshot failed: $e');
-      rethrow;
-    }
+    final stripped = stripHeader(encryptedPayload);
+    final plainBytes = _encryptionService.decryptBytes(stripped.encrypted);
+    final jsonString = utf8.decode(plainBytes);
+    final dynamic jsonMap = jsonDecode(jsonString);
+    return VaultSnapshot.fromJson(jsonMap as Map<String, dynamic>);
   }
 }

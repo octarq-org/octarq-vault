@@ -14,6 +14,7 @@ import '../services/google_drive_service.dart';
 import '../services/enc_file_io.dart';
 import '../providers/assets_provider.dart';
 import '../providers/asset_types_provider.dart';
+import '../providers/auth_provider.dart';
 import '../providers/service_providers.dart';
 import '../providers/sync_conflicts_provider.dart';
 import '../widgets/google_sign_in_button.dart';
@@ -34,6 +35,69 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
   final _webProxyRefController = TextEditingController();
 
   static const _webdavProxyPrefKey = 'webdav_proxy_base_url_web';
+
+  Future<String?> _askBackupPassword(BuildContext context) {
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        final ctxL10n = AppLocalizations.of(ctx)!;
+        final c = TextEditingController();
+        return AlertDialog(
+          title: Text(ctxL10n.unlockBackup),
+          content: TextField(
+            controller: c,
+            obscureText: true,
+            decoration: InputDecoration(
+              labelText: ctxL10n.masterPassword,
+              border: const OutlineInputBorder(),
+            ),
+            onSubmitted: (v) => Navigator.pop(ctx, v),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(ctxL10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, c.text),
+              child: Text(ctxL10n.unlock),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Try to decrypt with the current key; on failure, prompt for password.
+  Future<VaultSnapshot?> _unpackOrAskPassword(Uint8List encrypted) async {
+    final syncService = ref.read(e2eeSyncServiceProvider);
+    try {
+      return syncService.unpackCiphertextToSnapshot(encrypted);
+    } catch (_) {
+      // Current key can't decrypt — ask for the backup's password.
+    }
+    if (!mounted) return null;
+    final pwd = await _askBackupPassword(context);
+    if (pwd == null || pwd.isEmpty || !mounted) return null;
+    final authNotifier = ref.read(authProvider.notifier);
+    final success = await authNotifier.unlockWithExternalPayload(
+      pwd,
+      encrypted,
+    );
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            authNotifier.lastError ??
+                AppLocalizations.of(context)!.wrongPassword,
+          ),
+        ),
+      );
+      return null;
+    }
+    return authNotifier.consumeLastExternalSnapshot();
+  }
 
   bool _isLoading = false;
   bool _isConnected = false;
@@ -207,8 +271,8 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
     try {
       final webDavService = ref.read(webDavServiceProvider);
       final encrypted = await webDavService.restoreEncrypted();
-      final syncService = ref.read(e2eeSyncServiceProvider);
-      final snapshot = syncService.unpackCiphertextToSnapshot(encrypted);
+      final snapshot = await _unpackOrAskPassword(encrypted);
+      if (snapshot == null) return;
 
       await ref
           .read(assetsProvider.notifier)
@@ -584,8 +648,8 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
         }
         return;
       }
-      final syncService = ref.read(e2eeSyncServiceProvider);
-      final snapshot = syncService.unpackCiphertextToSnapshot(blob);
+      final snapshot = await _unpackOrAskPassword(blob);
+      if (snapshot == null) return;
       await ref
           .read(assetsProvider.notifier)
           .replaceFromSnapshot(snapshot, encryptedBlob: blob);
@@ -666,41 +730,36 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
   Future<void> _handleLocalImportFallback() async {
     setState(() => _isLoading = true);
     try {
+      Uint8List? bytes;
       if (kIsWeb) {
         final localSync = ref.read(localFileSyncServiceProvider);
-        final snapshot = await localSync.importFromUpload();
-        if (snapshot != null) {
-          await ref.read(assetsProvider.notifier).replaceFromSnapshot(snapshot);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  AppLocalizations.of(
-                    context,
-                  )!.importSuccessCount(snapshot.assets.length),
-                ),
-              ),
-            );
-          }
-        }
+        bytes = await localSync.importRawBytesFromUpload();
       } else {
-        final bytes = await pickEncFileBytes(ref);
-        if (bytes != null && bytes.isNotEmpty && mounted) {
-          final syncService = ref.read(e2eeSyncServiceProvider);
-          final snapshot = syncService.unpackCiphertextToSnapshot(bytes);
-          await ref.read(assetsProvider.notifier).replaceFromSnapshot(snapshot);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  AppLocalizations.of(
-                    context,
-                  )!.importSuccessCount(snapshot.assets.length),
-                ),
-              ),
-            );
-          }
-        }
+        bytes = await pickEncFileBytes(ref);
+      }
+      if (bytes == null || bytes.isEmpty || !mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      final pwd = await _askBackupPassword(context);
+      if (pwd == null || pwd.isEmpty || !mounted) return;
+      final authNotifier = ref.read(authProvider.notifier);
+      final success = await authNotifier.unlockWithExternalPayload(pwd, bytes);
+      if (!success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(authNotifier.lastError ?? l10n.wrongPassword)),
+        );
+        return;
+      }
+      final snapshot = authNotifier.consumeLastExternalSnapshot();
+      if (snapshot == null) return;
+      await ref
+          .read(assetsProvider.notifier)
+          .replaceFromSnapshot(snapshot, encryptedBlob: bytes);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.importSuccessCount(snapshot.assets.length)),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -719,8 +778,7 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
 
   Future<void> _handleLocalExportFallback() async {
     if (kIsWeb) {
-      final localSync = ref.read(localFileSyncServiceProvider);
-      localSync.exportToDownload(ref.read(assetsProvider));
+      await exportEncToFile(ref);
     } else {
       await exportEncToFile(ref);
       if (mounted) {
@@ -781,8 +839,8 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
       }
 
       // LWW merge: remote wins for same-id assets with newer updatedAt.
-      final syncService = ref.read(e2eeSyncServiceProvider);
-      final remoteSnapshot = syncService.unpackCiphertextToSnapshot(remoteBlob);
+      final remoteSnapshot = await _unpackOrAskPassword(remoteBlob);
+      if (remoteSnapshot == null) return;
       final localAssets = ref.read(assetsProvider);
       final localCustomTypes = ref
           .read(assetTypesProvider)

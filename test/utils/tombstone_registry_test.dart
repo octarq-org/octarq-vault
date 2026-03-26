@@ -196,6 +196,27 @@ void main() {
         registry.toListForSync(nowMs: 1_000_000_000);
         expect(registry.length, equals(1));
       });
+
+      test('toList preserves old tombstones that toListForSync would drop', () {
+        const now = 1_000_000_000;
+        const day = 86400000;
+        registry.record('fresh', now - day);
+        registry.record('stale', now - 60 * day);
+
+        final full = registry.toList();
+        final pruned = registry.toListForSync(
+          retention: const Duration(days: 30),
+          nowMs: now,
+        );
+
+        expect(full.length, 2);
+        expect(pruned.length, 1);
+        expect(
+          full.map((e) => e['id']).toSet(),
+          containsAll(['fresh', 'stale']),
+        );
+        expect(pruned.single['id'], 'fresh');
+      });
     });
   });
 }

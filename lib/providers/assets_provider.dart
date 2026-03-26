@@ -44,6 +44,17 @@ class AssetsNotifier extends Notifier<List<Asset>> {
     }
   }
 
+  bool _isPayloadSaltCompatible(Uint8List payload) {
+    try {
+      final payloadSalt = E2EESyncService.extractSaltFromPayload(payload);
+      if (payloadSalt == null) return false;
+      final currentSalt = ref.read(encryptionServiceProvider).currentSaltBase64;
+      return payloadSalt == currentSalt;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Web-only: attachments for [assetId] from in-memory manifest.
   List<AssetAttachment> webAttachmentsFor(String assetId) {
     return _webAttachments
@@ -114,6 +125,39 @@ class AssetsNotifier extends Notifier<List<Asset>> {
     return [];
   }
 
+  /// Fetch a remote encrypted blob for the given [method].
+  /// Returns `null` when the provider has no credentials or no data.
+  Future<Uint8List?> _readRemoteBlob(SyncMethod method) async {
+    switch (method) {
+      case SyncMethod.googleDrive:
+        final drive = ref.read(googleDriveServiceProvider);
+        if (!await drive.hasCredentials()) return null;
+        return drive.readRawBytesFromDrive();
+      case SyncMethod.webdav:
+        final webdav = ref.read(webDavServiceProvider);
+        if (!await webdav.hasCredentials()) return null;
+        try {
+          final bytes = await webdav.restoreEncrypted();
+          return bytes.isEmpty ? null : bytes;
+        } catch (_) {
+          return null;
+        }
+      case SyncMethod.icloud:
+        if (kIsWeb) return null;
+        final icloud = ref.read(iCloudSyncServiceProvider);
+        if (!icloud.isSupported) return null;
+        return icloud.restore();
+      default:
+        return null;
+    }
+  }
+
+  /// Ensure sync settings are loaded from SharedPreferences before use.
+  Future<List<SyncMethod>> _awaitSyncMethods() async {
+    await ref.read(syncSettingsProvider.notifier).load();
+    return ref.read(syncSettingsProvider);
+  }
+
   Future<void> loadAssets() async {
     if (kIsWeb) {
       try {
@@ -128,47 +172,53 @@ class AssetsNotifier extends Notifier<List<Asset>> {
           } catch (_) {}
         }
 
-        // Attempt cold-start pull from Google Drive and LWW-merge with local.
-        final methods = ref.read(syncSettingsProvider);
-        if (methods.contains(SyncMethod.googleDrive)) {
+        final methods = await _awaitSyncMethods();
+
+        for (final method in methods) {
           try {
-            final drive = ref.read(googleDriveServiceProvider);
-            final hasCreds = await drive.hasCredentials();
-            if (hasCreds) {
-              final remoteBlob = await drive.readRawBytesFromDrive();
-              if (remoteBlob != null && remoteBlob.isNotEmpty) {
-                final remoteSnapshot = syncService.unpackCiphertextToSnapshot(
-                  remoteBlob,
+            final remoteBlob = await _readRemoteBlob(method);
+            if (remoteBlob == null || remoteBlob.isEmpty) continue;
+            if (!_isPayloadSaltCompatible(remoteBlob)) {
+              if (kDebugMode) {
+                debugPrint(
+                  'loadAssets(web) $method pull skipped: salt mismatch.',
                 );
-                if (localSnapshot == null) {
-                  localSnapshot = remoteSnapshot;
-                } else {
-                  final result = VaultSnapshot.mergeSnapshots(
-                    local: localSnapshot,
-                    remote: remoteSnapshot,
-                  );
-                  localSnapshot = result.snapshot;
-                  if (result.conflicts.isNotEmpty) {
-                    ref
-                        .read(pendingSyncConflictsProvider.notifier)
-                        .mergeFrom(result.conflicts);
-                  }
-                  // Persist merged blob back to IndexedDB
-                  final mergedBlob = syncService.packSnapshotTOCiphertext(
-                    localSnapshot.assets,
-                    customAssetTypes: localSnapshot.customAssetTypes,
-                    relations: localSnapshot.relations,
-                    tombstones: localSnapshot.tombstones,
-                    opLog: localSnapshot.opLog,
-                    attachmentManifest: localSnapshot.attachmentManifest,
-                  );
-                  await storage.writeEncrypted(mergedBlob);
-                }
+              }
+              continue;
+            }
+            final remoteSnapshot = syncService.unpackCiphertextToSnapshot(
+              remoteBlob,
+            );
+            if (localSnapshot == null) {
+              localSnapshot = remoteSnapshot;
+            } else {
+              final result = VaultSnapshot.mergeSnapshots(
+                local: localSnapshot,
+                remote: remoteSnapshot,
+              );
+              localSnapshot = result.snapshot;
+              if (result.conflicts.isNotEmpty) {
+                ref
+                    .read(pendingSyncConflictsProvider.notifier)
+                    .mergeFrom(result.conflicts);
               }
             }
           } catch (e) {
-            if (kDebugMode) debugPrint('loadAssets(web) Drive pull: $e');
+            if (kDebugMode) debugPrint('loadAssets(web) $method pull: $e');
           }
+        }
+
+        // Persist merged result back to IndexedDB.
+        if (localSnapshot != null) {
+          final mergedBlob = syncService.packSnapshotTOCiphertext(
+            localSnapshot.assets,
+            customAssetTypes: localSnapshot.customAssetTypes,
+            relations: localSnapshot.relations,
+            tombstones: localSnapshot.tombstones,
+            opLog: localSnapshot.opLog,
+            attachmentManifest: localSnapshot.attachmentManifest,
+          );
+          await storage.writeEncrypted(mergedBlob);
         }
 
         if (localSnapshot == null) {
@@ -274,52 +324,60 @@ class AssetsNotifier extends Notifier<List<Asset>> {
 
       state = assets;
 
-      // Native Cold Start: Check Google Drive for updates and merge into local SQLCipher.
-      final methods = ref.read(syncSettingsProvider);
-      if (methods.contains(SyncMethod.googleDrive)) {
+      // Native cold start: pull from ALL enabled providers and merge.
+      final methods = await _awaitSyncMethods();
+      final pullMethods = methods.where(
+        (m) =>
+            m == SyncMethod.googleDrive ||
+            m == SyncMethod.webdav ||
+            m == SyncMethod.icloud,
+      );
+
+      for (final method in pullMethods) {
         try {
-          final drive = ref.read(googleDriveServiceProvider);
-          final hasCreds = await drive.hasCredentials();
-          if (hasCreds) {
-            final syncService = ref.read(e2eeSyncServiceProvider);
-            final remoteBlob = await drive.readRawBytesFromDrive();
-            if (remoteBlob != null && remoteBlob.isNotEmpty) {
-              final remoteSnapshot = syncService.unpackCiphertextToSnapshot(
-                remoteBlob,
+          final syncService = ref.read(e2eeSyncServiceProvider);
+          final remoteBlob = await _readRemoteBlob(method);
+          if (remoteBlob == null || remoteBlob.isEmpty) continue;
+          if (!_isPayloadSaltCompatible(remoteBlob)) {
+            if (kDebugMode) {
+              debugPrint(
+                'loadAssets(native) $method pull skipped: salt mismatch.',
               );
-              final customTypes = ref
-                  .read(assetTypesProvider)
-                  .where((t) => !t.isBuiltIn)
-                  .toList();
-              final relations = await dbService.getAllRelations();
-              final localSnapshot = await buildNativeLocalSnapshotForMerge(
-                customAssetTypes: customTypes,
-                relations: relations,
-              );
-
-              final result = VaultSnapshot.mergeSnapshots(
-                local: localSnapshot,
-                remote: remoteSnapshot,
-              );
-              await pullSync(result.snapshot);
-
-              if (result.conflicts.isNotEmpty) {
-                ref
-                    .read(pendingSyncConflictsProvider.notifier)
-                    .mergeFrom(result.conflicts);
-              }
-
-              // Persist merge when remote wins on timestamps/count, or when
-              // conflicts need the merged non-tie state reflected locally.
-              if (result.snapshot.updatedAt > localSnapshot.updatedAt ||
-                  result.snapshot.assets.length != state.length ||
-                  result.conflicts.isNotEmpty) {
-                await replaceFromSnapshot(result.snapshot);
-              }
             }
+            continue;
+          }
+          final remoteSnapshot = syncService.unpackCiphertextToSnapshot(
+            remoteBlob,
+          );
+          final customTypes = ref
+              .read(assetTypesProvider)
+              .where((t) => !t.isBuiltIn)
+              .toList();
+          final relations = await dbService.getAllRelations();
+          final localSnapshot = await buildNativeLocalSnapshotForMerge(
+            customAssetTypes: customTypes,
+            relations: relations,
+          );
+
+          final result = VaultSnapshot.mergeSnapshots(
+            local: localSnapshot,
+            remote: remoteSnapshot,
+          );
+          await pullSync(result.snapshot);
+
+          if (result.conflicts.isNotEmpty) {
+            ref
+                .read(pendingSyncConflictsProvider.notifier)
+                .mergeFrom(result.conflicts);
+          }
+
+          if (result.snapshot.updatedAt > localSnapshot.updatedAt ||
+              result.snapshot.assets.length != state.length ||
+              result.conflicts.isNotEmpty) {
+            await replaceFromSnapshot(result.snapshot);
           }
         } catch (e) {
-          if (kDebugMode) debugPrint('loadAssets(native) Drive pull: $e');
+          if (kDebugMode) debugPrint('loadAssets(native) $method pull: $e');
         }
       }
     } catch (e) {
@@ -971,6 +1029,43 @@ class AssetsNotifier extends Notifier<List<Asset>> {
   /// Public hook for screens that changed non-asset entities (e.g. attachments)
   /// and need to push a fresh full snapshot through the regular sync pipeline.
   Future<void> syncNow() => _triggerSync();
+
+  /// Builds a full encrypted AVV3 blob suitable for file export.
+  /// Uses unpruned tombstones so imports always preserve delete history.
+  Future<Uint8List> packFullExportBlob() async {
+    final syncService = ref.read(e2eeSyncServiceProvider);
+    final customTypes = ref
+        .read(assetTypesProvider)
+        .where((t) => !t.isBuiltIn)
+        .toList();
+    List<Map<String, dynamic>> relations = [];
+    List<OpLogEntry> opLog = const [];
+    List<AssetAttachment> attachmentManifest = const [];
+    final tombstones = _tombstoneList;
+
+    if (kIsWeb) {
+      relations = ref.read(webVaultRelationsProvider);
+      opLog = List<OpLogEntry>.from(_webOpLog);
+      attachmentManifest = List<AssetAttachment>.from(_webAttachments);
+    } else {
+      try {
+        final dbSvc = ref.read(databaseServiceProvider);
+        await dbSvc.ensureOpen(ref.read(encryptionServiceProvider).masterKey);
+        relations = await dbSvc.getAllRelations();
+        opLog = await dbSvc.getAllOpLog();
+        attachmentManifest = await dbSvc.getAllAttachments();
+      } catch (_) {}
+    }
+
+    return syncService.packSnapshotTOCiphertext(
+      state,
+      customAssetTypes: customTypes,
+      relations: relations,
+      tombstones: tombstones,
+      opLog: opLog,
+      attachmentManifest: attachmentManifest,
+    );
+  }
 
   /// Builds the native local snapshot used during cold-start merge.
   ///

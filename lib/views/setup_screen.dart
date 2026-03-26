@@ -7,7 +7,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../providers/assets_provider.dart';
-import '../services/e2ee_sync_service.dart';
 import '../services/google_drive_service.dart';
 import '../services/local_file_sync_service.dart';
 import '../widgets/google_sign_in_button.dart';
@@ -156,11 +155,14 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
 
       if (success) {
         try {
-          final syncService = ref.read(e2eeSyncServiceProvider);
-          final snapshot = syncService.unpackCiphertextToSnapshot(payload);
-          await ref
-              .read(assetsProvider.notifier)
-              .replaceFromSnapshot(snapshot, encryptedBlob: payload);
+          final snapshot = ref
+              .read(authProvider.notifier)
+              .consumeLastExternalSnapshot();
+          if (snapshot != null) {
+            await ref
+                .read(assetsProvider.notifier)
+                .replaceFromSnapshot(snapshot, encryptedBlob: payload);
+          }
           if (mounted) {
             messenger.showSnackBar(
               SnackBar(content: Text(l10n.vaultRestoredSuccess)),

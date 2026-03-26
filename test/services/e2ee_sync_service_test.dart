@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:octarq_vault/services/encryption_service.dart';
@@ -277,6 +278,21 @@ void main() {
       expect(snapshot.attachmentManifest.first.mimeType, 'application/pdf');
     });
 
+    test('pack → unpack preserves tombstones', () {
+      final tombstones = [
+        {'id': 'del-1', 'deletedAt': 5000},
+        {'id': 'del-2', 'deletedAt': 6000},
+      ];
+      final blob = service.packSnapshotTOCiphertext([], tombstones: tombstones);
+      final snapshot = service.unpackCiphertextToSnapshot(blob);
+
+      expect(snapshot.tombstones.length, 2);
+      expect(snapshot.tombstones[0]['id'], 'del-1');
+      expect(snapshot.tombstones[1]['id'], 'del-2');
+      expect(snapshot.tombstones[0]['deletedAt'], 5000);
+      expect(snapshot.tombstones[1]['deletedAt'], 6000);
+    });
+
     test('AVV3 magic header is present in packed blob', () {
       final blob = service.packSnapshotTOCiphertext([]);
       final header = String.fromCharCodes(blob.sublist(0, 4));
@@ -338,6 +354,165 @@ void main() {
         () => service.unpackCiphertextToSnapshot(tampered),
         throwsA(anything),
       );
+    });
+
+    test('rejects non-AVV3 payload', () {
+      final garbage = Uint8List.fromList(utf8.encode('not a valid blob'));
+      expect(
+        () => service.unpackCiphertextToSnapshot(garbage),
+        throwsA(anything),
+      );
+    });
+
+    test('payload encrypted with different key cannot be decrypted', () {
+      final blob = service.packSnapshotTOCiphertext([
+        _makeAsset(id: 'a1', name: 'Secret'),
+      ]);
+
+      // Create a service with a DIFFERENT key
+      final otherEnc = EncryptionService();
+      final otherKey = Uint8List(32);
+      for (int i = 0; i < 32; i++) {
+        otherKey[i] = 255 - i;
+      }
+      otherEnc.setMasterKey(otherKey);
+      otherEnc.setSalt('b3RoZXJzYWx0'); // base64('othersalt')
+      final otherService = E2EESyncService(otherEnc);
+
+      expect(
+        () => otherService.unpackCiphertextToSnapshot(blob),
+        throwsA(anything),
+      );
+    });
+
+    test('extractSaltFromPayload returns correct salt from AVV3 header', () {
+      final blob = service.packSnapshotTOCiphertext([]);
+      final salt = E2EESyncService.extractSaltFromPayload(blob);
+      expect(salt, equals('dGVzdHNhbHQ=')); // the salt from _makeEncService
+    });
+
+    test('extractSaltFromPayload returns null for garbage input', () {
+      final garbage = Uint8List.fromList([1, 2, 3]);
+      expect(E2EESyncService.extractSaltFromPayload(garbage), isNull);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Cross-platform export → import simulation
+  // -------------------------------------------------------------------------
+
+  group('Cross-platform export → import', () {
+    EncryptionService makeEncWithPassword(String salt) {
+      final enc = EncryptionService();
+      final key = Uint8List(32);
+      for (int i = 0; i < 32; i++) {
+        key[i] = i;
+      }
+      enc.setMasterKey(key);
+      enc.setSalt(salt);
+      return enc;
+    }
+
+    test(
+      'same key+salt: platform A export → platform B import round-trips all data',
+      () {
+        final enc = makeEncWithPassword('dGVzdHNhbHQ=');
+        final exportService = E2EESyncService(enc);
+
+        final assets = [
+          _makeAsset(id: 'a1', name: 'SSH Key'),
+          _makeAsset(id: 'a2', name: 'API Token'),
+        ];
+        final relations = [
+          {
+            'id': 'r1',
+            'from_asset_id': 'a1',
+            'to_asset_id': 'a2',
+            'relation_type': 'uses',
+          },
+        ];
+        final tombstones = [
+          {'id': 'del-1', 'deletedAt': 9999},
+        ];
+        final opLog = [_makeOpLogEntry(id: 'op1', entityId: 'a1', seq: 1)];
+        final attachments = [_makeAttachment(id: 'att1', assetId: 'a1')];
+
+        final blob = exportService.packSnapshotTOCiphertext(
+          assets,
+          relations: relations,
+          tombstones: tombstones,
+          opLog: opLog,
+          attachmentManifest: attachments,
+        );
+
+        // "Another platform" with identical key — simulates same password
+        final importEnc = EncryptionService();
+        importEnc.setMasterKey(Uint8List.fromList(enc.masterKey));
+        importEnc.setSalt('dGVzdHNhbHQ=');
+        final importService = E2EESyncService(importEnc);
+
+        final snapshot = importService.unpackCiphertextToSnapshot(blob);
+        expect(snapshot.assets.length, 2);
+        expect(
+          snapshot.assets.map((a) => a.name),
+          containsAll(['SSH Key', 'API Token']),
+        );
+        expect(snapshot.relations.length, 1);
+        expect(snapshot.tombstones.length, 1);
+        expect(snapshot.tombstones.first['id'], 'del-1');
+        expect(snapshot.opLog.length, 1);
+        expect(snapshot.attachmentManifest.length, 1);
+      },
+    );
+
+    test('different key: import fails with decryption error', () {
+      final exportEnc = makeEncWithPassword('dGVzdHNhbHQ=');
+      final exportService = E2EESyncService(exportEnc);
+      final blob = exportService.packSnapshotTOCiphertext([
+        _makeAsset(id: 'a1', name: 'Secret'),
+      ]);
+
+      final wrongEnc = EncryptionService();
+      final wrongKey = Uint8List(32);
+      for (int i = 0; i < 32; i++) {
+        wrongKey[i] = 255 - i;
+      }
+      wrongEnc.setMasterKey(wrongKey);
+      wrongEnc.setSalt('dGVzdHNhbHQ=');
+      final importService = E2EESyncService(wrongEnc);
+
+      expect(
+        () => importService.unpackCiphertextToSnapshot(blob),
+        throwsA(anything),
+      );
+    });
+
+    test(
+      'same key but different salt in header: extractSaltFromPayload detects mismatch',
+      () {
+        final encA = makeEncWithPassword('c2FsdEE='); // 'saltA'
+        final encB = makeEncWithPassword('c2FsdEI='); // 'saltB'
+        final serviceA = E2EESyncService(encA);
+
+        final blob = serviceA.packSnapshotTOCiphertext([]);
+        final extractedSalt = E2EESyncService.extractSaltFromPayload(blob);
+
+        expect(extractedSalt, equals('c2FsdEE='));
+        expect(extractedSalt, isNot(equals(encB.currentSaltBase64)));
+      },
+    );
+
+    test('blob from export is pure AVV3 binary, not base64-wrapped', () {
+      final enc = makeEncWithPassword('dGVzdHNhbHQ=');
+      final service = E2EESyncService(enc);
+      final blob = service.packSnapshotTOCiphertext([
+        _makeAsset(id: 'a1', name: 'Test'),
+      ]);
+
+      expect(String.fromCharCodes(blob.sublist(0, 4)), 'AVV3');
+      // Should NOT be valid UTF-8 text throughout (it's binary)
+      final isAllAsciiPrintable = blob.every((b) => b >= 32 && b <= 126);
+      expect(isAllAsciiPrintable, isFalse);
     });
   });
 

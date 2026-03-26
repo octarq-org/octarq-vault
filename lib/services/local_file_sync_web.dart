@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:js_interop';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -208,21 +209,16 @@ class LocalFileSyncService {
       attachmentManifest: attachmentManifest,
     );
 
-    final parts = [encryptedBlob.toJS].toJS;
-    final blob = web.Blob(
-      parts,
-      web.BlobPropertyBag(type: 'application/octet-stream'),
-    );
-    final url = web.URL.createObjectURL(blob);
+    final b64 = base64.encode(encryptedBlob);
+    final dataUri = 'data:application/octet-stream;base64,$b64';
 
     final anchor = web.HTMLAnchorElement()
-      ..href = url
+      ..href = dataUri
       ..download = 'octarq_vault_backup.enc';
 
     web.document.body!.appendChild(anchor);
     anchor.click();
     web.document.body!.removeChild(anchor);
-    web.URL.revokeObjectURL(url);
   }
 
   /// Prompts the user to upload a file and returns raw encrypted bytes.
