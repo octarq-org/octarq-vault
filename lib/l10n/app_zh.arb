@@ -325,5 +325,6 @@
   "webdavProxyBaseUrlLabel": "代理基址（备忘）",
   "webdavProxyBaseUrlHint": "https://你的域名/webdav-proxy",
   "webdavProxySaveNote": "仅保存在本浏览器。后续版本若支持，可通过兼容代理走同步。",
-  "webdavProxySaved": "已保存备忘地址。"
+  "webdavProxySaved": "已保存备忘地址。",
+  "attachmentsWillBeUploadedAfterSave": "附件会在保存资产后自动上传。"
 }

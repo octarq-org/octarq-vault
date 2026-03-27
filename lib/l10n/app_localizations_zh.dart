@@ -979,4 +979,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get webdavProxySaved => '已保存备忘地址。';
+
+  @override
+  String get attachmentsWillBeUploadedAfterSave => '附件会在保存资产后自动上传。';
 }

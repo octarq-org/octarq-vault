@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:go_router/go_router.dart';
@@ -9,12 +10,15 @@ import '../models/asset.dart';
 import '../utils/relation_type_label.dart';
 import '../models/asset_type.dart';
 import '../models/field.dart';
+import '../models/attachment.dart';
 import '../models/tag.dart';
 import '../models/reminder.dart';
 import '../providers/assets_provider.dart';
 import '../providers/asset_types_provider.dart';
 import '../providers/relations_provider.dart';
 import '../providers/service_providers.dart';
+import '../services/file_picker_service.dart';
+import '../services/e2ee_sync_service.dart';
 import '../main.dart';
 
 class AssetFormScreen extends ConsumerStatefulWidget {
@@ -42,6 +46,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
   final List<Tag> _selectedTags = [];
   final List<Reminder> _reminders = [];
   final List<({String assetId, String relationType})> _pendingLinks = [];
+  final List<PickedLocalFile> _pendingAttachments = [];
 
   bool get _isEditing => widget.editingAsset != null;
 
@@ -409,6 +414,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
         await ref.read(assetsProvider.notifier).updateAsset(asset);
       } else {
         await ref.read(assetsProvider.notifier).addAsset(asset);
+        await _persistPendingAttachments(asset.id);
         for (final p in _pendingLinks) {
           await ref
               .read(relationsControllerProvider)
@@ -473,6 +479,56 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  Future<void> _pickAttachment() async {
+    final picked = await ref.read(filePickerServiceProvider).pickSingleFile();
+    if (picked == null) return;
+    setState(() => _pendingAttachments.add(picked));
+  }
+
+  Future<void> _persistPendingAttachments(String assetId) async {
+    if (_pendingAttachments.isEmpty) return;
+
+    final attachmentService = ref.read(attachmentServiceProvider);
+    final uploaded = <AssetAttachment>[];
+
+    for (final picked in _pendingAttachments) {
+      try {
+        final attachment = await attachmentService.saveAttachment(
+          assetId: assetId,
+          name: picked.name,
+          mimeType: picked.mimeType,
+          bytes: picked.bytes,
+        );
+
+        if (kIsWeb) {
+          await ref
+              .read(assetsProvider.notifier)
+              .recordWebAttachmentUpsert(attachment);
+        } else {
+          final dbSvc = ref.read(databaseServiceProvider);
+          if (!dbSvc.isOpen) {
+            final key = ref.read(encryptionServiceProvider).masterKey;
+            await dbSvc.ensureOpen(key);
+          }
+          await dbSvc.insertAttachment(attachment);
+          await dbSvc.recordAttachmentOperation(
+            attachment.id,
+            OpType.upsert,
+            payload: attachment.toJson(),
+          );
+          uploaded.add(attachment);
+        }
+      } catch (e) {
+        debugPrint('Attachment save failed (non-critical): $e');
+      }
+    }
+
+    if (!kIsWeb && uploaded.isNotEmpty) {
+      await ref.read(assetsProvider.notifier).pushSync(attachments: uploaded);
+    }
+    await ref.read(assetsProvider.notifier).syncNow();
   }
 
   @override
@@ -793,6 +849,95 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                   ? _buildLinkedAssetsEdit(context, ref)
                   : _buildPendingLinks(context, ref),
               const SizedBox(height: 24),
+
+              if (!_isEditing) ...[
+                Row(
+                  children: [
+                    Expanded(child: _SectionLabel(l10n.attachmentsTitle)),
+                    TextButton.icon(
+                      onPressed: _pickAttachment,
+                      icon: const Icon(Icons.attach_file, size: 16),
+                      label: Text(
+                        l10n.attachAction,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: kPrimaryGreen,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _pendingAttachments.isEmpty
+                    ? _FormCard(
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.attach_file,
+                                color: kTextMuted,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                l10n.attachmentsWillBeUploadedAfterSave,
+                                style: const TextStyle(
+                                  color: kTextMuted,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      )
+                    : _FormCard(
+                        children: _pendingAttachments.asMap().entries.map((
+                          entry,
+                        ) {
+                          final file = entry.value;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.insert_drive_file_outlined,
+                                  size: 16,
+                                  color: kTextMuted,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    file.name,
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.close,
+                                    size: 14,
+                                    color: kTextMuted,
+                                  ),
+                                  onPressed: () => setState(
+                                    () =>
+                                        _pendingAttachments.removeAt(entry.key),
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 24,
+                                    minHeight: 24,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                const SizedBox(height: 24),
+              ],
 
               if (_selectedType != null &&
                   _selectedType!.fieldSchema.isNotEmpty) ...[

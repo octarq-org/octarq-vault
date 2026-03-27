@@ -1893,6 +1893,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reference URL saved.'**
   String get webdavProxySaved;
+
+  /// No description provided for @attachmentsWillBeUploadedAfterSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachments will upload after saving this asset.'**
+  String get attachmentsWillBeUploadedAfterSave;
 }
 
 class _AppLocalizationsDelegate

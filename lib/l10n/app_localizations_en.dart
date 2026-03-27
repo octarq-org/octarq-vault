@@ -1003,4 +1003,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get webdavProxySaved => 'Reference URL saved.';
+
+  @override
+  String get attachmentsWillBeUploadedAfterSave =>
+      'Attachments will upload after saving this asset.';
 }
