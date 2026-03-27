@@ -355,9 +355,8 @@ class AssetsNotifier extends Notifier<List<Asset>> {
             remoteBlob,
           );
           final customTypes = ref
-              .read(assetTypesProvider)
-              .where((t) => !t.isBuiltIn)
-              .toList();
+              .read(assetTypesProvider.notifier)
+              .persistedTypesForSync();
           final relations = await dbService.getAllRelations();
           final localSnapshot = await buildNativeLocalSnapshotForMerge(
             customAssetTypes: customTypes,
@@ -747,9 +746,8 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       final blob = syncService.packSnapshotTOCiphertext(
         [],
         customAssetTypes: ref
-            .read(assetTypesProvider)
-            .where((t) => !t.isBuiltIn)
-            .toList(),
+            .read(assetTypesProvider.notifier)
+            .persistedTypesForSync(),
       );
       await ref.read(webVaultStorageProvider).writeEncrypted(blob);
     } else {
@@ -916,9 +914,8 @@ class AssetsNotifier extends Notifier<List<Asset>> {
   Future<void> _triggerSync() async {
     final methods = ref.read(syncSettingsProvider);
     final customTypes = ref
-        .read(assetTypesProvider)
-        .where((t) => !t.isBuiltIn)
-        .toList();
+        .read(assetTypesProvider.notifier)
+        .persistedTypesForSync();
 
     // Fetch current relations: native from DB, web from in-memory mirror.
     List<Map<String, dynamic>> relations = [];
@@ -1040,9 +1037,8 @@ class AssetsNotifier extends Notifier<List<Asset>> {
   Future<Uint8List> packFullExportBlob() async {
     final syncService = ref.read(e2eeSyncServiceProvider);
     final customTypes = ref
-        .read(assetTypesProvider)
-        .where((t) => !t.isBuiltIn)
-        .toList();
+        .read(assetTypesProvider.notifier)
+        .persistedTypesForSync();
     List<Map<String, dynamic>> relations = [];
     List<OpLogEntry> opLog = const [];
     List<AssetAttachment> attachmentManifest = const [];

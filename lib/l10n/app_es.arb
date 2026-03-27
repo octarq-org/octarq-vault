@@ -134,6 +134,7 @@
   "assetNotFound": "Activo no encontrado",
   "assetType": "Tipo de activo",
   "assetName": "Nombre del activo",
+  "notes": "Notas",
   "details": "Detalles",
   "fields": "Campos",
   "type": "Tipo",
@@ -212,6 +213,12 @@
   "manageAssetTypes": "Gestionar tipos de activos",
   "deleteCustomType": "Eliminar tipo personalizado",
   "deleteCustomTypeConfirmation": "¿Estás seguro? Los activos existentes de este tipo podrían perder sus asignaciones de plantilla.",
+  "assetTypeDeleteInUse": "No se puede eliminar: este tipo está en uso por {count} activos.",
+  "@assetTypeDeleteInUse": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "newAssetType": "Nuevo tipo de activo",
   "assetTypeNameHint": "Nombre del tipo de activo (p. ej., Billetera cripto)",
   "icon": "Ícono",

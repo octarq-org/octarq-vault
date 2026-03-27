@@ -198,7 +198,7 @@ class _EditAssetTypeWrapper extends ConsumerWidget {
       () => ref.read(assetTypesProvider.notifier).loadCustomTypes(),
     );
     final types = ref.watch(assetTypesProvider);
-    final type = types.where((t) => t.id == typeId && !t.isBuiltIn).firstOrNull;
+    final type = types.where((t) => t.id == typeId).firstOrNull;
     if (type == null) {
       return Scaffold(body: const Center(child: CircularProgressIndicator()));
     }

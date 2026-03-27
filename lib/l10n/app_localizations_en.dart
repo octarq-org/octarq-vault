@@ -349,6 +349,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get assetName => 'Asset Name';
 
   @override
+  String get notes => 'Notes';
+
+  @override
   String get details => 'Details';
 
   @override
@@ -520,6 +523,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get deleteCustomTypeConfirmation =>
       'Are you sure? Existing assets of this type might lose their template mappings.';
+
+  @override
+  String assetTypeDeleteInUse(int count) {
+    return 'Cannot delete: this type is used by $count assets.';
+  }
 
   @override
   String get newAssetType => 'New Asset Type';

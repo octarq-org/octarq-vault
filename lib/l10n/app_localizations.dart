@@ -748,6 +748,12 @@ abstract class AppLocalizations {
   /// **'Asset Name'**
   String get assetName;
 
+  /// No description provided for @notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get notes;
+
   /// No description provided for @details.
   ///
   /// In en, this message translates to:
@@ -1065,6 +1071,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Are you sure? Existing assets of this type might lose their template mappings.'**
   String get deleteCustomTypeConfirmation;
+
+  /// No description provided for @assetTypeDeleteInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot delete: this type is used by {count} assets.'**
+  String assetTypeDeleteInUse(int count);
 
   /// No description provided for @newAssetType.
   ///

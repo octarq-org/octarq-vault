@@ -31,6 +31,7 @@ class AssetDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
+  static const String _notesFieldKey = '__notes';
   bool _showSecrets = false;
 
   String _humanizeFieldKey(String key) {
@@ -317,6 +318,9 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
     final schemaByKey = {for (final s in assetType.fieldSchema) s.key: s};
     final displayedFieldRows = <Widget>[];
     final renderedKeys = <String>{};
+    final notesField = asset.fields
+        .where((f) => f.key == _notesFieldKey && f.valueEnc.trim().isNotEmpty)
+        .firstOrNull;
     final genericSchemaLabels = assetType.fieldSchema
         .map((s) => s.label)
         .toList();
@@ -350,6 +354,7 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
     }
 
     for (final fieldData in asset.fields) {
+      if (fieldData.key == _notesFieldKey) continue;
       if (renderedKeys.contains(fieldData.key)) continue;
       String fallbackLabel =
           schemaByKey[fieldData.key]?.label ?? _humanizeFieldKey(fieldData.key);
@@ -482,6 +487,13 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
                 icon: Icons.access_time_outlined,
                 iconColor: kTextMuted,
               ),
+              if (notesField != null)
+                _DetailRow(
+                  label: l10n.notes,
+                  value: notesField.valueEnc,
+                  icon: Icons.sticky_note_2_outlined,
+                  iconColor: kTextMuted,
+                ),
             ],
           ),
           const SizedBox(height: 24),

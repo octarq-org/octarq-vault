@@ -356,6 +356,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get assetName => 'Nombre del activo';
 
   @override
+  String get notes => 'Notas';
+
+  @override
   String get details => 'Detalles';
 
   @override
@@ -529,6 +532,11 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get deleteCustomTypeConfirmation =>
       '¿Estás seguro? Los activos existentes de este tipo podrían perder sus asignaciones de plantilla.';
+
+  @override
+  String assetTypeDeleteInUse(int count) {
+    return 'No se puede eliminar: este tipo está en uso por $count activos.';
+  }
 
   @override
   String get newAssetType => 'Nuevo tipo de activo';

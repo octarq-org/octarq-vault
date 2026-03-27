@@ -134,6 +134,7 @@
   "assetNotFound": "Asset not found",
   "assetType": "Asset Type",
   "assetName": "Asset Name",
+  "notes": "Notes",
   "details": "Details",
   "fields": "Fields",
   "type": "Type",
@@ -212,6 +213,12 @@
   "manageAssetTypes": "Manage Asset Types",
   "deleteCustomType": "Delete Custom Type",
   "deleteCustomTypeConfirmation": "Are you sure? Existing assets of this type might lose their template mappings.",
+  "assetTypeDeleteInUse": "Cannot delete: this type is used by {count} assets.",
+  "@assetTypeDeleteInUse": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "newAssetType": "New Asset Type",
   "assetTypeNameHint": "Asset Type Name (e.g., Crypto Wallet)",
   "icon": "Icon",

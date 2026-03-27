@@ -343,6 +343,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get assetName => '资产名称';
 
   @override
+  String get notes => '备注';
+
+  @override
   String get details => '详情';
 
   @override
@@ -510,6 +513,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get deleteCustomTypeConfirmation => '确定删除？该类型的现有资产可能丢失模板映射。';
+
+  @override
+  String assetTypeDeleteInUse(int count) {
+    return '无法删除：该分类已被 $count 个资产使用。';
+  }
 
   @override
   String get newAssetType => '新建资产类型';

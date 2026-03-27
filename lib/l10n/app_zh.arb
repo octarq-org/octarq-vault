@@ -118,6 +118,7 @@
   "assetNotFound": "未找到该资产",
   "assetType": "资产类型",
   "assetName": "资产名称",
+  "notes": "备注",
   "details": "详情",
   "fields": "字段",
   "type": "类型",
@@ -171,6 +172,12 @@
   "manageAssetTypes": "管理资产类型",
   "deleteCustomType": "删除自定义类型",
   "deleteCustomTypeConfirmation": "确定删除？该类型的现有资产可能丢失模板映射。",
+  "assetTypeDeleteInUse": "无法删除：该分类已被 {count} 个资产使用。",
+  "@assetTypeDeleteInUse": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
   "newAssetType": "新建资产类型",
   "assetTypeNameHint": "资产类型名称（如：加密货币钱包）",
   "icon": "图标",

@@ -31,8 +31,10 @@ class AssetFormScreen extends ConsumerStatefulWidget {
 }
 
 class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
+  static const String _notesFieldKey = '__notes';
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _notesController = TextEditingController();
   final _tagInputController = TextEditingController();
   final _aliasInputController = TextEditingController();
 
@@ -67,6 +69,12 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
   void _initForEditing() {
     final asset = widget.editingAsset!;
     _nameController.text = asset.name;
+    _notesController.text =
+        asset.fields
+            .where((f) => f.key == _notesFieldKey)
+            .firstOrNull
+            ?.valueEnc ??
+        '';
     _selectedTags.addAll(asset.tags);
     _reminders.addAll(asset.reminders);
     if (asset.expireAt != null) {
@@ -201,6 +209,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _notesController.dispose();
     _tagInputController.dispose();
     _aliasInputController.dispose();
     for (var c in _fieldControllers.values) {
@@ -359,6 +368,26 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
       final now = DateTime.now().millisecondsSinceEpoch;
 
       final List<AssetField> fields = [];
+      final noteValue = _notesController.text.trim();
+      if (noteValue.isNotEmpty) {
+        String? existingNoteFieldId;
+        if (_isEditing) {
+          existingNoteFieldId = widget.editingAsset!.fields
+              .where((f) => f.key == _notesFieldKey)
+              .firstOrNull
+              ?.id;
+        }
+        fields.add(
+          AssetField(
+            id: existingNoteFieldId ?? const Uuid().v4(),
+            assetId: assetId,
+            key: _notesFieldKey,
+            valueEnc: noteValue,
+            iv: '',
+            isSensitive: false,
+          ),
+        );
+      }
       for (final schema in _selectedType!.fieldSchema) {
         final String value;
         if (schema.type == 'select') {
@@ -624,6 +653,20 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                     ),
                     validator: (val) =>
                         val == null || val.isEmpty ? l10n.required : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _notesController,
+                    minLines: 3,
+                    maxLines: 6,
+                    decoration: InputDecoration(
+                      labelText: l10n.notes,
+                      alignLabelWithHint: true,
+                      prefixIcon: const Icon(
+                        Icons.sticky_note_2_outlined,
+                        size: 18,
+                      ),
+                    ),
                   ),
                 ],
               ),

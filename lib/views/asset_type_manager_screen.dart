@@ -43,49 +43,55 @@ class _AssetTypeManagerScreenState
             subtitle: Text(
               '${type.fieldSchema.length} ${l10n.fields} ${type.isBuiltIn ? '(Built-in)' : '(Custom)'}',
             ),
-            trailing: type.isBuiltIn
-                ? null
-                : Wrap(
-                    spacing: 4,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit_outlined),
-                        onPressed: () => context.push(
-                          '/settings/asset-types/${type.id}/edit',
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () async {
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: Text(l10n.deleteCustomType),
-                              content: Text(l10n.deleteCustomTypeConfirmation),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, false),
-                                  child: Text(l10n.cancel),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, true),
-                                  child: Text(
-                                    l10n.delete,
-                                    style: const TextStyle(color: Colors.red),
-                                  ),
-                                ),
-                              ],
+            trailing: Wrap(
+              spacing: 4,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () =>
+                      context.push('/settings/asset-types/${type.id}/edit'),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: Text(l10n.deleteCustomType),
+                        content: Text(l10n.deleteCustomTypeConfirmation),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: Text(l10n.cancel),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: Text(
+                              l10n.delete,
+                              style: const TextStyle(color: Colors.red),
                             ),
-                          );
-                          if (confirm == true) {
-                            await ref
-                                .read(assetTypesProvider.notifier)
-                                .deleteCustomType(type.id);
-                          }
-                        },
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    );
+                    if (confirm == true) {
+                      final result = await ref
+                          .read(assetTypesProvider.notifier)
+                          .deleteTypeIfUnused(type.id);
+                      if (!result.deleted && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              l10n.assetTypeDeleteInUse(result.usageCount),
+                            ),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ],
+            ),
           );
         },
       ),
@@ -159,16 +165,12 @@ class _AssetTypeFormScreenState extends ConsumerState<AssetTypeFormScreen> {
       id: widget.editingType?.id ?? const Uuid().v4(),
       name: _nameController.text.trim(),
       icon: _selectedIcon,
-      isBuiltIn: false,
+      isBuiltIn: widget.editingType?.isBuiltIn ?? false,
       fieldSchema: _fields,
       updatedAt: now,
     );
 
-    if (_isEditing) {
-      await ref.read(assetTypesProvider.notifier).updateCustomType(newType);
-    } else {
-      await ref.read(assetTypesProvider.notifier).addCustomType(newType);
-    }
+    await ref.read(assetTypesProvider.notifier).upsertType(newType);
     if (mounted) context.go('/settings/asset-types');
   }
 

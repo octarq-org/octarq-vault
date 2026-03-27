@@ -233,9 +233,8 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
       final assets = ref.read(assetsProvider);
       final syncService = ref.read(e2eeSyncServiceProvider);
       final customTypes = ref
-          .read(assetTypesProvider)
-          .where((t) => !t.isBuiltIn)
-          .toList();
+          .read(assetTypesProvider.notifier)
+          .persistedTypesForSync();
       final encrypted = syncService.packSnapshotTOCiphertext(
         assets,
         customAssetTypes: customTypes,
@@ -597,9 +596,8 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
       final assets = ref.read(assetsProvider);
       final syncService = ref.read(e2eeSyncServiceProvider);
       final customTypes = ref
-          .read(assetTypesProvider)
-          .where((t) => !t.isBuiltIn)
-          .toList();
+          .read(assetTypesProvider.notifier)
+          .persistedTypesForSync();
       final blob = syncService.packSnapshotTOCiphertext(
         assets,
         customAssetTypes: customTypes,
@@ -837,9 +835,8 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
       if (remoteSnapshot == null) return;
       final localAssets = ref.read(assetsProvider);
       final localCustomTypes = ref
-          .read(assetTypesProvider)
-          .where((t) => !t.isBuiltIn)
-          .toList();
+          .read(assetTypesProvider.notifier)
+          .persistedTypesForSync();
 
       final localSnapshot = VaultSnapshot(
         version: 2,

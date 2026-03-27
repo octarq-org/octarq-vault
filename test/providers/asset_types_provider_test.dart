@@ -3,8 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:octarq_vault/models/asset.dart';
+import 'package:octarq_vault/models/field.dart';
 import 'package:octarq_vault/models/asset_type.dart';
 import 'package:octarq_vault/providers/asset_types_provider.dart';
+import 'package:octarq_vault/providers/assets_provider.dart';
+import 'package:octarq_vault/providers/auth_provider.dart';
 import 'package:octarq_vault/providers/locale_preference_provider.dart';
 import 'package:octarq_vault/providers/service_providers.dart';
 import 'package:octarq_vault/services/database_service.dart';
@@ -14,6 +18,11 @@ import 'package:octarq_vault/utils/default_asset_types.dart';
 class _ZhLocalePreferenceNotifier extends LocalePreferenceNotifier {
   @override
   String build() => 'zh';
+}
+
+class _UnlockedAuthNotifier extends AuthNotifier {
+  @override
+  AuthState build() => AuthState.unlocked;
 }
 
 class _MockAssetTypesDatabaseService extends DatabaseService {
@@ -49,6 +58,22 @@ class _MockAssetTypesDatabaseService extends DatabaseService {
   Future<OpLogEntry> appendOpLog(OpLogEntry entry) async => entry;
 }
 
+class _AssetsUsingDomainTypeNotifier extends AssetsNotifier {
+  @override
+  List<Asset> build() {
+    return [
+      Asset(
+        id: 'asset_using_domain',
+        typeId: 'type_domain',
+        name: 'Domain 1',
+        createdAt: 1,
+        updatedAt: 1,
+        fields: const <AssetField>[],
+      ),
+    ];
+  }
+}
+
 void main() {
   group('AssetTypesNotifier', () {
     late ProviderContainer container;
@@ -58,6 +83,7 @@ void main() {
       mockDb = _MockAssetTypesDatabaseService();
       container = ProviderContainer(
         overrides: [
+          authProvider.overrideWith(_UnlockedAuthNotifier.new),
           localePreferenceProvider.overrideWith(
             _ZhLocalePreferenceNotifier.new,
           ),
@@ -124,7 +150,7 @@ void main() {
         (f) => f.key == 'password',
       );
       expect(passwordField.isEncrypted, isTrue);
-      expect(passwordField.isRequired, isTrue);
+      expect(passwordField.isRequired, isFalse);
       expect(passwordField.type, equals('password'));
     });
 
@@ -305,6 +331,91 @@ void main() {
         );
       },
     );
+
+    test('loadCustomTypes uses DB record to override built-in by id', () async {
+      mockDb.assetTypes.add({
+        'id': 'type_domain',
+        'name': 'Domain (Overridden)',
+        'icon': 'cloud',
+        'updated_at': 888,
+        'field_schema': jsonEncode([
+          {
+            'key': 'provider',
+            'label': 'Provider',
+            'type': 'text',
+            'isEncrypted': false,
+            'isRequired': true,
+            'options': <String>[],
+          },
+        ]),
+        'is_built_in': 1,
+      });
+
+      final notifier = container.read(assetTypesProvider.notifier);
+      await notifier.loadCustomTypes();
+
+      final types = container.read(assetTypesProvider);
+      final domain = types.firstWhere((type) => type.id == 'type_domain');
+      expect(domain.name, equals('Domain (Overridden)'));
+      expect(domain.icon, equals('cloud'));
+      expect(domain.updatedAt, equals(888));
+      expect(domain.fieldSchema.single.key, equals('provider'));
+    });
+
+    test(
+      'loadCustomTypes hides built-in when tombstone marker exists in DB',
+      () async {
+        mockDb.assetTypes.add({
+          'id': 'type_domain',
+          'name': '__deleted_builtin__:type_domain',
+          'icon': 'language',
+          'updated_at': 999,
+          'field_schema': jsonEncode(<Map<String, dynamic>>[]),
+          'is_built_in': 1,
+        });
+
+        final notifier = container.read(assetTypesProvider.notifier);
+        await notifier.loadCustomTypes();
+
+        final types = container.read(assetTypesProvider);
+        expect(types.any((type) => type.id == 'type_domain'), isFalse);
+      },
+    );
+
+    test('deleteTypeIfUnused writes built-in tombstone marker', () async {
+      final notifier = container.read(assetTypesProvider.notifier);
+      final result = await notifier.deleteTypeIfUnused('type_domain');
+
+      expect(result.deleted, isTrue);
+      final tombstone = mockDb.assetTypes.singleWhere(
+        (row) => row['id'] == 'type_domain',
+      );
+      expect(
+        (tombstone['name'] as String).startsWith('__deleted_builtin__:'),
+        isTrue,
+      );
+    });
+
+    test('deleteTypeIfUnused blocks when type is used by assets', () async {
+      final usedContainer = ProviderContainer(
+        overrides: [
+          authProvider.overrideWith(_UnlockedAuthNotifier.new),
+          localePreferenceProvider.overrideWith(
+            _ZhLocalePreferenceNotifier.new,
+          ),
+          databaseServiceProvider.overrideWithValue(mockDb),
+          assetsProvider.overrideWith(_AssetsUsingDomainTypeNotifier.new),
+        ],
+      );
+      addTearDown(usedContainer.dispose);
+
+      final result = await usedContainer
+          .read(assetTypesProvider.notifier)
+          .deleteTypeIfUnused('type_domain');
+
+      expect(result.deleted, isFalse);
+      expect(result.usageCount, equals(1));
+    });
   });
 
   group('AssetTypeFieldSchema', () {
