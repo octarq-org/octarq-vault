@@ -477,5 +477,6 @@
   "webdavProxyBaseUrlHint": "https://tu-dominio.com/webdav-proxy",
   "webdavProxySaveNote": "Solo en este navegador. Una versión futura podría usar esta URL con un proxy compatible.",
   "webdavProxySaved": "URL de referencia guardada.",
-  "attachmentsWillBeUploadedAfterSave": "Los adjuntos se subirán después de guardar este activo."
+  "attachmentsWillBeUploadedAfterSave": "Los adjuntos se subirán después de guardar este activo.",
+  "noneOption": "Ninguno"
 }

@@ -1007,4 +1007,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get attachmentsWillBeUploadedAfterSave =>
       'Attachments will upload after saving this asset.';
+
+  @override
+  String get noneOption => 'None';
 }

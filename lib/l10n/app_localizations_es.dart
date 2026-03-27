@@ -1026,4 +1026,7 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get attachmentsWillBeUploadedAfterSave =>
       'Los adjuntos se subirán después de guardar este activo.';
+
+  @override
+  String get noneOption => 'Ninguno';
 }

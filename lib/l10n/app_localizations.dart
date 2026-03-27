@@ -1899,6 +1899,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Attachments will upload after saving this asset.'**
   String get attachmentsWillBeUploadedAfterSave;
+
+  /// No description provided for @noneOption.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get noneOption;
 }
 
 class _AppLocalizationsDelegate

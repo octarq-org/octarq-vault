@@ -982,4 +982,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get attachmentsWillBeUploadedAfterSave => '附件会在保存资产后自动上传。';
+
+  @override
+  String get noneOption => '无';
 }

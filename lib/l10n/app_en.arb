@@ -478,5 +478,6 @@
   "webdavProxyBaseUrlHint": "https://your-domain.com/webdav-proxy",
   "webdavProxySaveNote": "Saved on this browser only. A future version may route sync through this URL if you run a compatible proxy.",
   "webdavProxySaved": "Reference URL saved.",
-  "attachmentsWillBeUploadedAfterSave": "Attachments will upload after saving this asset."
+  "attachmentsWillBeUploadedAfterSave": "Attachments will upload after saving this asset.",
+  "noneOption": "None"
 }

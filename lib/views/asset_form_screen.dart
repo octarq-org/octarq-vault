@@ -248,8 +248,8 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
     showDialog(
       context: context,
       builder: (ctx) {
-        int offsetDays = 7;
-        String triggerType = 'expiration';
+        int? offsetDays = 7;
+        String? triggerType = 'expiration';
         return StatefulBuilder(
           builder: (context, setDlgState) => AlertDialog(
             backgroundColor: kSurfaceColor,
@@ -263,7 +263,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                DropdownButtonFormField<String>(
+                DropdownButtonFormField<String?>(
                   decoration: InputDecoration(
                     labelText: AppLocalizations.of(ctx)!.triggerType,
                   ),
@@ -271,6 +271,10 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                   dropdownColor: kSurfaceColor,
                   style: const TextStyle(fontSize: 14, color: Colors.white),
                   items: [
+                    DropdownMenuItem(
+                      value: null,
+                      child: Text(AppLocalizations.of(ctx)!.noneOption),
+                    ),
                     DropdownMenuItem(
                       value: 'expiration',
                       child: Text(AppLocalizations.of(ctx)!.beforeExpiration),
@@ -280,27 +284,29 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                       child: Text(AppLocalizations.of(ctx)!.recurring),
                     ),
                   ],
-                  onChanged: (val) =>
-                      setDlgState(() => triggerType = val ?? triggerType),
+                  onChanged: (val) => setDlgState(() => triggerType = val),
                 ),
                 const SizedBox(height: 16),
-                DropdownButtonFormField<int>(
+                DropdownButtonFormField<int?>(
                   decoration: InputDecoration(
                     labelText: AppLocalizations.of(ctx)!.daysBefore,
                   ),
                   initialValue: offsetDays,
                   dropdownColor: kSurfaceColor,
                   style: const TextStyle(fontSize: 14, color: Colors.white),
-                  items: [3, 7, 14, 30, 60, 90]
-                      .map(
-                        (d) => DropdownMenuItem(
-                          value: d,
-                          child: Text(AppLocalizations.of(ctx)!.daysCount(d)),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (val) =>
-                      setDlgState(() => offsetDays = val ?? offsetDays),
+                  items: [
+                    DropdownMenuItem(
+                      value: null,
+                      child: Text(AppLocalizations.of(ctx)!.noneOption),
+                    ),
+                    ...[3, 7, 14, 30, 60, 90].map(
+                      (d) => DropdownMenuItem(
+                        value: d,
+                        child: Text(AppLocalizations.of(ctx)!.daysCount(d)),
+                      ),
+                    ),
+                  ],
+                  onChanged: (val) => setDlgState(() => offsetDays = val),
                 ),
               ],
             ),
@@ -310,21 +316,23 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                 child: Text(AppLocalizations.of(ctx)!.cancel),
               ),
               FilledButton(
-                onPressed: () {
-                  setState(() {
-                    _reminders.add(
-                      Reminder(
-                        id: const Uuid().v4(),
-                        assetId: '',
-                        triggerType: triggerType,
-                        offsetDays: offsetDays,
-                        channels: ['push'],
-                        isRecurring: triggerType == 'recurring',
-                      ),
-                    );
-                  });
-                  Navigator.pop(ctx);
-                },
+                onPressed: triggerType == null || offsetDays == null
+                    ? null
+                    : () {
+                        setState(() {
+                          _reminders.add(
+                            Reminder(
+                              id: const Uuid().v4(),
+                              assetId: '',
+                              triggerType: triggerType!,
+                              offsetDays: offsetDays!,
+                              channels: ['push'],
+                              isRecurring: triggerType == 'recurring',
+                            ),
+                          );
+                        });
+                        Navigator.pop(ctx);
+                      },
                 style: FilledButton.styleFrom(
                   backgroundColor: kPrimaryGreen,
                   foregroundColor: Colors.black,
@@ -583,7 +591,7 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
               const SizedBox(height: 12),
               _FormCard(
                 children: [
-                  DropdownButtonFormField<AssetType>(
+                  DropdownButtonFormField<AssetType?>(
                     decoration: InputDecoration(
                       labelText: l10n.assetType,
                       prefixIcon: const Icon(Icons.category_outlined, size: 18),
@@ -591,12 +599,18 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                     initialValue: _selectedType,
                     dropdownColor: kSurfaceColor,
                     style: const TextStyle(fontSize: 14, color: Colors.white),
-                    items: assetTypes.map((type) {
-                      return DropdownMenuItem(
-                        value: type,
-                        child: Text(type.name),
-                      );
-                    }).toList(),
+                    items: [
+                      DropdownMenuItem(
+                        value: null,
+                        child: Text(l10n.noneOption),
+                      ),
+                      ...assetTypes.map((type) {
+                        return DropdownMenuItem(
+                          value: type,
+                          child: Text(type.name),
+                        );
+                      }),
+                    ],
                     onChanged: _isEditing ? null : _onTypeChanged,
                     validator: (val) =>
                         val == null ? l10n.pleaseSelectType : null,
@@ -1134,32 +1148,34 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              DropdownButtonFormField<String>(
+              DropdownButtonFormField<String?>(
                 decoration: InputDecoration(labelText: l10n.targetAsset),
                 initialValue: selectedAssetId,
                 dropdownColor: kSurfaceColor,
                 style: const TextStyle(fontSize: 14, color: Colors.white),
-                items: available
-                    .map(
-                      (a) => DropdownMenuItem(value: a.id, child: Text(a.name)),
-                    )
-                    .toList(),
+                items: [
+                  DropdownMenuItem(value: null, child: Text(l10n.noneOption)),
+                  ...available.map(
+                    (a) => DropdownMenuItem(value: a.id, child: Text(a.name)),
+                  ),
+                ],
                 onChanged: (v) => setDlgState(() => selectedAssetId = v),
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
+              DropdownButtonFormField<String?>(
                 decoration: InputDecoration(labelText: l10n.relationType),
                 initialValue: selectedRelationType,
                 dropdownColor: kSurfaceColor,
                 style: const TextStyle(fontSize: 14, color: Colors.white),
-                items: relationTypeValues
-                    .map(
-                      (rt) => DropdownMenuItem(
-                        value: rt,
-                        child: Text(relationTypeLabel(l10n, rt)),
-                      ),
-                    )
-                    .toList(),
+                items: [
+                  DropdownMenuItem(value: null, child: Text(l10n.noneOption)),
+                  ...relationTypeValues.map(
+                    (rt) => DropdownMenuItem(
+                      value: rt,
+                      child: Text(relationTypeLabel(l10n, rt)),
+                    ),
+                  ),
+                ],
                 onChanged: (v) => setDlgState(() => selectedRelationType = v),
               ),
             ],
@@ -1225,32 +1241,34 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              DropdownButtonFormField<String>(
+              DropdownButtonFormField<String?>(
                 decoration: InputDecoration(labelText: l10n.targetAsset),
                 initialValue: selectedAssetId,
                 dropdownColor: kSurfaceColor,
                 style: const TextStyle(fontSize: 14, color: Colors.white),
-                items: assets
-                    .map(
-                      (a) => DropdownMenuItem(value: a.id, child: Text(a.name)),
-                    )
-                    .toList(),
+                items: [
+                  DropdownMenuItem(value: null, child: Text(l10n.noneOption)),
+                  ...assets.map(
+                    (a) => DropdownMenuItem(value: a.id, child: Text(a.name)),
+                  ),
+                ],
                 onChanged: (v) => setDlgState(() => selectedAssetId = v),
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
+              DropdownButtonFormField<String?>(
                 decoration: InputDecoration(labelText: l10n.relationType),
                 initialValue: selectedRelationType,
                 dropdownColor: kSurfaceColor,
                 style: const TextStyle(fontSize: 14, color: Colors.white),
-                items: relationTypeValues
-                    .map(
-                      (rt) => DropdownMenuItem(
-                        value: rt,
-                        child: Text(relationTypeLabel(l10n, rt)),
-                      ),
-                    )
-                    .toList(),
+                items: [
+                  DropdownMenuItem(value: null, child: Text(l10n.noneOption)),
+                  ...relationTypeValues.map(
+                    (rt) => DropdownMenuItem(
+                      value: rt,
+                      child: Text(relationTypeLabel(l10n, rt)),
+                    ),
+                  ),
+                ],
                 onChanged: (v) => setDlgState(() => selectedRelationType = v),
               ),
             ],
@@ -1409,16 +1427,22 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
     }
 
     if (schema.type == 'select') {
-      return DropdownButtonFormField<String>(
+      return DropdownButtonFormField<String?>(
         decoration: InputDecoration(
           labelText: schema.label + (schema.isRequired ? ' *' : ''),
         ),
         initialValue: _selectValues[schema.key],
         dropdownColor: kSurfaceColor,
         style: const TextStyle(fontSize: 14, color: Colors.white),
-        items: schema.options
-            .map((opt) => DropdownMenuItem(value: opt, child: Text(opt)))
-            .toList(),
+        items: [
+          DropdownMenuItem(
+            value: null,
+            child: Text(AppLocalizations.of(context)!.noneOption),
+          ),
+          ...schema.options.map(
+            (opt) => DropdownMenuItem(value: opt, child: Text(opt)),
+          ),
+        ],
         onChanged: (val) => setState(() => _selectValues[schema.key] = val),
         validator: (val) {
           if (schema.isRequired && (val == null || val.isEmpty)) {
