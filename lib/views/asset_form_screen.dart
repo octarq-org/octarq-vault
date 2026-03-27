@@ -450,10 +450,14 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
       }
 
       if (mounted) {
-        final returnPath = widget.defaultTypeId != null
-            ? '/category/${widget.defaultTypeId}'
-            : '/';
-        context.go(returnPath);
+        if (_isEditing) {
+          final returnPath = widget.defaultTypeId != null
+              ? '/category/${widget.defaultTypeId}'
+              : '/';
+          context.go(returnPath);
+        } else {
+          context.go('/asset/$assetId');
+        }
       }
     } catch (e) {
       if (mounted) {

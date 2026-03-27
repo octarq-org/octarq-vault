@@ -7,6 +7,7 @@ import '../services/secure_storage_service.dart';
 import '../services/notification_service.dart';
 import '../services/web_vault_storage.dart';
 import '../services/icloud_sync_service.dart';
+import '../services/passkey_service.dart';
 
 final databaseServiceProvider = Provider<DatabaseService>(
   (ref) => DatabaseService(),
@@ -32,3 +33,6 @@ final attachmentServiceProvider = Provider<AttachmentService>(
     ref.read(webVaultStorageProvider),
   ),
 );
+final passkeyServiceProvider = Provider<PasskeyService>((ref) {
+  return PasskeyService();
+});

@@ -253,6 +253,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get useBiometrics => 'Use Biometrics';
 
   @override
+  String get usePasskey => 'Use Passkey';
+
+  @override
+  String get passkeyUnlock => 'Passkey Unlock (Web)';
+
+  @override
+  String get passkeyUnlockSubtitle =>
+      'Use a browser passkey for local vault unlock';
+
+  @override
+  String get passkeyEnabled => 'Passkey unlock enabled';
+
+  @override
+  String get passkeyDisabled => 'Passkey unlock disabled';
+
+  @override
+  String get passkeySetupFailed => 'Failed to enable passkey unlock';
+
+  @override
+  String get passkeyAuthFailed => 'Passkey authentication failed';
+
+  @override
   String get searchHint => 'Search assets, tags, or fields...';
 
   @override
@@ -729,7 +751,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get username => 'Username';
 
   @override
+  String get usernameOptional => 'Username (optional)';
+
+  @override
   String get passwordOrAppToken => 'Password / App Token';
+
+  @override
+  String get passwordOrAppTokenOptional => 'Password / App Token (optional)';
 
   @override
   String get e2eeWebSync => 'E2EE Web Sync';

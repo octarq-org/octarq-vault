@@ -313,6 +313,90 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  Future<bool> unlockWithPasskey() async {
+    _lastError = null;
+    if (!kIsWeb) {
+      _lastError = 'Passkey unlock is only available on web.';
+      return false;
+    }
+    try {
+      final storage = ref.read(secureStorageServiceProvider);
+      final passkey = ref.read(passkeyServiceProvider);
+      final enabled = await storage.isWebPasskeyEnabled();
+      if (!enabled) {
+        _lastError = 'Passkey unlock is not enabled.';
+        return false;
+      }
+      if (!passkey.isSupported) {
+        _lastError = 'Passkey is not supported by this browser.';
+        return false;
+      }
+      final ok = await passkey.authenticate();
+      if (!ok) {
+        _lastError = 'Passkey authentication failed.';
+        return false;
+      }
+      final key = await storage.getStoredMasterKey();
+      if (key == null || key.isEmpty) {
+        _lastError = 'No stored key found.';
+        return false;
+      }
+
+      final encryption = ref.read(encryptionServiceProvider);
+      encryption.setMasterKey(key);
+      final saltBase64 = await storage.getSalt();
+      if (saltBase64 != null) {
+        encryption.setSalt(saltBase64);
+      }
+
+      state = AuthState.unlocked;
+      return true;
+    } catch (e, st) {
+      _lastError = e.toString();
+      if (kDebugMode) {
+        debugPrint('Passkey unlock failed: $e\n$st');
+      }
+      return false;
+    }
+  }
+
+  Future<bool> enableWebPasskey() async {
+    _lastError = null;
+    if (!kIsWeb) return false;
+    try {
+      final storage = ref.read(secureStorageServiceProvider);
+      final passkey = ref.read(passkeyServiceProvider);
+      if (!passkey.isSupported) {
+        _lastError = 'Passkey is not supported by this browser.';
+        return false;
+      }
+      final key = await storage.getStoredMasterKey();
+      if (key == null || key.isEmpty) {
+        _lastError = 'Unlock vault first before enabling passkey.';
+        return false;
+      }
+      final credentialId = await passkey.registerLocalCredential();
+      if (credentialId == null || credentialId.isEmpty) {
+        _lastError = 'Passkey registration failed or was cancelled.';
+        return false;
+      }
+      await storage.storeWebPasskeyCredentialId(credentialId);
+      await storage.setWebPasskeyEnabled(true);
+      return true;
+    } catch (e, st) {
+      _lastError = e.toString();
+      if (kDebugMode) {
+        debugPrint('Enable passkey failed: $e\n$st');
+      }
+      return false;
+    }
+  }
+
+  Future<void> disableWebPasskey() async {
+    if (!kIsWeb) return;
+    await ref.read(secureStorageServiceProvider).clearWebPasskey();
+  }
+
   Future<void> lock() async {
     ref.read(encryptionServiceProvider).wipeKey();
     if (!kIsWeb) {

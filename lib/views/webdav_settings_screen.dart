@@ -453,22 +453,16 @@ class _WebDavSettingsScreenState extends ConsumerState<WebDavSettingsScreen> {
                           TextFormField(
                             controller: _userController,
                             decoration: InputDecoration(
-                              labelText: l10n.username,
+                              labelText: l10n.usernameOptional,
                             ),
-                            validator: (val) => val == null || val.isEmpty
-                                ? l10n.required
-                                : null,
                           ),
                           const SizedBox(height: 16),
                           TextFormField(
                             controller: _passController,
                             decoration: InputDecoration(
-                              labelText: l10n.passwordOrAppToken,
+                              labelText: l10n.passwordOrAppTokenOptional,
                             ),
                             obscureText: true,
-                            validator: (val) => val == null || val.isEmpty
-                                ? l10n.required
-                                : null,
                           ),
                           const SizedBox(height: 24),
                           ElevatedButton(

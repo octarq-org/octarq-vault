@@ -249,6 +249,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String get useBiometrics => '使用生物识别';
 
   @override
+  String get usePasskey => '使用 Passkey';
+
+  @override
+  String get passkeyUnlock => 'Passkey 解锁（Web）';
+
+  @override
+  String get passkeyUnlockSubtitle => '使用浏览器 Passkey 进行本地保险库解锁';
+
+  @override
+  String get passkeyEnabled => '已启用 Passkey 解锁';
+
+  @override
+  String get passkeyDisabled => '已关闭 Passkey 解锁';
+
+  @override
+  String get passkeySetupFailed => '启用 Passkey 解锁失败';
+
+  @override
+  String get passkeyAuthFailed => 'Passkey 验证失败';
+
+  @override
   String get searchHint => '搜索资产、标签或字段…';
 
   @override
@@ -715,7 +736,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get username => '用户名';
 
   @override
+  String get usernameOptional => '用户名（选填）';
+
+  @override
   String get passwordOrAppToken => '密码 / 应用令牌';
+
+  @override
+  String get passwordOrAppTokenOptional => '密码 / 应用令牌（选填）';
 
   @override
   String get e2eeWebSync => 'E2EE 网页同步';

@@ -259,6 +259,29 @@ class AppLocalizationsEs extends AppLocalizations {
   String get useBiometrics => 'Usar biometría';
 
   @override
+  String get usePasskey => 'Usar passkey';
+
+  @override
+  String get passkeyUnlock => 'Desbloqueo con passkey (Web)';
+
+  @override
+  String get passkeyUnlockSubtitle =>
+      'Usa una passkey del navegador para desbloqueo local';
+
+  @override
+  String get passkeyEnabled => 'Desbloqueo con passkey activado';
+
+  @override
+  String get passkeyDisabled => 'Desbloqueo con passkey desactivado';
+
+  @override
+  String get passkeySetupFailed =>
+      'No se pudo activar el desbloqueo con passkey';
+
+  @override
+  String get passkeyAuthFailed => 'Falló la autenticación con passkey';
+
+  @override
   String get searchHint => 'Buscar activos, etiquetas o campos...';
 
   @override
@@ -738,7 +761,14 @@ class AppLocalizationsEs extends AppLocalizations {
   String get username => 'Usuario';
 
   @override
+  String get usernameOptional => 'Usuario (opcional)';
+
+  @override
   String get passwordOrAppToken => 'Contraseña / Token de aplicación';
+
+  @override
+  String get passwordOrAppTokenOptional =>
+      'Contraseña / Token de aplicación (opcional)';
 
   @override
   String get e2eeWebSync => 'Sincronización web E2EE';

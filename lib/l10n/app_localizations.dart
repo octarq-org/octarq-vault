@@ -568,6 +568,48 @@ abstract class AppLocalizations {
   /// **'Use Biometrics'**
   String get useBiometrics;
 
+  /// No description provided for @usePasskey.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Passkey'**
+  String get usePasskey;
+
+  /// No description provided for @passkeyUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Passkey Unlock (Web)'**
+  String get passkeyUnlock;
+
+  /// No description provided for @passkeyUnlockSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a browser passkey for local vault unlock'**
+  String get passkeyUnlockSubtitle;
+
+  /// No description provided for @passkeyEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Passkey unlock enabled'**
+  String get passkeyEnabled;
+
+  /// No description provided for @passkeyDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Passkey unlock disabled'**
+  String get passkeyDisabled;
+
+  /// No description provided for @passkeySetupFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to enable passkey unlock'**
+  String get passkeySetupFailed;
+
+  /// No description provided for @passkeyAuthFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Passkey authentication failed'**
+  String get passkeyAuthFailed;
+
   /// No description provided for @searchHint.
   ///
   /// In en, this message translates to:
@@ -1414,11 +1456,23 @@ abstract class AppLocalizations {
   /// **'Username'**
   String get username;
 
+  /// No description provided for @usernameOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Username (optional)'**
+  String get usernameOptional;
+
   /// No description provided for @passwordOrAppToken.
   ///
   /// In en, this message translates to:
   /// **'Password / App Token'**
   String get passwordOrAppToken;
+
+  /// No description provided for @passwordOrAppTokenOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Password / App Token (optional)'**
+  String get passwordOrAppTokenOptional;
 
   /// No description provided for @e2eeWebSync.
   ///

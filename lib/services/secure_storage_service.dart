@@ -16,6 +16,9 @@ class SecureStorageService {
   static const String _masterKeyAlias = 'octarq_vault_master_key';
   static const String _saltAlias = 'octarq_vault_salt';
   static const String _verifyAlias = 'octarq_vault_verify';
+  static const String _webPasskeyEnabledAlias = 'octarq_vault_web_passkey';
+  static const String _webPasskeyCredentialIdAlias =
+      'octarq_vault_web_passkey_credential_id';
 
   // Legacy aliases used before the rename — kept for migration only
   static const String _legacyMasterKeyAlias = 'asset_vault_master_key';
@@ -154,6 +157,51 @@ class SecureStorageService {
     }
   }
 
+  Future<Uint8List?> getStoredMasterKey() async {
+    String? keyBase64;
+    if (_useFallback) {
+      final prefs = await SharedPreferences.getInstance();
+      keyBase64 = prefs.getString(_masterKeyAlias);
+    } else {
+      try {
+        keyBase64 = await _storage.read(key: _masterKeyAlias);
+      } on PlatformException catch (e) {
+        throw Exception(
+          'Keychain unavailable: ${e.message}. '
+          'On macOS, code-signing is required for secure Keychain access.',
+        );
+      }
+    }
+    if (keyBase64 == null || keyBase64.isEmpty) return null;
+    return base64.decode(keyBase64);
+  }
+
+  Future<bool> isWebPasskeyEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_webPasskeyEnabledAlias) ?? false;
+  }
+
+  Future<void> setWebPasskeyEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_webPasskeyEnabledAlias, enabled);
+  }
+
+  Future<void> storeWebPasskeyCredentialId(String credentialId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_webPasskeyCredentialIdAlias, credentialId);
+  }
+
+  Future<String?> getWebPasskeyCredentialId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_webPasskeyCredentialIdAlias);
+  }
+
+  Future<void> clearWebPasskey() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_webPasskeyEnabledAlias);
+    await prefs.remove(_webPasskeyCredentialIdAlias);
+  }
+
   Future<Uint8List?> getMasterKeyWithBiometrics(String reason) async {
     if (kIsWeb) return null;
 
@@ -193,6 +241,8 @@ class SecureStorageService {
       await prefs.remove(_masterKeyAlias);
       await prefs.remove(_saltAlias);
       await prefs.remove(_verifyAlias);
+      await prefs.remove(_webPasskeyEnabledAlias);
+      await prefs.remove(_webPasskeyCredentialIdAlias);
       return;
     }
     await _storage.deleteAll();

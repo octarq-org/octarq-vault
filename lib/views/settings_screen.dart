@@ -82,12 +82,14 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _biometricEnabled = true;
+  bool _webPasskeyEnabled = false;
   String _appVersion = '...';
 
   @override
   void initState() {
     super.initState();
     _loadBiometricPref();
+    _loadWebPasskeyPref();
     _loadAppVersion();
     ref.read(syncSettingsProvider.notifier).load();
   }
@@ -118,6 +120,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('biometric_enabled', value);
     setState(() => _biometricEnabled = value);
+  }
+
+  Future<void> _loadWebPasskeyPref() async {
+    if (!kIsWeb) return;
+    final enabled = await ref
+        .read(secureStorageServiceProvider)
+        .isWebPasskeyEnabled();
+    if (!mounted) return;
+    setState(() => _webPasskeyEnabled = enabled);
+  }
+
+  Future<void> _toggleWebPasskey(bool value) async {
+    final l10n = AppLocalizations.of(context)!;
+    if (!kIsWeb) return;
+    if (value) {
+      final ok = await ref.read(authProvider.notifier).enableWebPasskey();
+      if (!mounted) return;
+      if (ok) {
+        setState(() => _webPasskeyEnabled = true);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.passkeyEnabled)));
+      } else {
+        final err = ref.read(authProvider.notifier).lastError;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(err ?? l10n.passkeySetupFailed)));
+      }
+    } else {
+      await ref.read(authProvider.notifier).disableWebPasskey();
+      if (!mounted) return;
+      setState(() => _webPasskeyEnabled = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.passkeyDisabled)));
+    }
   }
 
   void _showChangePasswordDialog() {
@@ -720,6 +758,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _biometricEnabled ? kPrimaryGreen : null,
               ),
               onChanged: _toggleBiometric,
+            ),
+          if (kIsWeb)
+            SwitchListTile(
+              secondary: const Icon(Icons.password_outlined),
+              title: Text(l10n.passkeyUnlock),
+              subtitle: Text(l10n.passkeyUnlockSubtitle),
+              value: _webPasskeyEnabled,
+              activeTrackColor: kPrimaryGreen.withValues(alpha: 0.5),
+              thumbColor: WidgetStatePropertyAll(
+                _webPasskeyEnabled ? kPrimaryGreen : null,
+              ),
+              onChanged: _toggleWebPasskey,
             ),
           ListTile(
             leading: const Icon(Icons.lock_reset_outlined),

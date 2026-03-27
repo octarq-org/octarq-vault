@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
+import '../providers/service_providers.dart';
 
 class LockScreen extends ConsumerStatefulWidget {
   const LockScreen({super.key});
@@ -16,6 +17,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   final _passwordController = TextEditingController();
   bool _isUnlocking = false;
   bool _biometricEnabled = true;
+  bool _passkeyEnabled = false;
 
   @override
   void initState() {
@@ -28,6 +30,8 @@ class _LockScreenState extends ConsumerState<LockScreen> {
           });
         }
       });
+    } else {
+      _loadPasskeySetting();
     }
   }
 
@@ -44,6 +48,14 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     } catch (_) {
       // Biometric not available or failed — user can use password
     }
+  }
+
+  Future<void> _loadPasskeySetting() async {
+    final enabled = await ref
+        .read(secureStorageServiceProvider)
+        .isWebPasskeyEnabled();
+    if (!mounted) return;
+    setState(() => _passkeyEnabled = enabled);
   }
 
   Future<void> _unlock() async {
@@ -77,6 +89,25 @@ class _LockScreenState extends ConsumerState<LockScreen> {
       );
     }
 
+    if (mounted) {
+      setState(() => _isUnlocking = false);
+    }
+  }
+
+  Future<void> _unlockWithPasskey() async {
+    if (_isUnlocking) return;
+    setState(() => _isUnlocking = true);
+    final success = await ref.read(authProvider.notifier).unlockWithPasskey();
+    if (!success && mounted) {
+      final error = ref.read(authProvider.notifier).lastError;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error ?? AppLocalizations.of(context)!.passkeyAuthFailed,
+          ),
+        ),
+      );
+    }
     if (mounted) {
       setState(() => _isUnlocking = false);
     }
@@ -130,6 +161,13 @@ class _LockScreenState extends ConsumerState<LockScreen> {
               TextButton(
                 onPressed: _isUnlocking ? null : _tryBiometricUnlock,
                 child: Text(AppLocalizations.of(context)!.useBiometrics),
+              ),
+            ],
+            if (kIsWeb && _passkeyEnabled) ...[
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: _isUnlocking ? null : _unlockWithPasskey,
+                child: Text(AppLocalizations.of(context)!.usePasskey),
               ),
             ],
           ],
