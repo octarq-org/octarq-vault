@@ -25,8 +25,22 @@
   "biometricUnlockSubtitle": "使用面容 ID / 指纹解锁",
   "autoLockTimeout": "自动锁定超时",
   "lockAfterMinutes": "后台 {minutes} 分钟后自动锁定",
+  "@lockAfterMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "oneMinute": "1 分钟",
   "minutesPlural": "{count} 分钟",
+  "@minutesPlural": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "expiration": "到期",
   "sync": "同步",
   "syncMethod": "同步方式",
@@ -40,7 +54,9 @@
   "configureSyncMethod": "配置 {method}",
   "@configureSyncMethod": {
     "placeholders": {
-      "method": {"type": "String"}
+      "method": {
+        "type": "String"
+      }
     }
   },
   "exportSyncSettings": "导出同步设置",
@@ -81,7 +97,7 @@
   "pleaseEnterMasterPassword": "请输入主密码",
   "incorrectPassword": "密码错误",
   "vaultLocked": "保险库已锁定",
-  "enterMasterPasswordToUnlock": "输入主密码以解锁",
+  "enterMasterPasswordToUnlock": "输入主密码以解锁。",
   "useBiometrics": "使用生物识别",
   "usePasskey": "使用 Passkey",
   "passkeyUnlock": "Passkey 解锁（Web）",
@@ -98,6 +114,16 @@
   "notifications": "通知",
   "noUpcomingExpirations": "暂无即将到期项",
   "expiresOnDays": "{date} 到期（剩余 {days} 天）",
+  "@expiresOnDays": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "totalAssets": "资产总数",
   "expiringWithin30Days": "30 天内到期",
   "estMonthlyCost": "预估月费用",
@@ -106,7 +132,9 @@
   "searchViewAllResults": "查看全部 {count} 条结果",
   "@searchViewAllResults": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "recentlyAdded": "最近添加",
@@ -132,9 +160,23 @@
   "revealSecrets": "显示敏感信息",
   "errorDecrypting": "解密失败",
   "fieldCopied": "已复制 {label}",
+  "@fieldCopied": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "noLinkedAssets": "无关联资产。",
   "removeLinkConfirm": "移除链接？",
   "errorLoadingRelations": "加载关系失败：{error}",
+  "@errorLoadingRelations": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "linkAsset": "关联资产",
   "targetAsset": "目标资产",
   "relationType": "关系类型",
@@ -150,6 +192,13 @@
   "recurring": "重复",
   "daysBefore": "提前天数",
   "daysCount": "{count} 天",
+  "@daysCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pleaseSelectType": "请选择类型",
   "required": "必填",
   "addTagHint": "添加标签…",
@@ -168,14 +217,30 @@
   "basicInfo": "基本信息",
   "tags": "标签",
   "saveAssetFailed": "保存资产失败：{error}",
+  "@saveAssetFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "errorGeneric": "错误：{error}",
+  "@errorGeneric": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "manageAssetTypes": "管理资产类型",
   "deleteCustomType": "删除自定义类型",
   "deleteCustomTypeConfirmation": "确定删除？该类型的现有资产可能丢失模板映射。",
   "assetTypeDeleteInUse": "无法删除：该分类已被 {count} 个资产使用。",
   "@assetTypeDeleteInUse": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "newAssetType": "新建资产类型",
@@ -193,15 +258,43 @@
   "color": "颜色",
   "deleteTag": "删除标签",
   "deleteTagConfirmation": "从所有资产中移除「{name}」？",
+  "@deleteTagConfirmation": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "addTag": "添加标签",
   "noTagsYet": "暂无标签",
   "tagsCreatedWhenAdded": "将标签添加到资产时会自动创建。",
   "assetCount": "{count} 个资产",
+  "@assetCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "expiringIn30Days": "30 天内到期",
   "expired": "已到期",
   "noMatchesFound": "未找到匹配项。",
   "selectedCount": "已选 {count} 项",
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "itemsCount": "{count} 项",
+  "@itemsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "hideArchived": "隐藏已归档",
   "showArchived": "显示已归档",
   "filterAll": "全部",
@@ -219,22 +312,92 @@
   "unlockBackup": "解锁备份",
   "wrongPassword": "密码错误",
   "importedEncCount": "已从 .enc 文件导入 {count} 个资产",
+  "@importedEncCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "clipboardEmpty": "剪贴板为空。",
   "invalidSyncSettingsJson": "同步设置 JSON 无效：{error}",
+  "@invalidSyncSettingsJson": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "cannotOpenUrl": "无法打开：{url}",
+  "@cannotOpenUrl": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
   "validationNoAssetsInJson": "JSON 中无资产。",
   "importSuccessCount": "已成功导入 {count} 个资产！",
+  "@importSuccessCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "importInvalid": "导入无效：{error}",
+  "@importInvalid": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "importFailed": "导入失败：{error}",
+  "@importFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "invalidJsonOrFormat": "JSON 或格式无效。",
   "webdavBackup": "WebDAV 备份",
   "webdavConnected": "已连接 WebDAV",
   "webdavConnectedSuccess": "已成功连接 WebDAV！",
   "webdavConnectionFailed": "连接失败：{error}",
+  "@webdavConnectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "e2eeBackupSuccess": "E2EE 备份成功！",
   "backupFailed": "备份失败：{error}",
+  "@backupFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "restoredAssetsE2ee": "已恢复 {count} 个资产 (E2EE)",
+  "@restoredAssetsE2ee": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "restoreFailed": "恢复失败：{error}",
+  "@restoreFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "backupToWebdav": "备份到 WebDAV",
   "restoreFromWebdav": "从 WebDAV 恢复",
   "restoreFromIcloud": "从 iCloud 恢复",
@@ -258,12 +421,40 @@
   "authorizeSyncGoogleDrive": "授权并同步到 Google 云端硬盘",
   "pullFromGoogleDrive": "从 Google 云端硬盘拉取（覆盖本地）",
   "restoredAssetsFromFile": "已从文件恢复 {count} 个资产",
+  "@restoredAssetsFromFile": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "browserNoFilePickUseFallback": "当前浏览器不支持直接选择文件，请使用下方导入/导出备用按钮。",
   "pushedToGoogleDriveSuccess": "已安全推送到 Google 云端硬盘",
   "driveError": "云端硬盘错误：{error}",
+  "@driveError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "restoredAssetsFromDrive": "已从云端硬盘恢复 {count} 个资产",
+  "@restoredAssetsFromDrive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "noBackupFoundOnDrive": "云端硬盘上未找到备份。",
   "importError": "导入错误：{error}",
+  "@importError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "welcomeToOctarqVault": "欢迎使用 OctarqVault",
   "setMasterPassword": "设置主密码",
   "setupPasswordDescription": "此密码用于本地加密全部数据。忘记后无法恢复数据。",
@@ -275,14 +466,44 @@
   "passwordTooShort": "密码过短（至少 12 个字符）",
   "passwordsDoNotMatch": "两次密码不一致",
   "createVaultFailed": "创建保险库失败：{error}",
+  "@createVaultFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "unknownError": "未知错误",
   "vaultFound": "发现保险库",
-  "enterMasterPasswordToUnlock": "输入主密码以解锁。",
   "vaultRestoredSuccess": "保险库已恢复！",
   "unlockFailed": "解锁失败：{error}",
+  "@unlockFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "fallbackError": "备用错误：{error}",
+  "@fallbackError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "notificationAssetExpiringTitle": "资产即将到期",
   "notificationAssetExpiringBody": "{name} 将在 {days} 天后到期。",
+  "@notificationAssetExpiringBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "notificationChannelName": "资产到期",
   "notificationChannelDescription": "即将到期资产的通知",
   "webSecurityTitle": "Web 安全提示",
@@ -292,8 +513,12 @@
   "driveSmartMergeSuccess": "已合并：本地 {local} 个 + 远端 {remote} 个资产（LWW）",
   "@driveSmartMergeSuccess": {
     "placeholders": {
-      "local": {"type": "int"},
-      "remote": {"type": "int"}
+      "local": {
+        "type": "int"
+      },
+      "remote": {
+        "type": "int"
+      }
     }
   },
   "icloudBackup": "iCloud 备份",
@@ -302,7 +527,9 @@
   "icloudRestoreSuccess": "已从 iCloud 恢复 {count} 个资产",
   "@icloudRestoreSuccess": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "icloudNotAvailable": "此设备上 iCloud 不可用。",
@@ -324,7 +551,9 @@
   "driveMergeConflictsSnack": "已合并，有 {count} 个冲突待处理。",
   "@driveMergeConflictsSnack": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "webdavWebGuideTitle": "Web / WebDAV 说明",
@@ -343,13 +572,17 @@
   "orphanDataMovedToField": "已填入「{fieldName}」，请保存以生效。",
   "@orphanDataMovedToField": {
     "placeholders": {
-      "fieldName": {"type": "String"}
+      "fieldName": {
+        "type": "String"
+      }
     }
   },
   "fieldEditorUnavailable": "该字段无法编辑（内部错误）。键：{key}",
   "@fieldEditorUnavailable": {
     "placeholders": {
-      "key": {"type": "String"}
+      "key": {
+        "type": "String"
+      }
     }
   }
 }
