@@ -428,6 +428,14 @@ class _Sidebar extends ConsumerWidget {
     for (final a in assets) {
       typeCounts[a.typeId] = (typeCounts[a.typeId] ?? 0) + 1;
     }
+    final categoryTypes = List<AssetType>.from(assetTypes)
+      ..sort((a, b) {
+        final ca = typeCounts[a.id] ?? 0;
+        final cb = typeCounts[b.id] ?? 0;
+        final byCount = cb.compareTo(ca);
+        if (byCount != 0) return byCount;
+        return a.name.compareTo(b.name);
+      });
 
     return Container(
       width: 260,
@@ -499,9 +507,9 @@ class _Sidebar extends ConsumerWidget {
           Expanded(
             child: ListView.builder(
               padding: EdgeInsets.zero,
-              itemCount: assetTypes.length,
+              itemCount: categoryTypes.length,
               itemBuilder: (context, index) {
-                final type = assetTypes[index];
+                final type = categoryTypes[index];
                 final targetPath = '/category/${type.id}';
                 return _SidebarItem(
                   icon: getIconData(type.icon),
