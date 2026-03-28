@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:go_router/go_router.dart';
@@ -49,8 +50,20 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
   final List<Reminder> _reminders = [];
   final List<({String assetId, String relationType})> _pendingLinks = [];
   final List<PickedLocalFile> _pendingAttachments = [];
+  final List<_OrphanFieldEntry> _orphanFieldEntries = [];
+  final Map<String, String?> _orphanMigrationTargets = {};
 
   bool get _isEditing => widget.editingAsset != null;
+
+  String _humanizeFieldKey(String key) {
+    final normalized = key
+        .replaceAll('-', '_')
+        .split('_')
+        .where((s) => s.isNotEmpty)
+        .map((s) => s[0].toUpperCase() + s.substring(1))
+        .join(' ');
+    return normalized.isEmpty ? key : normalized;
+  }
 
   @override
   void initState() {
@@ -104,9 +117,9 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
           );
       _onTypeChanged(resolvedType);
       final encryptionService = ref.read(encryptionServiceProvider);
-      final exactMatchedKeys = <String>{};
       final unresolved = <({AssetField field, String value})>[];
       for (final field in asset.fields) {
+        if (field.key == _notesFieldKey) continue;
         String value;
         if (field.isSensitive) {
           try {
@@ -119,76 +132,30 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
         }
 
         if (_multiValues.containsKey(field.key)) {
-          exactMatchedKeys.add(field.key);
           _multiValues[field.key] = value
               .split(',')
               .map((e) => e.trim())
               .where((e) => e.isNotEmpty)
               .toList();
         } else if (_fieldControllers.containsKey(field.key)) {
-          exactMatchedKeys.add(field.key);
           _fieldControllers[field.key]!.text = value;
         } else if (_selectValues.containsKey(field.key)) {
-          exactMatchedKeys.add(field.key);
           _selectValues[field.key] = value;
         } else {
           unresolved.add((field: field, value: value));
         }
       }
 
-      // Backward compatibility: if schema keys changed, map unresolved values
-      // into first available fields so users can still see and recover data.
-      final unmatchedTextKeys = resolvedType.fieldSchema
-          .where(
-            (s) =>
-                s.type != 'select' &&
-                s.key != 'email_aliases' &&
-                _fieldControllers.containsKey(s.key) &&
-                !exactMatchedKeys.contains(s.key),
-          )
-          .map((s) => s.key)
-          .toList();
-      final unmatchedSelectKeys = resolvedType.fieldSchema
-          .where(
-            (s) =>
-                s.type == 'select' &&
-                _selectValues.containsKey(s.key) &&
-                !exactMatchedKeys.contains(s.key),
-          )
-          .map((s) => s.key)
-          .toList();
-      final unmatchedMultiKeys = resolvedType.fieldSchema
-          .where(
-            (s) =>
-                s.key == 'email_aliases' &&
-                _multiValues.containsKey(s.key) &&
-                !exactMatchedKeys.contains(s.key),
-          )
-          .map((s) => s.key)
-          .toList();
-
-      var textIdx = 0;
-      var selectIdx = 0;
-      var multiIdx = 0;
-      for (final item in unresolved) {
-        if (item.value.contains(',') && multiIdx < unmatchedMultiKeys.length) {
-          final key = unmatchedMultiKeys[multiIdx++];
-          _multiValues[key] = item.value
-              .split(',')
-              .map((e) => e.trim())
-              .where((e) => e.isNotEmpty)
-              .toList();
-          continue;
-        }
-        if (textIdx < unmatchedTextKeys.length) {
-          _fieldControllers[unmatchedTextKeys[textIdx++]]!.text = item.value;
-          continue;
-        }
-        if (selectIdx < unmatchedSelectKeys.length) {
-          _selectValues[unmatchedSelectKeys[selectIdx++]] = item.value;
-          continue;
-        }
-      }
+      _orphanFieldEntries
+        ..clear()
+        ..addAll(
+          unresolved.map(
+            (e) => _OrphanFieldEntry(field: e.field, plainValue: e.value),
+          ),
+        );
+      _orphanMigrationTargets.removeWhere(
+        (id, _) => !_orphanFieldEntries.any((o) => o.field.id == id),
+      );
       setState(() {});
     });
   }
@@ -225,6 +192,8 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
       _fieldControllers.clear();
       _selectValues.clear();
       _multiValues.clear();
+      _orphanFieldEntries.clear();
+      _orphanMigrationTargets.clear();
       for (final schema in newType.fieldSchema) {
         if (schema.type == 'select') {
           _selectValues[schema.key] = null;
@@ -429,6 +398,10 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
             isSensitive: schema.isEncrypted,
           ),
         );
+      }
+
+      for (final orphan in _orphanFieldEntries) {
+        fields.add(orphan.field.copyWith(assetId: assetId));
       }
 
       final remindersWithAssetId = _reminders
@@ -1016,10 +989,210 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
                 ),
                 const SizedBox(height: 40),
               ],
+
+              if (_selectedType != null && _orphanFieldEntries.isNotEmpty) ...[
+                _SectionLabel(l10n.unmatchedLegacyDataTitle),
+                const SizedBox(height: 8),
+                Text(
+                  l10n.unmatchedLegacyDataBody,
+                  style: const TextStyle(color: kTextMuted, fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+                _FormCard(
+                  children: [
+                    for (var i = 0; i < _orphanFieldEntries.length; i++) ...[
+                      if (i > 0) const Divider(height: 28),
+                      _buildOrphanFieldRow(
+                        context,
+                        l10n,
+                        _orphanFieldEntries[i],
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 40),
+              ],
             ],
           ),
         ),
       ),
+    );
+  }
+
+  List<({String key, String label})> _migrationTargetsFor(String plainValue) {
+    final t = _selectedType;
+    if (t == null) return [];
+    final out = <({String key, String label})>[];
+    for (final s in t.fieldSchema) {
+      if (s.key == 'email_aliases') {
+        out.add((key: s.key, label: s.label));
+      } else if (s.type == 'select') {
+        if (s.options.contains(plainValue)) {
+          out.add((key: s.key, label: s.label));
+        }
+      } else if (s.type == 'password' ||
+          s.type == 'text' ||
+          s.type == 'number' ||
+          s.type == 'date') {
+        out.add((key: s.key, label: s.label));
+      }
+    }
+    return out;
+  }
+
+  Future<void> _copyOrphanPlainValue(
+    BuildContext context,
+    AppLocalizations l10n,
+    String plainValue,
+    String snackLabel,
+  ) async {
+    try {
+      await Clipboard.setData(ClipboardData(text: plainValue));
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.fieldCopied(snackLabel)),
+          duration: const Duration(seconds: 1),
+          backgroundColor: kSurfaceColor,
+        ),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.clipboardUnavailable)));
+    }
+  }
+
+  void _applyOrphanMigration(_OrphanFieldEntry entry, String targetKey) {
+    final l10n = AppLocalizations.of(context)!;
+    final schema = _selectedType!.fieldSchema.firstWhere(
+      (s) => s.key == targetKey,
+    );
+    if (schema.type != 'select' &&
+        schema.key != 'email_aliases' &&
+        _fieldControllers[targetKey] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.fieldEditorUnavailable(targetKey))),
+      );
+      return;
+    }
+    setState(() {
+      if (schema.type == 'select') {
+        _selectValues[targetKey] = entry.plainValue;
+      } else if (schema.key == 'email_aliases') {
+        final parts = entry.plainValue
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+        _multiValues[targetKey] =
+            parts.isEmpty && entry.plainValue.trim().isNotEmpty
+            ? [entry.plainValue.trim()]
+            : parts;
+      } else {
+        _fieldControllers[targetKey]!.text = entry.plainValue;
+      }
+      _orphanFieldEntries.removeWhere((e) => e.field.id == entry.field.id);
+      _orphanMigrationTargets.remove(entry.field.id);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(l10n.orphanDataMovedToField(schema.label)),
+        duration: const Duration(seconds: 2),
+        backgroundColor: kSurfaceColor,
+      ),
+    );
+  }
+
+  Widget _buildOrphanFieldRow(
+    BuildContext context,
+    AppLocalizations l10n,
+    _OrphanFieldEntry entry,
+  ) {
+    final title = _humanizeFieldKey(entry.field.key);
+    final targets = _migrationTargetsFor(entry.plainValue);
+    final selected = _orphanMigrationTargets[entry.field.id];
+    final displayValue = entry.field.isSensitive
+        ? '••••••••'
+        : entry.plainValue;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          '$title (${entry.field.key})',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+        const SizedBox(height: 6),
+        SelectableText(
+          displayValue.isEmpty ? '—' : displayValue,
+          style: const TextStyle(fontSize: 14, color: Colors.white70),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            OutlinedButton.icon(
+              onPressed: () =>
+                  _copyOrphanPlainValue(context, l10n, entry.plainValue, title),
+              icon: const Icon(Icons.copy, size: 16),
+              label: Text(l10n.copy),
+            ),
+            if (targets.isNotEmpty) ...[
+              SizedBox(
+                width: 220,
+                child: DropdownButtonFormField<String>(
+                  key: ValueKey(
+                    'orphan_migrate_${entry.field.id}_${selected ?? 'nil'}',
+                  ),
+                  decoration: InputDecoration(
+                    labelText: l10n.migrateOrphanToField,
+                    isDense: true,
+                  ),
+                  dropdownColor: kSurfaceColor,
+                  style: const TextStyle(fontSize: 13, color: Colors.white),
+                  initialValue:
+                      selected != null && targets.any((t) => t.key == selected)
+                      ? selected
+                      : null,
+                  items: targets
+                      .map(
+                        (t) => DropdownMenuItem(
+                          value: t.key,
+                          child: Text(t.label, overflow: TextOverflow.ellipsis),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) => setState(
+                    () => _orphanMigrationTargets[entry.field.id] = v,
+                  ),
+                ),
+              ),
+              FilledButton(
+                onPressed: selected == null
+                    ? null
+                    : () => _applyOrphanMigration(entry, selected),
+                style: FilledButton.styleFrom(
+                  backgroundColor: kPrimaryGreen,
+                  foregroundColor: Colors.black,
+                ),
+                child: Text(l10n.migrateOrphanApply),
+              ),
+            ],
+          ],
+        ),
+        if (targets.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              l10n.migrateOrphanNoTargets,
+              style: const TextStyle(color: kTextMuted, fontSize: 12),
+            ),
+          ),
+      ],
     );
   }
 
@@ -1432,7 +1605,13 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
     final hasSuggestedOptions =
         schema.type != 'select' && schema.options.isNotEmpty;
     if (hasSuggestedOptions) {
-      final controller = _fieldControllers[schema.key]!;
+      final controller = _fieldControllers[schema.key];
+      if (controller == null) {
+        return Text(
+          AppLocalizations.of(context)!.fieldEditorUnavailable(schema.key),
+          style: const TextStyle(color: kTextMuted, fontSize: 13),
+        );
+      }
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1523,6 +1702,12 @@ class _AssetFormScreenState extends ConsumerState<AssetFormScreen> {
       return kPrimaryGreen;
     }
   }
+}
+
+class _OrphanFieldEntry {
+  const _OrphanFieldEntry({required this.field, required this.plainValue});
+  final AssetField field;
+  final String plainValue;
 }
 
 // ─── Small Shared Widgets ───────────────────────────────────────────────────

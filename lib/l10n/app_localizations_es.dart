@@ -1037,4 +1037,31 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get noneOption => 'Ninguno';
+
+  @override
+  String get unmatchedLegacyDataTitle => 'Datos antiguos sin coincidencia';
+
+  @override
+  String get unmatchedLegacyDataBody =>
+      'Estos valores usan claves que ya no están en el tipo actual. Se muestran solo lectura para no rellenar el campo equivocado. Se conservan al guardar salvo que los muevas a un campo abajo.';
+
+  @override
+  String get migrateOrphanToField => 'Mover a campo';
+
+  @override
+  String get migrateOrphanApply => 'Mover';
+
+  @override
+  String get migrateOrphanNoTargets =>
+      'No hay campo compatible. Usa Copiar y pega manualmente.';
+
+  @override
+  String orphanDataMovedToField(String fieldName) {
+    return 'Movido a «$fieldName». Guarda para aplicar.';
+  }
+
+  @override
+  String fieldEditorUnavailable(String key) {
+    return 'No se puede editar este campo (error interno). Clave: $key';
+  }
 }

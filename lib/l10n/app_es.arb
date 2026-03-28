@@ -485,5 +485,22 @@
   "webdavProxySaveNote": "Solo en este navegador. Una versión futura podría usar esta URL con un proxy compatible.",
   "webdavProxySaved": "URL de referencia guardada.",
   "attachmentsWillBeUploadedAfterSave": "Los adjuntos se subirán después de guardar este activo.",
-  "noneOption": "Ninguno"
+  "noneOption": "Ninguno",
+  "unmatchedLegacyDataTitle": "Datos antiguos sin coincidencia",
+  "unmatchedLegacyDataBody": "Estos valores usan claves que ya no están en el tipo actual. Se muestran solo lectura para no rellenar el campo equivocado. Se conservan al guardar salvo que los muevas a un campo abajo.",
+  "migrateOrphanToField": "Mover a campo",
+  "migrateOrphanApply": "Mover",
+  "migrateOrphanNoTargets": "No hay campo compatible. Usa Copiar y pega manualmente.",
+  "orphanDataMovedToField": "Movido a «{fieldName}». Guarda para aplicar.",
+  "@orphanDataMovedToField": {
+    "placeholders": {
+      "fieldName": {"type": "String"}
+    }
+  },
+  "fieldEditorUnavailable": "No se puede editar este campo (error interno). Clave: {key}",
+  "@fieldEditorUnavailable": {
+    "placeholders": {
+      "key": {"type": "String"}
+    }
+  }
 }

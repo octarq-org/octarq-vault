@@ -486,5 +486,22 @@
   "webdavProxySaveNote": "Saved on this browser only. A future version may route sync through this URL if you run a compatible proxy.",
   "webdavProxySaved": "Reference URL saved.",
   "attachmentsWillBeUploadedAfterSave": "Attachments will upload after saving this asset.",
-  "noneOption": "None"
+  "noneOption": "None",
+  "unmatchedLegacyDataTitle": "Unmatched legacy data",
+  "unmatchedLegacyDataBody": "These values use field keys that are not in the current type. They are shown read-only so nothing is guessed into the wrong place. They stay on the asset when you save unless you move them into a field below.",
+  "migrateOrphanToField": "Move to field",
+  "migrateOrphanApply": "Move",
+  "migrateOrphanNoTargets": "No compatible target field. Use Copy and paste into a field manually.",
+  "orphanDataMovedToField": "Moved into “{fieldName}”. Save to persist.",
+  "@orphanDataMovedToField": {
+    "placeholders": {
+      "fieldName": {"type": "String"}
+    }
+  },
+  "fieldEditorUnavailable": "This field cannot be edited (missing editor). Key: {key}",
+  "@fieldEditorUnavailable": {
+    "placeholders": {
+      "key": {"type": "String"}
+    }
+  }
 }

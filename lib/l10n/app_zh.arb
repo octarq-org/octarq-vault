@@ -334,5 +334,22 @@
   "webdavProxySaveNote": "仅保存在本浏览器。后续版本若支持，可通过兼容代理走同步。",
   "webdavProxySaved": "已保存备忘地址。",
   "attachmentsWillBeUploadedAfterSave": "附件会在保存资产后自动上传。",
-  "noneOption": "无"
+  "noneOption": "无",
+  "unmatchedLegacyDataTitle": "未匹配的旧数据",
+  "unmatchedLegacyDataBody": "这些值的字段键已不在当前类型中。此处只读展示，避免误填到错误字段。若未迁移到下方字段，保存后仍会保留在原键上。",
+  "migrateOrphanToField": "迁移到字段",
+  "migrateOrphanApply": "迁移",
+  "migrateOrphanNoTargets": "没有可自动匹配的目标字段，请使用复制后手动粘贴。",
+  "orphanDataMovedToField": "已填入「{fieldName}」，请保存以生效。",
+  "@orphanDataMovedToField": {
+    "placeholders": {
+      "fieldName": {"type": "String"}
+    }
+  },
+  "fieldEditorUnavailable": "该字段无法编辑（内部错误）。键：{key}",
+  "@fieldEditorUnavailable": {
+    "placeholders": {
+      "key": {"type": "String"}
+    }
+  }
 }

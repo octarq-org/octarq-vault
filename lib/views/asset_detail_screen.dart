@@ -321,10 +321,6 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
     final notesField = asset.fields
         .where((f) => f.key == _notesFieldKey && f.valueEnc.trim().isNotEmpty)
         .firstOrNull;
-    final genericSchemaLabels = assetType.fieldSchema
-        .map((s) => s.label)
-        .toList();
-    final usedGenericLabels = <String>{};
 
     for (final schema in assetType.fieldSchema) {
       final fieldData = asset.fields
@@ -356,17 +352,8 @@ class _AssetDetailScreenState extends ConsumerState<AssetDetailScreen> {
     for (final fieldData in asset.fields) {
       if (fieldData.key == _notesFieldKey) continue;
       if (renderedKeys.contains(fieldData.key)) continue;
-      String fallbackLabel =
+      final fallbackLabel =
           schemaByKey[fieldData.key]?.label ?? _humanizeFieldKey(fieldData.key);
-      if (fieldData.key.startsWith('field_')) {
-        final candidate = genericSchemaLabels
-            .where((label) => !usedGenericLabels.contains(label))
-            .firstOrNull;
-        if (candidate != null && candidate.trim().isNotEmpty) {
-          fallbackLabel = candidate;
-          usedGenericLabels.add(candidate);
-        }
-      }
       displayedFieldRows.add(
         _FieldRow(
           label: fallbackLabel,

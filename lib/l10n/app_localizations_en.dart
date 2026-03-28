@@ -1018,4 +1018,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noneOption => 'None';
+
+  @override
+  String get unmatchedLegacyDataTitle => 'Unmatched legacy data';
+
+  @override
+  String get unmatchedLegacyDataBody =>
+      'These values use field keys that are not in the current type. They are shown read-only so nothing is guessed into the wrong place. They stay on the asset when you save unless you move them into a field below.';
+
+  @override
+  String get migrateOrphanToField => 'Move to field';
+
+  @override
+  String get migrateOrphanApply => 'Move';
+
+  @override
+  String get migrateOrphanNoTargets =>
+      'No compatible target field. Use Copy and paste into a field manually.';
+
+  @override
+  String orphanDataMovedToField(String fieldName) {
+    return 'Moved into “$fieldName”. Save to persist.';
+  }
+
+  @override
+  String fieldEditorUnavailable(String key) {
+    return 'This field cannot be edited (missing editor). Key: $key';
+  }
 }

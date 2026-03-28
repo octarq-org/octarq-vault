@@ -993,4 +993,30 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get noneOption => '无';
+
+  @override
+  String get unmatchedLegacyDataTitle => '未匹配的旧数据';
+
+  @override
+  String get unmatchedLegacyDataBody =>
+      '这些值的字段键已不在当前类型中。此处只读展示，避免误填到错误字段。若未迁移到下方字段，保存后仍会保留在原键上。';
+
+  @override
+  String get migrateOrphanToField => '迁移到字段';
+
+  @override
+  String get migrateOrphanApply => '迁移';
+
+  @override
+  String get migrateOrphanNoTargets => '没有可自动匹配的目标字段，请使用复制后手动粘贴。';
+
+  @override
+  String orphanDataMovedToField(String fieldName) {
+    return '已填入「$fieldName」，请保存以生效。';
+  }
+
+  @override
+  String fieldEditorUnavailable(String key) {
+    return '该字段无法编辑（内部错误）。键：$key';
+  }
 }

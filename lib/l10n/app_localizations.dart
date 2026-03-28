@@ -1917,6 +1917,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'None'**
   String get noneOption;
+
+  /// No description provided for @unmatchedLegacyDataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unmatched legacy data'**
+  String get unmatchedLegacyDataTitle;
+
+  /// No description provided for @unmatchedLegacyDataBody.
+  ///
+  /// In en, this message translates to:
+  /// **'These values use field keys that are not in the current type. They are shown read-only so nothing is guessed into the wrong place. They stay on the asset when you save unless you move them into a field below.'**
+  String get unmatchedLegacyDataBody;
+
+  /// No description provided for @migrateOrphanToField.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to field'**
+  String get migrateOrphanToField;
+
+  /// No description provided for @migrateOrphanApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Move'**
+  String get migrateOrphanApply;
+
+  /// No description provided for @migrateOrphanNoTargets.
+  ///
+  /// In en, this message translates to:
+  /// **'No compatible target field. Use Copy and paste into a field manually.'**
+  String get migrateOrphanNoTargets;
+
+  /// No description provided for @orphanDataMovedToField.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved into “{fieldName}”. Save to persist.'**
+  String orphanDataMovedToField(String fieldName);
+
+  /// No description provided for @fieldEditorUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This field cannot be edited (missing editor). Key: {key}'**
+  String fieldEditorUnavailable(String key);
 }
 
 class _AppLocalizationsDelegate
